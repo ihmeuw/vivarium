@@ -159,8 +159,7 @@ class ResultsManager(Manager):
         excluded_categories: list[str] | None,
         mapper: VectorMapper | ScalarMapper | None,
         is_vectorized: bool,
-        requires_columns: list[str] = [],
-        requires_values: list[str] = [],
+        requires_attributes: list[str] = [],
     ) -> None:
         """Manager-level stratification registration.
 
@@ -178,26 +177,21 @@ class ResultsManager(Manager):
             List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
-            A callable that maps the columns and value pipelines specified by the
-            `requires_columns` and `requires_values` arguments to the stratification
-            categories. It can either map the entire population or an individual
-            simulant. A simulation will fail if the `mapper` ever produces an invalid
-            value.
+            A callable that maps population attributes specified by the
+            `requires_attributes` argument to the stratification categories. It can
+            either map the entire population or an individual simulant. A simulation
+            will fail if the `mapper` ever produces an invalid value.
         is_vectorized
             True if the `mapper` function will map the entire population, and False
             if it will only map a single simulant.
-        requires_columns
+        requires_attributes
             A list of the state table columns that are required by the `mapper`
             to produce the stratification.
-        requires_values
-            A list of the value pipelines that are required by the `mapper` to
-            produce the stratification.
         """
         self.logger.debug(f"Registering stratification {name}")
         self._results_context.add_stratification(
             name=name,
-            requires_columns=requires_columns,
-            requires_values=[self.get_attribute(value) for value in requires_values],
+            requires_attributes=requires_attributes,
             categories=categories,
             excluded_categories=excluded_categories,
             mapper=mapper,
@@ -211,7 +205,6 @@ class ResultsManager(Manager):
         bin_edges: Sequence[int | float],
         labels: list[str],
         excluded_categories: list[str] | None,
-        target_type: str,
         **cut_kwargs: int | str | bool,
     ) -> None:
         """Manager-level registration of a continuous `target` quantity to observe
@@ -232,9 +225,6 @@ class ResultsManager(Manager):
         excluded_categories
             List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
-        target_type
-            Type specification of the `target` to be binned. "column" if it's a
-            state table column or "value" if it's a value pipeline.
         **cut_kwargs
             Keyword arguments for :meth: pandas.cut.
         """
@@ -261,16 +251,13 @@ class ResultsManager(Manager):
                 f"match the number of labels ({len(labels)})"
             )
 
-        target_arg = "requires_columns" if target_type == "column" else "requires_values"
-        target_kwargs = {target_arg: [target]}
-
         self.register_stratification(
             name=binned_column,
             categories=labels,
             excluded_categories=excluded_categories,
             mapper=_bin_data,
             is_vectorized=True,
-            **target_kwargs,
+            requires_attributes=[target],
         )
 
     def register_observation(
@@ -279,8 +266,7 @@ class ResultsManager(Manager):
         name: str,
         pop_filter: str,
         when: str,
-        requires_columns: list[str],
-        requires_values: list[str],
+        requires_attributes: list[str],
         **kwargs: Any,
     ) -> None:
         """Manager-level observation registration.
@@ -301,22 +287,16 @@ class ResultsManager(Manager):
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-        requires_columns
-            List of the state table columns that are required to compute the observation.
-        requires_values
-            List of the value pipelines that are required to compute the observation.
+        requires_attributes
+            The population attributes that are required to compute the observation.
         **kwargs
             Additional keyword arguments to be passed to the observation's constructor.
         """
         self.logger.debug(f"Registering observation {name}")
 
-        if any(not isinstance(column, str) for column in requires_columns):
+        if any(not isinstance(attribute, str) for attribute in requires_attributes):
             raise TypeError(
-                f"All required columns must be strings, but got {requires_columns} when registering observation {name}."
-            )
-        if any(not isinstance(value, str) for value in requires_values):
-            raise TypeError(
-                f"All required values must be strings, but got {requires_values} when registering observation {name}."
+                f"All required attributes must be strings, but got {requires_attributes} when registering observation {name}."
             )
 
         if observation_type.is_stratified():
@@ -336,8 +316,7 @@ class ResultsManager(Manager):
             name=name,
             pop_filter=pop_filter,
             when=when,
-            requires_columns=requires_columns,
-            requires_values=[self.get_attribute(value) for value in requires_values],
+            requires_attributes=requires_attributes,
             stratifications=stratifications,
             **kwargs,
         )
@@ -373,37 +352,39 @@ class ResultsManager(Manager):
         stratifications: list[Stratification],
     ) -> pd.DataFrame:
         """Prepare the population for results gathering."""
-        required_columns = self._results_context.get_required_columns(
+        required_attributes = self._results_context.get_required_attributes(
             observations, stratifications
         )
-        required_values = self._results_context.get_required_values(
-            observations, stratifications
-        )
-        required_columns = required_columns.copy()
+        required_attributes = required_attributes.copy()
         population = pd.DataFrame(index=event.index)
 
-        if "current_time" in required_columns:
+        if "current_time" in required_attributes:
             population["current_time"] = self.clock()
-            required_columns.remove("current_time")
-        if "event_step_size" in required_columns:
+            required_attributes.remove("current_time")
+        if "event_step_size" in required_attributes:
             population["event_step_size"] = event.step_size
-            required_columns.remove("event_step_size")
-        if "event_time" in required_columns:
+            required_attributes.remove("event_step_size")
+        if "event_time" in required_attributes:
             population["event_time"] = self.clock() + event.step_size  # type: ignore [operator]
-            required_columns.remove("event_time")
+            required_attributes.remove("event_time")
 
-        for k, v in event.user_data.items():
-            if k in required_columns:
-                population[k] = v
-                required_columns.remove(k)
+        for key, val in event.user_data.items():
+            if key in required_attributes:
+                population[key] = val
+                required_attributes.remove(key)
 
-        for pipeline in required_values:
-            population[pipeline.name] = pipeline(event.index)
-
-        if required_columns:
+        if required_attributes:
+            # FIXME: Inefficiency: In the event every single observation has some identical filter
+            # (e.g. 'alive == "alive"'), we still calculate all attributes for the
+            # entire population and then apply the filter downstream.
+            # One easy (and probably most likely) example is the untracking filters.
+            # If every observation has exclude_untracked=True, then we can use
+            # that in the get_attributes call below.
             population = pd.concat(
                 [
-                    self.population_view.get_attributes(event.index, required_columns),
+                    self.population_view.get_attributes(
+                        event.index, required_attributes, exclude_untracked=False
+                    ),
                     population,
                 ],
                 axis=1,
