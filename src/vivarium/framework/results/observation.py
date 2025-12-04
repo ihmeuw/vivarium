@@ -32,7 +32,6 @@ from pandas.core.groupby.generic import DataFrameGroupBy
 from vivarium.exceptions import VivariumError
 from vivarium.framework.event import Event
 from vivarium.framework.results.stratification import Stratification, get_original_col_name
-from vivarium.framework.values import Pipeline
 
 VALUE_COLUMN = "value"
 
@@ -55,10 +54,8 @@ class Observation(ABC):
     when: str
     """Name of the lifecycle phase the observation should happen. Valid values are:
     "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics"."""
-    requires_columns: list[str]
-    """List of columns required for this observation."""
-    requires_values: list[Pipeline]
-    """List of values required for this observation."""
+    requires_attributes: list[str]
+    """The population attributes required for this observation."""
     results_initializer: Callable[[], pd.DataFrame]
     """Method or function that initializes the raw observation results
     prior to starting the simulation. This could return, for example, an empty
@@ -125,10 +122,8 @@ class UnstratifiedObservation(Observation):
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-    requires_columns
-        List of columns required for this observation.
-    requires_values
-        List of values required for this observation.
+    requires_attributes
+       The population attributes required for this observation.
     results_gatherer
         Method or function that gathers the new observation results.
     results_updater
@@ -145,8 +140,7 @@ class UnstratifiedObservation(Observation):
         name: str,
         pop_filter: str,
         when: str,
-        requires_columns: list[str],
-        requires_values: list[Pipeline],
+        requires_attributes: list[str],
         results_gatherer: Callable[[pd.DataFrame], pd.DataFrame],
         results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
@@ -167,8 +161,7 @@ class UnstratifiedObservation(Observation):
             name=name,
             pop_filter=pop_filter,
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             results_initializer=self.create_empty_df,
             results_gatherer=_wrap_results_gatherer,
             results_updater=results_updater,
@@ -209,10 +202,8 @@ class StratifiedObservation(Observation):
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-    requires_columns
-        List of columns required for this observation.
-    requires_values
-        List of values required for this observation.
+    requires_attributes
+        The population attributes required for this observation.
     results_updater
         Method or function that updates existing raw observation results with newly gathered results.
     results_formatter
@@ -231,8 +222,7 @@ class StratifiedObservation(Observation):
         name: str,
         pop_filter: str,
         when: str,
-        requires_columns: list[str],
-        requires_values: list[Pipeline],
+        requires_attributes: list[str],
         results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         aggregator_sources: list[str] | None,
@@ -243,8 +233,7 @@ class StratifiedObservation(Observation):
             name=name,
             pop_filter=pop_filter,
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             results_initializer=self.create_expanded_df,
             results_gatherer=self.get_complete_stratified_results,  # type: ignore [arg-type]
             results_updater=results_updater,
@@ -412,10 +401,8 @@ class AddingObservation(StratifiedObservation):
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-    requires_columns
-        List of columns required for this observation.
-    requires_values
-        List of values required for this observation.
+    requires_attributes
+        The population attributes required for this observation.
     results_formatter
         Method or function that formats the raw observation results.
     stratifications
@@ -435,8 +422,7 @@ class AddingObservation(StratifiedObservation):
         name: str,
         pop_filter: str,
         when: str,
-        requires_columns: list[str],
-        requires_values: list[Pipeline],
+        requires_attributes: list[str],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         aggregator_sources: list[str] | None,
         aggregator: Callable[[pd.DataFrame], float | pd.Series[float]],
@@ -446,8 +432,7 @@ class AddingObservation(StratifiedObservation):
             name=name,
             pop_filter=pop_filter,
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             results_updater=self.add_results,
             results_formatter=results_formatter,
             aggregator_sources=aggregator_sources,
@@ -493,7 +478,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
     """Concrete class for observing concatenating (and by extension, unstratified) results.
 
     The parent class `results_gatherer` and `results_updater` methods are explicitly
-    defined and attribute `included_columns` is added.
+    defined.
 
     Attributes
     ----------
@@ -506,12 +491,8 @@ class ConcatenatingObservation(UnstratifiedObservation):
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-    requires_columns
-        List of columns required for this observation.
-    requires_values
-        List of values required for this observation.
-    included_columns
-        Columns to include in the observation
+    requires_attributes
+        The population attributes required for this observation.
     results_formatter
         Method or function that formats the raw observation results.
     to_observe
@@ -524,30 +505,25 @@ class ConcatenatingObservation(UnstratifiedObservation):
         name: str,
         pop_filter: str,
         when: str,
-        requires_columns: list[str],
-        requires_values: list[Pipeline],
+        requires_attributes: list[str],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         to_observe: Callable[[Event], bool] = lambda event: True,
     ):
-        requires_columns = ["event_time"] + requires_columns
+        requires_attributes = ["event_time"] + requires_attributes
         super().__init__(
             name=name,
             pop_filter=pop_filter,
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             results_gatherer=self.get_results_of_interest,
             results_updater=self.concatenate_results,
             results_formatter=results_formatter,
             to_observe=to_observe,
         )
-        self.included_columns = self.requires_columns + [
-            value.name for value in self.requires_values
-        ]
 
     def get_results_of_interest(self, pop: pd.DataFrame) -> pd.DataFrame:
         """Return the population with only the `included_columns`."""
-        return pop[self.included_columns]
+        return pop[self.requires_attributes]
 
     @staticmethod
     def concatenate_results(

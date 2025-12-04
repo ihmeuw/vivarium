@@ -24,7 +24,6 @@ from vivarium.framework.results.stratification import (
     get_mapped_col_name,
     get_original_col_name,
 )
-from vivarium.framework.values import Pipeline
 
 
 @pytest.mark.parametrize(
@@ -47,8 +46,7 @@ def test_stratification(
 ) -> None:
     my_stratification = Stratification(
         name=NAME,
-        requires_columns=NAME_COLUMNS,
-        requires_values=[],
+        requires_attributes=NAME_COLUMNS,
         categories=HOUSE_CATEGORIES,
         excluded_categories=[],
         mapper=mapper,
@@ -60,49 +58,44 @@ def test_stratification(
 
 
 @pytest.mark.parametrize(
-    "requires_columns, requires_values, categories, mapper, msg_match",
+    "requires_attributes, categories, mapper, msg_match",
     [
         (
             [],
-            [],
             HOUSE_CATEGORIES,
             None,
             (
-                f"No mapper but 0 stratification sources are provided for stratification {NAME}. "
-                "The list of sources must be of length 1 if no mapper is provided."
+                f"No mapper but 0 required attributes are provided for stratification {NAME}. "
+                "The list of required attributes must be of length 1 if no mapper is provided."
             ),
         ),
         (
             NAME_COLUMNS,
-            [],
             HOUSE_CATEGORIES,
             None,
             (
-                f"No mapper but {len(NAME_COLUMNS)} stratification sources are provided for "
-                f"stratification {NAME}. The list of sources must be of length 1 if no mapper is "
-                "provided."
+                f"No mapper but {len(NAME_COLUMNS)} required attributes are provided for "
+                f"stratification {NAME}. The list of required attributes must be of "
+                "length 1 if no mapper is provided."
             ),
         ),
         (
-            ["house"],
-            ["grade"],
+            ["house", "grade"],
             HOUSE_CATEGORIES,
             None,
             (
-                f"No mapper but 2 stratification sources are provided for stratification {NAME}. "
-                "The list of sources must be of length 1 if no mapper is provided."
+                f"No mapper but 2 required attributes are provided for stratification {NAME}. "
+                "The list of required attributes must be of length 1 if no mapper is provided."
             ),
         ),
         (
-            [],
             [],
             HOUSE_CATEGORIES,
             sorting_hat_vectorized,
-            "The sources argument must be non-empty.",
+            "The requires_attributes argument must be non-empty.",
         ),
         (
             NAME_COLUMNS,
-            [],
             [],
             sorting_hat_vectorized,
             "The categories argument must be non-empty.",
@@ -117,19 +110,17 @@ def test_stratification(
     ],
 )
 def test_stratification_init_raises(
-    requires_columns: list[str],
-    requires_values: list[str],
+    requires_attributes: list[str],
     categories: list[str],
     mapper: Callable[[pd.DataFrame], pd.Series[str]] | Callable[[pd.Series[str]], str],
     msg_match: str,
 ) -> None:
-    pipelines = [Pipeline(name) for name in requires_values]
     with pytest.raises(ValueError, match=re.escape(msg_match)):
-        Stratification(NAME, requires_columns, pipelines, categories, [], mapper, True)
+        Stratification(NAME, requires_attributes, categories, [], mapper, True)
 
 
 @pytest.mark.parametrize(
-    "requires_columns, mapper, is_vectorized, expected_exception, error_match",
+    "requires_attributes, mapper, is_vectorized, expected_exception, error_match",
     [
         (
             NAME_COLUMNS,
@@ -176,7 +167,7 @@ def test_stratification_init_raises(
     ],
 )
 def test_stratification_call_raises(
-    requires_columns: list[str],
+    requires_attributes: list[str],
     mapper: Callable[[pd.DataFrame], pd.Series[str]] | Callable[[pd.Series[str]], str],
     is_vectorized: bool,
     expected_exception: type[Exception],
@@ -184,8 +175,7 @@ def test_stratification_call_raises(
 ) -> None:
     my_stratification = Stratification(
         name=NAME,
-        requires_columns=requires_columns,
-        requires_values=[],
+        requires_attributes=requires_attributes,
         categories=HOUSE_CATEGORIES,
         excluded_categories=[],
         mapper=mapper,

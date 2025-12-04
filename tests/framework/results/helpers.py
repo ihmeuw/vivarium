@@ -72,18 +72,20 @@ class Hogwarts(Component):
         ]
 
     def setup(self, builder: Builder) -> None:
-        self.grade = builder.value.register_value_producer(
+        builder.value.register_attribute_producer(
             "grade",
             source=lambda index: self.population_view.get_attributes(index, "exam_score").map(
                 lambda x: x // 10
             ),
-            requires_columns=["exam_score"],
+            component=self,
+            required_resources=["exam_score"],
         )
-        self.double_power = builder.value.register_value_producer(
+        self.double_power = builder.value.register_attribute_producer(
             "double_power",
             source=lambda index: self.population_view.get_attributes(index, "power_level")
             * 2,
-            requires_columns=["power_level"],
+            component=self,
+            required_resources=["power_level"],
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
@@ -145,9 +147,7 @@ class HousePointsObserver(Observer):
             name="house_points",
             aggregator_sources=["house_points"],
             aggregator=lambda df: df.sum(),
-            requires_columns=[
-                "house_points",
-            ],
+            requires_attributes=["house_points"],
             results_formatter=results_formatter,
         )
 
@@ -161,9 +161,7 @@ class FullyFilteredHousePointsObserver(Observer):
             pop_filter="power_level=='one billion'",
             aggregator_sources=["house_points"],
             aggregator=lambda df: df.sum(),
-            requires_columns=[
-                "house_points",
-            ],
+            requires_attributes=["house_points"],
         )
 
 
@@ -177,9 +175,7 @@ class QuidditchWinsObserver(Observer):
             aggregator=lambda df: df.sum(),
             excluded_stratifications=["student_house", "power_level_group"],
             additional_stratifications=["familiar"],
-            requires_columns=[
-                "quidditch_wins",
-            ],
+            requires_attributes=["quidditch_wins"],
             results_formatter=results_formatter,
         )
 
@@ -193,9 +189,7 @@ class NoStratificationsQuidditchWinsObserver(Observer):
             aggregator_sources=["quidditch_wins"],
             aggregator=lambda df: df.sum(),
             excluded_stratifications=["student_house", "power_level_group"],
-            requires_columns=[
-                "quidditch_wins",
-            ],
+            requires_attributes=["quidditch_wins"],
             results_formatter=results_formatter,
         )
 
@@ -225,7 +219,7 @@ class ExamScoreObserver(Observer):
     def register_observations(self, builder: Builder) -> None:
         builder.results.register_concatenating_observation(
             name="exam_score",
-            requires_columns=["student_id", "student_house", "exam_score"],
+            requires_attributes=["student_id", "student_house", "exam_score"],
         )
 
 
@@ -236,7 +230,7 @@ class CatBombObserver(Observer):
         builder.results.register_stratified_observation(
             name="cat_bomb",
             pop_filter="familiar=='cat'",
-            requires_columns=["familiar"],
+            requires_attributes=["familiar"],
             results_updater=self.update_cats,
             excluded_stratifications=["power_level_group"],
             aggregator_sources=["student_house"],
@@ -263,7 +257,7 @@ class ValedictorianObserver(Observer):
     def register_observations(self, builder: Builder) -> None:
         builder.results.register_unstratified_observation(
             name="valedictorian",
-            requires_columns=["event_time", "student_id", "exam_score"],
+            requires_attributes=["event_time", "student_id", "exam_score"],
             results_gatherer=self.choose_valedictorian,  # type: ignore [arg-type]
             results_updater=self.update_valedictorian,
         )
@@ -292,10 +286,10 @@ class HogwartsResultsStratifier(Component):
         builder.results.register_stratification(
             name="student_house",
             categories=list(STUDENT_HOUSES),
-            requires_columns=["student_house"],
+            requires_attributes=["student_house"],
         )
         builder.results.register_stratification(
-            name="familiar", categories=FAMILIARS, requires_columns=["familiar"]
+            name="familiar", categories=FAMILIARS, requires_attributes=["familiar"]
         )
         builder.results.register_binned_stratification(
             "power_level",
@@ -348,8 +342,7 @@ def sorting_hat_bad_mapping(simulant_row: pd.Series[str]) -> str:
 def verify_stratification_added(
     stratifications: dict[str, Stratification],
     name: str,
-    requires_columns: list[str],
-    requires_values: list[Pipeline],
+    requires_attributes: list[str],
     categories: list[str],
     excluded_categories: list[str],
     mapper: VectorMapper | ScalarMapper,
@@ -359,8 +352,7 @@ def verify_stratification_added(
     stratification = stratifications.get(name)
     if not stratification:
         return False
-    expected_value_names = sorted(pipeline.name for pipeline in requires_values)
-    actual_value_names = sorted(pipeline.name for pipeline in stratification.requires_values)
+
     return (
         stratification.name == name
         and sorted(stratification.categories)
@@ -368,8 +360,7 @@ def verify_stratification_added(
         and sorted(stratification.excluded_categories) == sorted(excluded_categories)
         and stratification.mapper == mapper
         and stratification.is_vectorized == is_vectorized
-        and sorted(stratification.requires_columns) == sorted(requires_columns)
-        and actual_value_names == expected_value_names
+        and sorted(stratification.requires_attributes) == sorted(requires_attributes)
     )
 
 
