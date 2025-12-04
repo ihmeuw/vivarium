@@ -70,11 +70,7 @@ class ResultsInterface(Interface):
     The results management system allows users to delegate results production
     to the simulation framework. This process attempts to roughly mimic the
     groupby-apply logic commonly done when manipulating :mod:`pandas`
-    DataFrames. The representation of state in the simulation is complex,
-    however, as it includes information both in the population state table
-    and dynamically generated information available from the
-    :class:`value pipelines <vivarium.framework.values.pipeline.Pipeline>`.
-    Additionally, good encapsulation of simulation logic typically has
+    DataFrames. Good encapsulation of simulation logic typically has
     results production separated from the modeling code into specialized
     `Observer` components. This often highlights the need for transformations
     of the simulation state into representations that aren't needed for
@@ -105,8 +101,7 @@ class ResultsInterface(Interface):
         excluded_categories: list[str] | None = None,
         mapper: VectorMapper | ScalarMapper | None = None,
         is_vectorized: bool = False,
-        requires_columns: list[str] = [],
-        requires_values: list[str] = [],
+        requires_attributes: list[str] = [],
     ) -> None:
         """Registers a stratification that can be used by stratified observations.
 
@@ -120,20 +115,16 @@ class ResultsInterface(Interface):
             List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
-            A callable that maps the columns and value pipelines specified by the
-            `requires_columns` and `requires_values` arguments to the stratification
-            categories. It can either map the entire population or an individual
-            simulant. A simulation will fail if the `mapper` ever produces an invalid
-            value.
+            A callable that maps the population attributes specified by the
+            `requires_attributes` argumnt to the stratification categories. It can
+            either map the entire population or an individual simulant. A simulation
+            will fail if the `mapper` ever produces an invalid value.
         is_vectorized
             True if the `mapper` function will map the entire population, and False
             if it will only map a single simulant.
-        requires_columns
-            A list of the state table columns that are required by the `mapper`
-            to produce the stratification.
-        requires_values
-            A list of the value pipelines that are required by the `mapper` to
-            produce the stratification.
+        requires_attributes
+            The population attributes that are required by the `mapper` to produce
+            the stratification.
         """
         self._manager.register_stratification(
             name,
@@ -141,8 +132,7 @@ class ResultsInterface(Interface):
             excluded_categories,
             mapper,
             is_vectorized,
-            requires_columns,
-            requires_values,
+            requires_attributes,
         )
 
     def register_binned_stratification(
@@ -152,7 +142,6 @@ class ResultsInterface(Interface):
         bin_edges: Sequence[int | float] = [],
         labels: list[str] = [],
         excluded_categories: list[str] | None = None,
-        target_type: str = "column",
         **cut_kwargs: int | str | bool,
     ) -> None:
         """Registers a binned stratification that can be used by stratified observations.
@@ -160,7 +149,7 @@ class ResultsInterface(Interface):
         Parameters
         ----------
         target
-            Name of the state table column or value pipeline to be binned.
+            Name of the population attribute to be binned.
         binned_column
             Name of the (binned) stratification.
         bin_edges
@@ -172,9 +161,6 @@ class ResultsInterface(Interface):
         excluded_categories
             List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
-        target_type
-            Type specification of the `target` to be binned. "column" if it's a
-            state table column or "value" if it's a value pipeline.
         **cut_kwargs
             Keyword arguments for :meth: pandas.cut.
         """
@@ -184,7 +170,6 @@ class ResultsInterface(Interface):
             bin_edges,
             labels,
             excluded_categories,
-            target_type,
             **cut_kwargs,
         )
 
@@ -197,8 +182,7 @@ class ResultsInterface(Interface):
         name: str,
         pop_filter: str = "",
         when: str = lifecycle_states.COLLECT_METRICS,
-        requires_columns: list[str] = [],
-        requires_values: list[str] = [],
+        requires_attributes: list[str] = [],
         results_updater: ResultsUpdater = _required_function_placeholder,
         results_formatter: ResultsFormatter = _default_stratified_observation_formatter,
         additional_stratifications: list[str] = [],
@@ -220,10 +204,8 @@ class ResultsInterface(Interface):
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-        requires_columns
-            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
-        requires_values
-            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
+        requires_attributes
+            The population attributes that are required by the `aggregator`.
         results_updater
             Function that updates existing raw observation results with newly gathered results.
         results_formatter
@@ -252,8 +234,7 @@ class ResultsInterface(Interface):
             name=name,
             pop_filter=pop_filter,
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             results_updater=results_updater,
             results_formatter=results_formatter,
             additional_stratifications=additional_stratifications,
@@ -268,8 +249,7 @@ class ResultsInterface(Interface):
         name: str,
         pop_filter: str = "",
         when: str = lifecycle_states.COLLECT_METRICS,
-        requires_columns: list[str] = [],
-        requires_values: list[str] = [],
+        requires_attributes: list[str] = [],
         results_gatherer: ResultsGatherer = _required_function_placeholder,
         results_updater: ResultsUpdater = _required_function_placeholder,
         results_formatter: ResultsFormatter = _default_unstratified_observation_formatter,
@@ -288,12 +268,8 @@ class ResultsInterface(Interface):
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-        requires_columns
-            List of the state table columns that are required by either the `pop_filter` or the
-            `results_gatherer`.
-        requires_values
-            List of the value pipelines that are required by either the `pop_filter` or the
-            `results_gatherer`.
+        requires_attributes
+            The population attributes that are required by the `results_gatherer`.
         results_gatherer
             Function that gathers the latest observation results.
         results_updater
@@ -318,8 +294,7 @@ class ResultsInterface(Interface):
             name=name,
             pop_filter=pop_filter,
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             results_updater=results_updater,
             results_gatherer=results_gatherer,
             results_formatter=results_formatter,
@@ -331,8 +306,7 @@ class ResultsInterface(Interface):
         name: str,
         pop_filter: str = "",
         when: str = lifecycle_states.COLLECT_METRICS,
-        requires_columns: list[str] = [],
-        requires_values: list[str] = [],
+        requires_attributes: list[str] = [],
         results_formatter: ResultsFormatter = _default_stratified_observation_formatter,
         additional_stratifications: list[str] = [],
         excluded_stratifications: list[str] = [],
@@ -360,10 +334,8 @@ class ResultsInterface(Interface):
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-        requires_columns
-            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
-        requires_values
-            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
+        requires_attributes
+            The population attributes that are required by the `aggregator`.
         results_formatter
             Function that formats the raw observation results.
         additional_stratifications
@@ -384,8 +356,7 @@ class ResultsInterface(Interface):
             name=name,
             pop_filter=pop_filter,
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             results_formatter=results_formatter,
             additional_stratifications=additional_stratifications,
             excluded_stratifications=excluded_stratifications,
@@ -399,8 +370,7 @@ class ResultsInterface(Interface):
         name: str,
         pop_filter: str = "",
         when: str = lifecycle_states.COLLECT_METRICS,
-        requires_columns: list[str] = [],
-        requires_values: list[str] = [],
+        requires_attributes: list[str] = [],
         results_formatter: ResultsFormatter = _default_unstratified_observation_formatter,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
@@ -424,10 +394,8 @@ class ResultsInterface(Interface):
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-        requires_columns
-            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
-        requires_values
-            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
+        requires_attributes
+            The population attributes that are required by the `aggregator`.
         results_formatter
             Function that formats the raw observation results.
         to_observe
@@ -438,8 +406,7 @@ class ResultsInterface(Interface):
             name=name,
             pop_filter=pop_filter,
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             results_formatter=results_formatter,
             to_observe=to_observe,
         )
