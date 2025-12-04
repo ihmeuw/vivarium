@@ -33,7 +33,7 @@ class DeathsObserver(Observer):
     def register_observations(self, builder: Builder) -> None:
         builder.results.register_adding_observation(
             name="dead",
-            requires_columns=["alive", "previous_alive"],
+            requires_attributes=["alive", "previous_alive"],
             pop_filter='previous_alive == "alive" and alive == "dead"',
         )
 
@@ -88,7 +88,7 @@ class YllsObserver(Observer):
     def register_observations(self, builder: Builder) -> None:
         builder.results.register_adding_observation(
             name="ylls",
-            requires_columns=["age", "alive", "previous_alive"],
+            requires_attributes=["age", "alive", "previous_alive"],
             pop_filter='previous_alive == "alive" and alive == "dead"',
             aggregator=self.calculate_ylls,
         )
