@@ -53,8 +53,7 @@ def test_register_stratification(mocker: MockerFixture) -> None:
         excluded_categories=["some-unwanted-category"],
         mapper=_silly_mapper,
         is_vectorized=False,
-        requires_columns=["some-column", "some-other-column"],
-        requires_values=["some-value", "some-other-value"],
+        requires_attributes=["some-column", "some-other-column"],
     )
 
     # Check stratification registration
@@ -62,23 +61,16 @@ def test_register_stratification(mocker: MockerFixture) -> None:
     assert len(stratifications) == 1
 
     stratification = stratifications["some-name"]
-    pipeline_names = [pipeline.name for pipeline in stratification.requires_values]
 
     assert stratification.name == "some-name"
-    assert stratification.requires_columns == ["some-column", "some-other-column"]
-    assert pipeline_names == ["some-value", "some-other-value"]
+    assert stratification.requires_attributes == ["some-column", "some-other-column"]
     assert stratification.categories == ["some-category", "some-other-category"]
     assert stratification.excluded_categories == ["some-unwanted-category"]
     assert stratification.mapper == _silly_mapper
     assert stratification.is_vectorized is False
 
 
-@pytest.mark.parametrize(
-    "target, target_type", [("some-column", "column"), ("some-value", "value")]
-)
-def test_register_binned_stratification(
-    target: str, target_type: str, mocker: MockerFixture
-) -> None:
+def test_register_binned_stratification(mocker: MockerFixture) -> None:
 
     mgr = ResultsManager()
     mgr.logger = logger
@@ -90,13 +82,13 @@ def test_register_binned_stratification(
     # Check pre-registration stratifications and manager required columns/values
     assert len(mgr._results_context.stratifications) == 0
 
+    target = "some-attribute"
     mgr.register_binned_stratification(
         target=target,
         binned_column="new-binned-column",
         bin_edges=[1, 2, 3],
         labels=["1_to_2", "2_to_3"],
         excluded_categories=["2_to_3"],
-        target_type=target_type,
         some_kwarg="some-kwarg",
         some_other_kwarg="some-other-kwarg",
     )
@@ -104,13 +96,10 @@ def test_register_binned_stratification(
     # Check stratification registration
     stratifications = mgr._results_context.stratifications
     assert len(stratifications) == 1
-    expected_column_names = [target] if target_type == "column" else []
-    expected_value_names = [target] if target_type == "value" else []
 
     stratification = stratifications["new-binned-column"]
     assert stratification.name == "new-binned-column"
-    assert stratification.requires_columns == expected_column_names
-    assert [value.name for value in stratification.requires_values] == expected_value_names
+    assert stratification.requires_attributes == [target]
     assert stratification.categories == ["1_to_2"]
     assert stratification.excluded_categories == ["2_to_3"]
     # Cannot access the mapper because it's in local scope, so check __repr__
@@ -167,7 +156,7 @@ def test_register_stratified_observation(mocker: MockerFixture) -> None:
             categories=["a", "b", "c"],
             excluded_categories=[],
             is_vectorized=True,
-            requires_columns=[strat],
+            requires_attributes=[strat],
         )
 
     assert len(interface._manager._results_context.grouped_observations) == 0
@@ -176,8 +165,7 @@ def test_register_stratified_observation(mocker: MockerFixture) -> None:
         name="some-name",
         pop_filter="some-filter",
         when="some-when",
-        requires_columns=["some-column", "some-other-column"],
-        requires_values=["some-value", "some-other-value"],
+        requires_attributes=["some-column", "some-other-column"],
         results_updater=lambda _, __: pd.DataFrame(),
         additional_stratifications=["some-stratification", "some-other-stratification"],
         excluded_stratifications=["exclude-this"],
@@ -227,8 +215,7 @@ def test_register_unstratified_observation(mocker: MockerFixture) -> None:
         name="some-name",
         pop_filter="some-filter",
         when="some-when",
-        requires_columns=["some-column", "some-other-column"],
-        requires_values=["some-value", "some-other-value"],
+        requires_attributes=["some-column", "some-other-column"],
         results_gatherer=lambda _: pd.DataFrame(),
         results_updater=lambda _, __: pd.DataFrame(),
     )
@@ -251,7 +238,7 @@ def test_register_unstratified_observation(mocker: MockerFixture) -> None:
 
 @pytest.mark.parametrize(
     (
-        "name, pop_filter, aggregator_columns, aggregator, requires_columns, requires_values,"
+        "name, pop_filter, aggregator_columns, aggregator, requires_attributes,"
         " additional_stratifications, excluded_stratifications, when"
     ),
     [
@@ -260,7 +247,6 @@ def test_register_unstratified_observation(mocker: MockerFixture) -> None:
             'alive == "alive" and undead == False',
             [],
             _silly_aggregator,
-            [],
             [],
             [],
             [],
@@ -274,7 +260,6 @@ def test_register_unstratified_observation(mocker: MockerFixture) -> None:
             [],
             [],
             [],
-            [],
             lifecycle_states.TIME_STEP_PREPARE,
         ),
         (
@@ -282,7 +267,6 @@ def test_register_unstratified_observation(mocker: MockerFixture) -> None:
             "undead == True",
             [],
             _silly_aggregator,
-            [],
             ["fake_pipeline", "another_fake_pipeline"],
             [],
             [],
@@ -297,8 +281,7 @@ def test_register_adding_observation(
     pop_filter: str,
     aggregator_columns: list[str],
     aggregator: Callable[[pd.DataFrame], int | float | pd.Series[int | float]],
-    requires_columns: list[str],
-    requires_values: list[str],
+    requires_attributes: list[str],
     additional_stratifications: list[str],
     excluded_stratifications: list[str],
     when: str,
@@ -317,8 +300,7 @@ def test_register_adding_observation(
         excluded_stratifications=excluded_stratifications,
         aggregator_sources=aggregator_columns,
         aggregator=aggregator,
-        requires_columns=requires_columns,
-        requires_values=requires_values,
+        requires_attributes=requires_attributes,
     )
     assert len(interface._manager._results_context.grouped_observations) == 1
 
@@ -363,8 +345,7 @@ def test_register_multiple_adding_observations(mocker: MockerFixture) -> None:
     )
 
 
-@pytest.mark.parametrize("resource_type", ["value", "column"])
-def test_unhashable_pipeline(mocker: MockerFixture, resource_type: str) -> None:
+def test_unhashable_pipeline(mocker: MockerFixture) -> None:
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
     builder = mocker.Mock()
@@ -372,13 +353,12 @@ def test_unhashable_pipeline(mocker: MockerFixture, resource_type: str) -> None:
     mgr.setup(builder)
 
     assert len(interface._manager._results_context.grouped_observations) == 0
-    with pytest.raises(TypeError, match=f"All required {resource_type}s must be strings"):
+    with pytest.raises(TypeError, match=f"All required attributes must be strings"):
         interface.register_adding_observation(
             name="living_person_time",
             pop_filter='alive == "alive" and undead == False',
             when=lifecycle_states.TIME_STEP_CLEANUP,
-            requires_columns=[["bad", "unhashable", "thing"]] if resource_type == "column" else [],  # type: ignore[list-item]
-            requires_values=[["bad", "unhashable", "thing"]] if resource_type == "value" else [],  # type: ignore[list-item]
+            requires_attributes=[["bad", "unhashable", "thing"]],  # type: ignore[list-item]
             additional_stratifications=[],
             excluded_stratifications=[],
             aggregator_sources=[],
@@ -409,13 +389,13 @@ def test_register_adding_observation_when_options(when: str, mocker: MockerFixtu
 
     # register stratifications
     results_interface.register_stratification(
-        name="house", categories=HOUSES, is_vectorized=True, requires_columns=["house"]
+        name="house", categories=HOUSES, is_vectorized=True, requires_attributes=["house"]
     )
     results_interface.register_stratification(
         name="familiar",
         categories=FAMILIARS,
         is_vectorized=True,
-        requires_columns=["familiar"],
+        requires_attributes=["familiar"],
     )
 
     aggregator_map = {
@@ -435,7 +415,7 @@ def test_register_adding_observation_when_options(when: str, mocker: MockerFixtu
             when=phase,
             additional_stratifications=["house", "familiar"],
             aggregator=aggregator,
-            requires_columns=["house", "familiar"],
+            requires_attributes=["house", "familiar"],
         )
 
     for mock_aggregator in aggregator_map.values():
@@ -474,8 +454,7 @@ def test_register_concatenating_observation(mocker: MockerFixture) -> None:
         name="some-name",
         pop_filter="some-filter",
         when="some-when",
-        requires_columns=["some-column", "some-other-column"],
-        requires_values=["some-value", "some-other-value"],
+        requires_attributes=["some-column", "some-other-column"],
         results_formatter=lambda _, __: pd.DataFrame(),
     )
     grouped_observations = interface._manager._results_context.grouped_observations
@@ -491,12 +470,10 @@ def test_register_concatenating_observation(mocker: MockerFixture) -> None:
     assert obs.pop_filter == "some-filter"
     assert obs.when == "some-when"
     assert isinstance(obs, ConcatenatingObservation)
-    assert obs.included_columns == [
+    assert obs.requires_attributes == [
         "event_time",
         "some-column",
         "some-other-column",
-        "some-value",
-        "some-other-value",
     ]
     assert obs.results_gatherer is not None
     assert obs.results_updater is not None
