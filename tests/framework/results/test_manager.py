@@ -1,5 +1,4 @@
 import re
-from types import MethodType
 
 import numpy as np
 import pandas as pd
@@ -33,7 +32,6 @@ from tests.framework.results.helpers import (
     NoStratificationsQuidditchWinsObserver,
     QuidditchWinsObserver,
     ValedictorianObserver,
-    mock_get_attribute,
     sorting_hat_serial,
     sorting_hat_vectorized,
     verify_stratification_added,
@@ -45,7 +43,6 @@ from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.manager import ResultsManager
 from vivarium.framework.results.observation import AddingObservation, Observation
 from vivarium.framework.results.stratification import Stratification, get_mapped_col_name
-from vivarium.framework.values import Pipeline
 from vivarium.interface.interactive import InteractiveContext
 from vivarium.types import ScalarMapper, VectorMapper
 
@@ -107,7 +104,7 @@ def test__get_stratifications(
     ],
     ids=["vectorized_mapper", "non-vectorized_mapper", "excluded_categories"],
 )
-def test_register_stratification_no_pipelines(
+def test_register_stratification(
     mocker: pytest_mock.MockFixture,
     excluded_categories: list[str],
     mapper: VectorMapper | ScalarMapper,
@@ -125,101 +122,14 @@ def test_register_stratification_no_pipelines(
         excluded_categories=excluded_categories,
         mapper=mapper,
         is_vectorized=is_vectorized,
-        requires_columns=NAME_COLUMNS,
-        requires_values=[],
+        requires_attributes=NAME_COLUMNS,
     )
     assert verify_stratification_added(
         stratifications=mgr._results_context.stratifications,
         name=NAME,
-        requires_columns=NAME_COLUMNS,
-        requires_values=[],
+        requires_attributes=NAME_COLUMNS,
         categories=HOUSE_CATEGORIES,
         excluded_categories=excluded_categories,
-        mapper=mapper,
-        is_vectorized=is_vectorized,
-    )
-
-
-@pytest.mark.parametrize(
-    "mapper, is_vectorized",
-    [
-        (sorting_hat_vectorized, True),
-        (sorting_hat_serial, False),
-    ],
-    ids=["vectorized_mapper", "non-vectorized_mapper"],
-)
-def test_register_stratification_with_pipelines(
-    mocker: pytest_mock.MockFixture, mapper: VectorMapper | ScalarMapper, is_vectorized: bool
-) -> None:
-    mgr = ResultsManager()
-    builder = mocker.Mock()
-    builder.configuration.stratification = LayeredConfigTree(
-        {"default": [], "excluded_categories": {}}
-    )
-    # Set up mock builder with mocked get_attribute call for Pipelines
-    mocker.patch.object(builder, "value.get_attribute")
-    builder.value.get_attribute = MethodType(mock_get_attribute, builder)
-    mgr.setup(builder)
-    mgr.register_stratification(
-        name=NAME,
-        categories=HOUSE_CATEGORIES,
-        excluded_categories=None,
-        mapper=mapper,
-        is_vectorized=is_vectorized,
-        requires_columns=[],
-        requires_values=NAME_COLUMNS,
-    )
-
-    assert verify_stratification_added(
-        stratifications=mgr._results_context.stratifications,
-        name=NAME,
-        requires_columns=[],
-        requires_values=[Pipeline(name) for name in NAME_COLUMNS],
-        categories=HOUSE_CATEGORIES,
-        excluded_categories=[],
-        mapper=mapper,
-        is_vectorized=is_vectorized,
-    )
-
-
-@pytest.mark.parametrize(
-    "mapper, is_vectorized",
-    [
-        (sorting_hat_vectorized, True),
-        (sorting_hat_serial, False),
-    ],
-    ids=["vectorized_mapper", "non-vectorized_mapper"],
-)
-def test_register_stratification_with_column_and_pipelines(
-    mocker: pytest_mock.MockFixture, mapper: VectorMapper | ScalarMapper, is_vectorized: bool
-) -> None:
-    mgr = ResultsManager()
-    builder = mocker.Mock()
-    builder.configuration.stratification = LayeredConfigTree(
-        {"default": [], "excluded_categories": {}}
-    )
-    # Set up mock builder with mocked get_attribute call for Pipelines
-    mocker.patch.object(builder, "value.get_attribute")
-    builder.value.get_attribute = MethodType(mock_get_attribute, builder)
-    mgr.setup(builder)
-    mocked_column_name = "silly_column"
-    mgr.register_stratification(
-        name=NAME,
-        categories=HOUSE_CATEGORIES,
-        excluded_categories=None,
-        mapper=mapper,
-        is_vectorized=is_vectorized,
-        requires_columns=[mocked_column_name],
-        requires_values=NAME_COLUMNS,
-    )
-
-    assert verify_stratification_added(
-        stratifications=mgr._results_context.stratifications,
-        name=NAME,
-        requires_columns=[mocked_column_name],
-        requires_values=[Pipeline(name) for name in NAME_COLUMNS],
-        categories=HOUSE_CATEGORIES,
-        excluded_categories=[],
         mapper=mapper,
         is_vectorized=is_vectorized,
     )
@@ -265,7 +175,6 @@ def test_binned_stratification_mapper() -> None:
         bin_edges=BIN_SILLY_BIN_EDGES,
         labels=BIN_LABELS,
         excluded_categories=None,
-        target_type="column",
     )
     strat = mgr._results_context.stratifications[BIN_BINNED_COLUMN]
     data = pd.DataFrame([-np.inf] + BIN_SILLY_BIN_EDGES + [np.inf])
@@ -308,8 +217,7 @@ def test_add_observation_nop_stratifications(
         pop_filter='alive == "alive"',
         aggregator_sources=[],
         aggregator=lambda: None,
-        requires_columns=[],
-        requires_values=[],
+        requires_attributes=[],
         additional_stratifications=additional,
         excluded_stratifications=excluded,
         when=lifecycle_states.COLLECT_METRICS,
@@ -590,8 +498,7 @@ def test_prepare_population(
             name=f"test_observation_{i}",
             pop_filter="",
             when=lifecycle_states.COLLECT_METRICS,
-            requires_columns=columns,
-            requires_values=[prepare_population_sim.get_value(value) for value in values],
+            requires_attributes=columns + values,
             results_formatter=lambda *_: pd.DataFrame(),
             aggregator_sources=[],
             aggregator=lambda *_: pd.Series(),
@@ -603,8 +510,7 @@ def test_prepare_population(
             name=f"strat_{i}",
             categories=["a", "b", "c"],
             excluded_categories=[],
-            requires_columns=columns,
-            requires_values=[prepare_population_sim.get_value(value) for value in values],
+            requires_attributes=columns + values,
             mapper=lambda x: pd.Series("a", index=x.index),
             is_vectorized=True,
         )
@@ -637,7 +543,7 @@ def test_prepare_population(
     for strat in stratifications:
         assert (
             population[get_mapped_col_name(strat.name)]
-            == strat.stratify(population[strat._sources])
+            == strat.stratify(population[strat.requires_attributes])
         ).all()
 
 

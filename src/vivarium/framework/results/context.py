@@ -17,12 +17,7 @@ from pandas.core.groupby.generic import DataFrameGroupBy
 from vivarium.framework.event import Event
 from vivarium.framework.results.exceptions import ResultsConfigurationError
 from vivarium.framework.results.observation import Observation
-from vivarium.framework.results.stratification import (
-    Stratification,
-    get_mapped_col_name,
-    get_original_col_name,
-)
-from vivarium.framework.values import Pipeline
+from vivarium.framework.results.stratification import Stratification, get_mapped_col_name
 from vivarium.types import ScalarMapper, VectorMapper
 
 if TYPE_CHECKING:
@@ -140,8 +135,7 @@ class ResultsContext:
     def add_stratification(
         self,
         name: str,
-        requires_columns: list[str],
-        requires_values: list[Pipeline],
+        requires_attributes: list[str],
         categories: list[str],
         excluded_categories: list[str] | None,
         mapper: VectorMapper | ScalarMapper | None,
@@ -153,16 +147,16 @@ class ResultsContext:
         ----------
         name
             Name of the stratification.
-        sources
-            A list of the columns and values needed as input for the `mapper`.
+        requires_attributes
+            The population attributes needed as input for the `mapper`.
         categories
             Exhaustive list of all possible stratification values.
         excluded_categories
             List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
-            A callable that maps the columns and value pipelines specified by
-            `sources` to the stratification categories. It can either map the entire
+            A callable that maps the population attributes specified by
+            `requires_attributes` to the stratification categories. It can either map the entire
             population or an individual simulant. A simulation will fail if the `mapper`
             ever produces an invalid value.
         is_vectorized
@@ -210,8 +204,7 @@ class ResultsContext:
 
         self.stratifications[name] = Stratification(
             name=name,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             categories=categories,
             excluded_categories=to_exclude,
             mapper=mapper,
@@ -224,8 +217,7 @@ class ResultsContext:
         name: str,
         pop_filter: str,
         when: str,
-        requires_columns: list[str],
-        requires_values: list[Pipeline],
+        requires_attributes: list[str],
         stratifications: tuple[str, ...] | None,
         **kwargs: Any,
     ) -> Observation:
@@ -267,8 +259,7 @@ class ResultsContext:
             name=name,
             pop_filter=pop_filter,
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             **kwargs,
         )
         self.observations[name] = observation
@@ -395,10 +386,10 @@ class ResultsContext:
             }.values()
         )
 
-    def get_required_columns(
+    def get_required_attributes(
         self, observations: list[Observation], stratifications: list[Stratification]
     ) -> list[str]:
-        """Get all columns required for producing results for a given Event.
+        """Get all population attributes required for producing results for a given Event.
 
         Parameters
         ----------
@@ -412,40 +403,14 @@ class ResultsContext:
 
         Returns
         -------
-            A list of all columns required for producing results for the given Event.
+            All population attributes required for producing results for the given Event.
         """
-        required_columns = set()
+        required_attributes = set()
         for observation in observations:
-            required_columns.update(observation.requires_columns)
+            required_attributes.update(observation.requires_attributes)
         for stratification in stratifications:
-            required_columns.update(stratification.requires_columns)
-        return list(required_columns)
-
-    def get_required_values(
-        self, observations: list[Observation], stratifications: list[Stratification]
-    ) -> list[Pipeline]:
-        """Get all values required for producing results for a given Event.
-
-        Parameters
-        ----------
-        observations
-            List of observations to be gathered for this specific event. Note that this
-            excludes all observations whose `to_observe` method returns False.
-        stratifications
-            List of stratifications to be gathered for this specific event. This only
-            includes stratifications which are needed by the observations which will be
-            made during this `Event`.
-
-        Returns
-        -------
-            A list of all values required for producing results for the given Event.
-        """
-        required_values = set()
-        for observation in observations:
-            required_values.update(observation.requires_values)
-        for stratification in stratifications:
-            required_values.update(stratification.requires_values)
-        return list(required_values)
+            required_attributes.update(stratification.requires_attributes)
+        return list(required_attributes)
 
     def _filter_population(self, population: pd.DataFrame, pop_filter: str) -> pd.DataFrame:
         """Filter out simulants not to observe."""

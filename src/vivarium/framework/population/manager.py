@@ -603,7 +603,9 @@ class PopulationManager(Manager):
             else:
                 requested_attributes = attributes
 
-        non_existent_attributes = set(requested_attributes) - set(self._attribute_pipelines)
+        non_existent_attributes = set(requested_attributes) - set(
+            self._attribute_pipelines.keys()
+        )
         if non_existent_attributes:
             raise PopulationError(
                 f"Requested attribute(s) {non_existent_attributes} not in population table. "
