@@ -145,10 +145,11 @@ Female  60         100      27
 Constructing Lookup Tables from a Component
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Components can to register lookup tables to be built by specifying
+Components can register lookup tables to be built by specifying
 a ``data_sources`` block in their ``configuration_defaults`` property. 
 As a basic example, DiseaseModel in ``vivarium_public_health`` has the following
 ``data_sources`` configuration:
+
 .. code-block:: python
 
     @property
