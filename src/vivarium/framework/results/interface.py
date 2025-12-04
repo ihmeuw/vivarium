@@ -9,7 +9,7 @@ This module provides an interface to the :class:`ResultsManager <vivarium.framew
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Sequence, Union
+from typing import TYPE_CHECKING, Any, NamedTuple, Sequence, Union
 
 import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy
@@ -62,6 +62,13 @@ def _default_unstratified_observation_formatter(
 ) -> pd.DataFrame:
     """Default formatter for unstratified observations."""
     return results
+
+
+class PopulationFilterDetails(NamedTuple):
+    """Container class for population query string and exclude_untracked flag."""
+
+    query: str = ""
+    exclude_untracked: bool = True
 
 
 class ResultsInterface(Interface):
@@ -235,8 +242,7 @@ class ResultsInterface(Interface):
         self._manager.register_observation(
             observation_type=StratifiedObservation,
             name=name,
-            pop_filter=pop_filter,
-            exclude_untracked=exclude_untracked,
+            population_filter_details=PopulationFilterDetails(pop_filter, exclude_untracked),
             when=when,
             requires_attributes=requires_attributes,
             results_updater=results_updater,
@@ -299,8 +305,7 @@ class ResultsInterface(Interface):
         self._manager.register_observation(
             observation_type=UnstratifiedObservation,
             name=name,
-            pop_filter=pop_filter,
-            exclude_untracked=exclude_untracked,
+            population_filter_details=PopulationFilterDetails(pop_filter, exclude_untracked),
             when=when,
             requires_attributes=requires_attributes,
             results_updater=results_updater,
@@ -365,8 +370,7 @@ class ResultsInterface(Interface):
         self._manager.register_observation(
             observation_type=AddingObservation,
             name=name,
-            pop_filter=pop_filter,
-            exclude_untracked=exclude_untracked,
+            population_filter_details=PopulationFilterDetails(pop_filter, exclude_untracked),
             when=when,
             requires_attributes=requires_attributes,
             results_formatter=results_formatter,
@@ -419,8 +423,7 @@ class ResultsInterface(Interface):
         self._manager.register_observation(
             observation_type=ConcatenatingObservation,
             name=name,
-            pop_filter=pop_filter,
-            exclude_untracked=exclude_untracked,
+            population_filter_details=PopulationFilterDetails(pop_filter, exclude_untracked),
             when=when,
             requires_attributes=requires_attributes,
             results_formatter=results_formatter,

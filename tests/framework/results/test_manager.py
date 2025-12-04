@@ -40,6 +40,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
+from vivarium.framework.results.interface import PopulationFilterDetails
 from vivarium.framework.results.manager import ResultsManager
 from vivarium.framework.results.observation import AddingObservation, Observation
 from vivarium.framework.results.stratification import Stratification, get_mapped_col_name
@@ -214,8 +215,7 @@ def test_add_observation_nop_stratifications(
     mgr.register_observation(
         observation_type=AddingObservation,
         name="name",
-        pop_filter='alive == "alive"',
-        exclude_untracked=True,
+        population_filter_details=PopulationFilterDetails('alive == "alive"'),
         aggregator_sources=[],
         aggregator=lambda: None,
         requires_attributes=[],
@@ -497,8 +497,7 @@ def test_prepare_population(
     observations: list[Observation] = [
         AddingObservation(
             name=f"test_observation_{i}",
-            pop_filter="",
-            exclude_untracked=True,
+            population_filter_details=PopulationFilterDetails(),
             when=lifecycle_states.COLLECT_METRICS,
             requires_attributes=columns + values,
             results_formatter=lambda *_: pd.DataFrame(),
@@ -553,8 +552,9 @@ def test_prepare_population_all_untracked(prepare_population_sim: InteractiveCon
     mgr = prepare_population_sim._results
     observation1 = AddingObservation(
         name="familiar",
-        pop_filter="",
-        exclude_untracked=False,  # allow untracked
+        population_filter_details=PopulationFilterDetails(
+            exclude_untracked=False
+        ),  # allow untracked
         when=lifecycle_states.COLLECT_METRICS,
         requires_attributes=["familiar"],
         results_formatter=lambda *_: pd.DataFrame(),
@@ -563,8 +563,7 @@ def test_prepare_population_all_untracked(prepare_population_sim: InteractiveCon
     )
     observation2 = AddingObservation(
         name="house_points",
-        pop_filter="",
-        exclude_untracked=True,
+        population_filter_details=PopulationFilterDetails(),
         when=lifecycle_states.COLLECT_METRICS,
         requires_attributes=["house_points"],
         results_formatter=lambda *_: pd.DataFrame(),
@@ -596,9 +595,18 @@ def test_prepare_population_all_untracked(prepare_population_sim: InteractiveCon
     assert "slytherin" in private_columns["student_house"].values
 
     # Now set both observers to exclude untracked
-    observation1.exclude_untracked = True
+    observation3 = AddingObservation(
+        # identical to observation1 exclude excluding untracked
+        name="familiar",
+        population_filter_details=PopulationFilterDetails(),
+        when=lifecycle_states.COLLECT_METRICS,
+        requires_attributes=["familiar"],
+        results_formatter=lambda *_: pd.DataFrame(),
+        aggregator_sources=[],
+        aggregator=lambda *_: pd.Series(),
+    )
     population = mgr._prepare_population(
-        event, observations=[observation1, observation2], stratifications=[]
+        event, observations=[observation3, observation2], stratifications=[]
     )
     slytherin_mask = private_columns["student_house"] == "slytherin"
     expected = private_columns.loc[~slytherin_mask, list(population.columns)]

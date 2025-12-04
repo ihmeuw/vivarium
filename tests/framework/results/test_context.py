@@ -1,7 +1,6 @@
 import itertools
 import math
 import re
-from collections import defaultdict
 from collections.abc import Callable
 from datetime import timedelta
 from typing import Any
@@ -27,7 +26,8 @@ from tests.framework.results.helpers import (
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results import VALUE_COLUMN
-from vivarium.framework.results.context import FilterDetails, ResultsContext
+from vivarium.framework.results.context import ResultsContext
+from vivarium.framework.results.interface import PopulationFilterDetails
 from vivarium.framework.results.observation import AddingObservation, ConcatenatingObservation
 from vivarium.framework.results.stratification import Stratification, get_mapped_col_name
 from vivarium.types import ScalarMapper, VectorMapper
@@ -47,38 +47,6 @@ def event() -> Event:
         time=0,
         step_size=1,
     )
-
-
-def test_FilterDetails_equality() -> None:
-    fd_dict: defaultdict[FilterDetails, str] = defaultdict(str)
-
-    fd1 = FilterDetails(pop_filter='familiar == "cat"', exclude_untracked=True)
-    fd2 = FilterDetails(pop_filter='familiar == "cat"', exclude_untracked=True)
-    fd3 = FilterDetails(pop_filter='familiar == "dog"', exclude_untracked=True)
-    fd4 = FilterDetails(pop_filter='familiar == "cat"', exclude_untracked=False)
-
-    assert fd1 == fd2
-    assert fd1 != fd3
-    assert fd1 != fd4
-
-    fd_dict[fd1] = "fd1"
-    fd_dict[fd2] = "fd2"
-    assert len(fd_dict) == 1
-    assert fd_dict[fd1] == "fd2"
-    fd_dict[fd3] = "fd3"
-    assert len(fd_dict) == 2
-    fd_dict[fd4] = "fd4"
-    assert len(fd_dict) == 3
-
-    # Look at some weaknesses of trying to handle query strings
-    fd5 = FilterDetails(pop_filter='familiar=="cat"', exclude_untracked=True)
-    assert fd1 != fd5
-    fd_dict[fd5] = "fd5"
-    assert len(fd_dict) == 4
-    fd6 = FilterDetails(pop_filter="familiar == 'cat'", exclude_untracked=True)
-    assert fd1 != fd6
-    fd_dict[fd6] = "fd6"
-    assert len(fd_dict) == 5
 
 
 @pytest.mark.parametrize(
@@ -233,15 +201,15 @@ def test_add_stratification_raises(
     [
         {
             "name": "living_person_time",
-            "pop_filter": 'alive == "alive" and undead == False',
-            "exclude_untracked": True,
+            "population_filter_details": PopulationFilterDetails(
+                "alive == 'alive' and undead == False"
+            ),
             "requires_attributes": ["alive", "undead"],
             "when": lifecycle_states.COLLECT_METRICS,
         },
         {
             "name": "undead_person_time",
-            "pop_filter": "undead == True",
-            "exclude_untracked": True,
+            "population_filter_details": PopulationFilterDetails("undead == True"),
             "requires_attributes": ["undead"],
             "when": lifecycle_states.TIME_STEP_PREPARE,
         },
@@ -268,8 +236,7 @@ def test_register_observation_duplicate_name_raises() -> None:
     ctx.register_observation(
         observation_type=AddingObservation,
         name="some-observation-name",
-        pop_filter="some-pop-filter",
-        exclude_untracked=True,
+        population_filter_details=PopulationFilterDetails("some-pop-filter"),
         when="some-when",
         requires_attributes=[],
         results_formatter=lambda df: df,
@@ -284,8 +251,7 @@ def test_register_observation_duplicate_name_raises() -> None:
         ctx.register_observation(
             observation_type=ConcatenatingObservation,
             name="some-observation-name",
-            pop_filter="some-other-pop-filter",
-            exclude_untracked=True,
+            population_filter_details=PopulationFilterDetails("some-other-pop-filter"),
             when="some-other-when",
             requires_attributes=[],
             stratifications=None,
@@ -348,8 +314,7 @@ def test_adding_observation_gather_results(
     observation = ctx.register_observation(
         observation_type=AddingObservation,
         name="foo",
-        pop_filter="",
-        exclude_untracked=True,
+        population_filter_details=PopulationFilterDetails(),
         requires_attributes=aggregator_sources,
         aggregator_sources=aggregator_sources,
         aggregator=aggregator,
@@ -398,20 +363,19 @@ def test_concatenating_observation_gather_results(event: Event) -> None:
     )
 
     lifecycle_state = lifecycle_states.COLLECT_METRICS
-    pop_filter = "house=='hufflepuff'"
+    population_filter_details = PopulationFilterDetails(query="house=='hufflepuff'")
     included_cols = ["familiar", "house"]
     observation = ctx.register_observation(
         observation_type=ConcatenatingObservation,
         name="foo",
-        pop_filter=pop_filter,
-        exclude_untracked=True,
+        population_filter_details=population_filter_details,
         when=lifecycle_state,
         requires_attributes=included_cols,
         results_formatter=lambda _, __: pd.DataFrame(),
         stratifications=None,
     )
 
-    filtered_pop = population.query(pop_filter)
+    filtered_pop = population.query(population_filter_details.query)
 
     i = 0
     for result, _measure, _updater in ctx.gather_results(
@@ -497,8 +461,7 @@ def test_gather_results_partial_stratifications_in_results(
     observation = ctx.register_observation(
         observation_type=AddingObservation,
         name=name,
-        pop_filter="",
-        exclude_untracked=True,
+        population_filter_details=PopulationFilterDetails(),
         requires_attributes=aggregator_sources,
         aggregator_sources=aggregator_sources,
         aggregator=aggregator,
@@ -529,8 +492,7 @@ def test_gather_results_with_empty_pop_filter(event: Event) -> None:
     observation = ctx.register_observation(
         observation_type=AddingObservation,
         name="wizard_count",
-        pop_filter="house == 'durmstrang'",
-        exclude_untracked=True,
+        population_filter_details=PopulationFilterDetails("house == 'durmstrang'"),
         requires_attributes=["house"],
         aggregator_sources=[],
         aggregator=len,
@@ -556,8 +518,7 @@ def test_gather_results_with_no_stratifications(event: Event) -> None:
     observation = ctx.register_observation(
         observation_type=AddingObservation,
         name="wizard_count",
-        pop_filter="",
-        exclude_untracked=True,
+        population_filter_details=PopulationFilterDetails(),
         requires_attributes=[],
         aggregator_sources=None,
         aggregator=len,
@@ -609,8 +570,7 @@ def test_bad_aggregator_stratification(event: Event) -> None:
     observation = ctx.register_observation(
         observation_type=AddingObservation,
         name="this_shouldnt_work",
-        pop_filter="",
-        exclude_untracked=True,
+        population_filter_details=PopulationFilterDetails(),
         requires_attributes=[],
         aggregator_sources=[],
         aggregator=sum,
@@ -641,8 +601,7 @@ def test_get_observations(
     ctx = ResultsContext()
     register_observation_kwargs = {
         "observation_type": AddingObservation,
-        "pop_filter": "",
-        "exclude_untracked": True,
+        "population_filter_details": PopulationFilterDetails(),
         "requires_attributes": [],
         "results_formatter": lambda: None,
         "stratifications": (),
@@ -697,8 +656,7 @@ def test_get_required_attributes(
     all_observations = {}
     register_observation_kwargs = {
         "observation_type": AddingObservation,
-        "pop_filter": "",
-        "exclude_untracked": True,
+        "population_filter_details": PopulationFilterDetails(),
         "when": lifecycle_states.COLLECT_METRICS,
         "results_formatter": lambda: None,
         "stratifications": (),

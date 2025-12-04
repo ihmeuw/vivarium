@@ -311,9 +311,11 @@ abstract base class, which contains the common attributes between observation ty
   * - | :attr:`name <vivarium.framework.results.observation.Observation.name>`
     - | Name of the observation. It will also be the name of the output results file
       | for this particular observation.
-  * - | :attr:`pop_filter <vivarium.framework.results.observation.Observation.pop_filter>`
-    - | A Pandas query filter string to filter the population down to the simulants
-      | who should be considered for the observation.
+  * - | :attr:`population_filter_details <vivarium.framework.results.interface.PopulationFilterDetails>`
+    - | A named tuple of population filtering details. The first item is a Pandas 
+      | query string to filter the population down to the simulants who should be 
+      | considered for the observation. The second item is a boolean indicating whether 
+      | to exclude untracked simulants from the observation.
   * - | :attr:`when <vivarium.framework.results.observation.Observation.when>`
     - | Name of the lifecycle phase the observation should happen. Valid values are:
       | "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".

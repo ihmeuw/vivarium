@@ -22,6 +22,7 @@ from vivarium.types import ScalarMapper, VectorMapper
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
+    from vivarium.framework.results.interface import PopulationFilterDetails
 
 
 class ResultsManager(Manager):
@@ -55,9 +56,9 @@ class ResultsManager(Manager):
         Notes
         -----
         self._results_context.observations is a list where each item is a dictionary
-        of the form {lifecycle_phase: {(pop_filter, stratification_names): List[Observation]}}.
+        of the form {lifecycle_phase: {(PopulationFilterDetails, stratification_names): List[Observation]}}.
         We use a triple-nested for loop to iterate over only the list of Observations
-        (i.e. we do not need the lifecycle_phase, pop_filter, or stratification_names
+        (i.e. we do not need the lifecycle_phase, PopulationFilterDetails, or stratification_names
         for this method).
 
         Returns
@@ -264,8 +265,7 @@ class ResultsManager(Manager):
         self,
         observation_type: type[Observation],
         name: str,
-        pop_filter: str,
-        exclude_untracked: bool,
+        population_filter_details: PopulationFilterDetails,
         when: str,
         requires_attributes: list[str],
         **kwargs: Any,
@@ -282,11 +282,11 @@ class ResultsManager(Manager):
         name
             Name of the observation. It will also be the name of the output results file
             for this particular observation.
-        pop_filter
-            A Pandas query filter string to filter the population down to the simulants who should
-            be considered for the observation.
-        exclude_untracked
-            Whether to exclude simulants who are untracked from this observation.
+        population_filter_details
+            A named tuple of population filtering details. The first item is a Pandas
+            query string to filter the population down to the simulants who should be
+            considered for the observation. The second item is a boolean indicating whether
+            to exclude untracked simulants from the observation.
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -317,8 +317,7 @@ class ResultsManager(Manager):
         self._results_context.register_observation(
             observation_type=observation_type,
             name=name,
-            pop_filter=pop_filter,
-            exclude_untracked=exclude_untracked,
+            population_filter_details=population_filter_details,
             when=when,
             requires_attributes=requires_attributes,
             stratifications=stratifications,
@@ -383,7 +382,9 @@ class ResultsManager(Manager):
             attributes_df = self.population_view.get_attributes(
                 event.index,
                 required_attributes,
-                exclude_untracked=all(obs.exclude_untracked for obs in observations),
+                exclude_untracked=all(
+                    obs.population_filter_details.exclude_untracked for obs in observations
+                ),
             )
             population = pd.concat(
                 [attributes_df, population.reindex(attributes_df.index)], axis=1

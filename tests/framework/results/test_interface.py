@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections import defaultdict
 from collections.abc import Callable
 from types import MethodType
 
@@ -16,7 +17,7 @@ from tests.framework.results.helpers import mock_get_attribute
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results import ResultsInterface, ResultsManager
-from vivarium.framework.results.context import FilterDetails
+from vivarium.framework.results.interface import PopulationFilterDetails
 from vivarium.framework.results.observation import (
     ConcatenatingObservation,
     StratifiedObservation,
@@ -25,6 +26,38 @@ from vivarium.framework.results.observation import (
 
 def _silly_aggregator(_: pd.DataFrame) -> float:
     return 1.0
+
+
+def test_FilterDetails_equality() -> None:
+    fd_dict: defaultdict[PopulationFilterDetails, str] = defaultdict(str)
+
+    fd1 = PopulationFilterDetails(query='familiar == "cat"', exclude_untracked=True)
+    fd2 = PopulationFilterDetails(query='familiar == "cat"', exclude_untracked=True)
+    fd3 = PopulationFilterDetails(query='familiar == "dog"', exclude_untracked=True)
+    fd4 = PopulationFilterDetails(query='familiar == "cat"', exclude_untracked=False)
+
+    assert fd1 == fd2
+    assert fd1 != fd3
+    assert fd1 != fd4
+
+    fd_dict[fd1] = "fd1"
+    fd_dict[fd2] = "fd2"
+    assert len(fd_dict) == 1
+    assert fd_dict[fd1] == "fd2"
+    fd_dict[fd3] = "fd3"
+    assert len(fd_dict) == 2
+    fd_dict[fd4] = "fd4"
+    assert len(fd_dict) == 3
+
+    # Look at some weaknesses of trying to handle query strings
+    fd5 = PopulationFilterDetails(query='familiar=="cat"', exclude_untracked=True)
+    assert fd1 != fd5
+    fd_dict[fd5] = "fd5"
+    assert len(fd_dict) == 4
+    fd6 = PopulationFilterDetails(query="familiar == 'cat'", exclude_untracked=True)
+    assert fd1 != fd6
+    fd_dict[fd6] = "fd6"
+    assert len(fd_dict) == 5
 
 
 ####################################
@@ -183,7 +216,7 @@ def test_register_stratified_observation(mocker: MockerFixture) -> None:
     filter_info = list(grouped_observations["some-when"].keys())[0]
     stratifications = list(grouped_observations["some-when"][filter_info])[0]
     observations = grouped_observations["some-when"][filter_info][stratifications]
-    assert filter_info.pop_filter == "some-filter"
+    assert filter_info.query == "some-filter"
     assert filter_info.exclude_untracked
     assert isinstance(stratifications, tuple)  # for mypy in following set(stratifications)
     assert set(stratifications) == {
@@ -195,7 +228,7 @@ def test_register_stratified_observation(mocker: MockerFixture) -> None:
 
     for observation in [observations_dict["some-name"], observations[0]]:
         assert observation.name == "some-name"
-        assert observation.pop_filter == "some-filter"
+        assert observation.population_filter_details.query == "some-filter"
         assert observation.when == "some-when"
         assert observation.results_gatherer is not None
         assert observation.results_updater is not None
@@ -226,13 +259,13 @@ def test_register_unstratified_observation(mocker: MockerFixture) -> None:
     filter_info = list(grouped_observations["some-when"].keys())[0]
     stratifications = list(grouped_observations["some-when"][filter_info])[0]
     observations = grouped_observations["some-when"][filter_info][stratifications]
-    assert filter_info.pop_filter == "some-filter"
+    assert filter_info.query == "some-filter"
     assert filter_info.exclude_untracked
     assert stratifications is None
     assert len(observations) == 1
     obs = observations[0]
     assert obs.name == "some-name"
-    assert obs.pop_filter == "some-filter"
+    assert obs.population_filter_details.query == "some-filter"
     assert obs.when == "some-when"
     assert obs.results_gatherer is not None
     assert obs.results_updater is not None
@@ -325,9 +358,9 @@ def test_register_multiple_adding_observations(mocker: MockerFixture) -> None:
     grouped_observations = interface._manager._results_context.grouped_observations
     assert len(grouped_observations) == 1
     assert (
-        grouped_observations[lifecycle_states.TIME_STEP_CLEANUP][FilterDetails("", True)][()][
-            0
-        ].name
+        grouped_observations[lifecycle_states.TIME_STEP_CLEANUP][PopulationFilterDetails()][
+            ()
+        ][0].name
         == "living_person_time"
     )
 
@@ -341,14 +374,14 @@ def test_register_multiple_adding_observations(mocker: MockerFixture) -> None:
     grouped_observations = interface._manager._results_context.grouped_observations
     assert len(grouped_observations) == 2
     assert (
-        grouped_observations[lifecycle_states.TIME_STEP_CLEANUP][FilterDetails("", True)][()][
-            0
-        ].name
+        grouped_observations[lifecycle_states.TIME_STEP_CLEANUP][PopulationFilterDetails()][
+            ()
+        ][0].name
         == "living_person_time"
     )
     assert (
         grouped_observations[lifecycle_states.TIME_STEP_PREPARE][
-            FilterDetails("undead==True", True)
+            PopulationFilterDetails("undead==True")
         ][()][0].name
         == "undead_person_time"
     )
@@ -471,13 +504,13 @@ def test_register_concatenating_observation(mocker: MockerFixture) -> None:
     filter_info = list(grouped_observations["some-when"].keys())[0]
     stratifications = list(grouped_observations["some-when"][filter_info])[0]
     observations = grouped_observations["some-when"][filter_info][stratifications]
-    assert filter_info.pop_filter == "some-filter"
+    assert filter_info.query == "some-filter"
     assert filter_info.exclude_untracked
     assert stratifications is None
     assert len(observations) == 1
     obs = observations[0]
     assert obs.name == "some-name"
-    assert obs.pop_filter == "some-filter"
+    assert obs.population_filter_details.query == "some-filter"
     assert obs.when == "some-when"
     assert isinstance(obs, ConcatenatingObservation)
     assert obs.requires_attributes == [
