@@ -51,6 +51,8 @@ class Observation(ABC):
     pop_filter: str
     """A Pandas query filter string to filter the population down to the simulants
     who should be considered for the observation."""
+    exclude_untracked: bool
+    """Whether to exclude simulants who are untracked from this observation."""
     when: str
     """Name of the lifecycle phase the observation should happen. Valid values are:
     "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics"."""
@@ -119,6 +121,8 @@ class UnstratifiedObservation(Observation):
     pop_filter
         A Pandas query filter string to filter the population down to the simulants who should
         be considered for the observation.
+    exclude_untracked
+        Whether to exclude simulants who are untracked from this observation.
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -139,6 +143,7 @@ class UnstratifiedObservation(Observation):
         self,
         name: str,
         pop_filter: str,
+        exclude_untracked: bool,
         when: str,
         requires_attributes: list[str],
         results_gatherer: Callable[[pd.DataFrame], pd.DataFrame],
@@ -160,6 +165,7 @@ class UnstratifiedObservation(Observation):
         super().__init__(
             name=name,
             pop_filter=pop_filter,
+            exclude_untracked=exclude_untracked,
             when=when,
             requires_attributes=requires_attributes,
             results_initializer=self.create_empty_df,
@@ -199,6 +205,8 @@ class StratifiedObservation(Observation):
     pop_filter
         A Pandas query filter string to filter the population down to the simulants who should
         be considered for the observation.
+    exclude_untracked
+        Whether to exclude simulants who are untracked from this observation.
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -221,6 +229,7 @@ class StratifiedObservation(Observation):
         self,
         name: str,
         pop_filter: str,
+        exclude_untracked: bool,
         when: str,
         requires_attributes: list[str],
         results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
@@ -232,6 +241,7 @@ class StratifiedObservation(Observation):
         super().__init__(
             name=name,
             pop_filter=pop_filter,
+            exclude_untracked=exclude_untracked,
             when=when,
             requires_attributes=requires_attributes,
             results_initializer=self.create_expanded_df,
@@ -398,6 +408,8 @@ class AddingObservation(StratifiedObservation):
     pop_filter
         A Pandas query filter string to filter the population down to the simulants who should
         be considered for the observation.
+    exclude_untracked
+        Whether to exclude simulants who are untracked from this observation.
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -421,6 +433,7 @@ class AddingObservation(StratifiedObservation):
         self,
         name: str,
         pop_filter: str,
+        exclude_untracked: bool,
         when: str,
         requires_attributes: list[str],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
@@ -431,6 +444,7 @@ class AddingObservation(StratifiedObservation):
         super().__init__(
             name=name,
             pop_filter=pop_filter,
+            exclude_untracked=exclude_untracked,
             when=when,
             requires_attributes=requires_attributes,
             results_updater=self.add_results,
@@ -488,6 +502,8 @@ class ConcatenatingObservation(UnstratifiedObservation):
     pop_filter
         A Pandas query filter string to filter the population down to the simulants who should
         be considered for the observation.
+    exclude_untracked
+        Whether to exclude simulants who are untracked from this observation.
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -504,6 +520,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
         self,
         name: str,
         pop_filter: str,
+        exclude_untracked: bool,
         when: str,
         requires_attributes: list[str],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
@@ -513,6 +530,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
         super().__init__(
             name=name,
             pop_filter=pop_filter,
+            exclude_untracked=exclude_untracked,
             when=when,
             requires_attributes=requires_attributes,
             results_gatherer=self.get_results_of_interest,

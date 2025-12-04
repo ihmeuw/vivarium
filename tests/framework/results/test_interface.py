@@ -16,6 +16,7 @@ from tests.framework.results.helpers import mock_get_attribute
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results import ResultsInterface, ResultsManager
+from vivarium.framework.results.context import FilterDetails
 from vivarium.framework.results.observation import (
     ConcatenatingObservation,
     StratifiedObservation,
@@ -179,10 +180,11 @@ def test_register_stratified_observation(mocker: MockerFixture) -> None:
 
     grouped_observations = interface._manager._results_context.grouped_observations
     assert len(grouped_observations) == 1
-    filter = list(grouped_observations["some-when"].keys())[0]
-    stratifications = list(grouped_observations["some-when"][filter])[0]
-    observations = grouped_observations["some-when"][filter][stratifications]
-    assert filter == "some-filter"
+    filter_info = list(grouped_observations["some-when"].keys())[0]
+    stratifications = list(grouped_observations["some-when"][filter_info])[0]
+    observations = grouped_observations["some-when"][filter_info][stratifications]
+    assert filter_info.pop_filter == "some-filter"
+    assert filter_info.exclude_untracked
     assert isinstance(stratifications, tuple)  # for mypy in following set(stratifications)
     assert set(stratifications) == {
         "default-stratification",
@@ -221,10 +223,11 @@ def test_register_unstratified_observation(mocker: MockerFixture) -> None:
     )
     grouped_observations = interface._manager._results_context.grouped_observations
     assert len(grouped_observations) == 1
-    filter = list(grouped_observations["some-when"].keys())[0]
-    stratifications = list(grouped_observations["some-when"][filter])[0]
-    observations = grouped_observations["some-when"][filter][stratifications]
-    assert filter == "some-filter"
+    filter_info = list(grouped_observations["some-when"].keys())[0]
+    stratifications = list(grouped_observations["some-when"][filter_info])[0]
+    observations = grouped_observations["some-when"][filter_info][stratifications]
+    assert filter_info.pop_filter == "some-filter"
+    assert filter_info.exclude_untracked
     assert stratifications is None
     assert len(observations) == 1
     obs = observations[0]
@@ -322,7 +325,9 @@ def test_register_multiple_adding_observations(mocker: MockerFixture) -> None:
     grouped_observations = interface._manager._results_context.grouped_observations
     assert len(grouped_observations) == 1
     assert (
-        grouped_observations[lifecycle_states.TIME_STEP_CLEANUP][""][()][0].name
+        grouped_observations[lifecycle_states.TIME_STEP_CLEANUP][FilterDetails("", True)][()][
+            0
+        ].name
         == "living_person_time"
     )
 
@@ -336,11 +341,15 @@ def test_register_multiple_adding_observations(mocker: MockerFixture) -> None:
     grouped_observations = interface._manager._results_context.grouped_observations
     assert len(grouped_observations) == 2
     assert (
-        grouped_observations[lifecycle_states.TIME_STEP_CLEANUP][""][()][0].name
+        grouped_observations[lifecycle_states.TIME_STEP_CLEANUP][FilterDetails("", True)][()][
+            0
+        ].name
         == "living_person_time"
     )
     assert (
-        grouped_observations[lifecycle_states.TIME_STEP_PREPARE]["undead==True"][()][0].name
+        grouped_observations[lifecycle_states.TIME_STEP_PREPARE][
+            FilterDetails("undead==True", True)
+        ][()][0].name
         == "undead_person_time"
     )
 
@@ -459,10 +468,11 @@ def test_register_concatenating_observation(mocker: MockerFixture) -> None:
     )
     grouped_observations = interface._manager._results_context.grouped_observations
     assert len(grouped_observations) == 1
-    filter = list(grouped_observations["some-when"].keys())[0]
-    stratifications = list(grouped_observations["some-when"][filter])[0]
-    observations = grouped_observations["some-when"][filter][stratifications]
-    assert filter == "some-filter"
+    filter_info = list(grouped_observations["some-when"].keys())[0]
+    stratifications = list(grouped_observations["some-when"][filter_info])[0]
+    observations = grouped_observations["some-when"][filter_info][stratifications]
+    assert filter_info.pop_filter == "some-filter"
+    assert filter_info.exclude_untracked
     assert stratifications is None
     assert len(observations) == 1
     obs = observations[0]

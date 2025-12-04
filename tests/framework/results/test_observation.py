@@ -24,6 +24,7 @@ def stratified_observation() -> StratifiedObservation:
     return StratifiedObservation(
         name="stratified_observation_name",
         pop_filter="",
+        exclude_untracked=True,
         when="whenevs",
         requires_attributes=[],
         results_updater=lambda _, __: pd.DataFrame(),
@@ -38,6 +39,7 @@ def concatenating_observation() -> ConcatenatingObservation:
     return ConcatenatingObservation(
         name="concatenating_observation_name",
         pop_filter="",
+        exclude_untracked=True,
         when="whenevs",
         requires_attributes=["some-col", "some-other-col"],
         results_formatter=lambda _, __: pd.DataFrame(),
@@ -236,6 +238,7 @@ def test_adding_observation_results_updater(new_observations: pd.DataFrame) -> N
     obs = AddingObservation(
         name="adding_observation_name",
         pop_filter="",
+        exclude_untracked=True,
         when="whenevs",
         requires_attributes=[],
         results_formatter=lambda _, __: pd.DataFrame(),

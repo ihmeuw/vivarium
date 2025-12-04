@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Callable, Generator
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy
@@ -22,6 +22,11 @@ from vivarium.types import ScalarMapper, VectorMapper
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
+
+
+class FilterDetails(NamedTuple):
+    pop_filter: str
+    exclude_untracked: bool
 
 
 class ResultsContext:
@@ -47,7 +52,7 @@ class ResultsContext:
         objects to be produced keyed by the observation name.
     grouped_observations
         Dictionary of observation details. It is of the format
-        {lifecycle_state: {pop_filter: {stratifications: list[Observation]}}}.
+        {lifecycle_state: {tuple[pop_filter, exclude_untracked]: {stratifications: list[Observation]}}}.
         Allowable lifecycle_states are "time_step__prepare", "time_step",
         "time_step__cleanup", and "collect_metrics".
     logger
@@ -60,7 +65,10 @@ class ResultsContext:
         self.excluded_categories: dict[str, list[str]] = {}
         self.observations: dict[str, Observation] = {}
         self.grouped_observations: defaultdict[
-            str, defaultdict[str, defaultdict[tuple[str, ...] | None, list[Observation]]]
+            str,
+            defaultdict[
+                FilterDetails, defaultdict[tuple[str, ...] | None, list[Observation]]
+            ],
         ] = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
     @property
@@ -216,6 +224,7 @@ class ResultsContext:
         observation_type: type[Observation],
         name: str,
         pop_filter: str,
+        exclude_untracked: bool,
         when: str,
         requires_attributes: list[str],
         stratifications: tuple[str, ...] | None,
@@ -233,6 +242,8 @@ class ResultsContext:
         pop_filter
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
+        exclude_untracked
+            Whether to exclude simulants who are untracked from this observation.
         when
             Name of the lifecycle state the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -253,19 +264,23 @@ class ResultsContext:
                 f"Observation name '{name}' is already used: {self.observations[name]}."
             )
 
-        # Instantiate the observation and add it and its (pop_filter, stratifications)
-        # tuple as a key-value pair to the self.observations[when] dictionary.
         observation = observation_type(
             name=name,
             pop_filter=pop_filter,
+            exclude_untracked=exclude_untracked,
             when=when,
             requires_attributes=requires_attributes,
             **kwargs,
         )
         self.observations[name] = observation
-        self.grouped_observations[observation.when][observation.pop_filter][
-            stratifications
-        ].append(observation)
+        # Consider moving FilterDetails to the top?
+        # FIXME: The query strings hashed like any other strings, so functionally
+        # identical strings with different formatting will not be grouped together.
+        # (e.g. 'a == b' != 'b == a'; 'a == b' != "a==b")
+        filter_details = FilterDetails(pop_filter, exclude_untracked)
+        self.grouped_observations[observation.when][filter_details][stratifications].append(
+            observation
+        )
         return observation
 
     def gather_results(
@@ -309,7 +324,7 @@ class ResultsContext:
 
         # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
-        for pop_filter, stratification_observations in self.grouped_observations[
+        for filter_details, stratification_observations in self.grouped_observations[
             lifecycle_state
         ].items():
             event_pop_filter_observations = [
@@ -321,7 +336,9 @@ class ResultsContext:
             if not event_pop_filter_observations:
                 continue
 
-            filtered_population = self._filter_population(population, pop_filter)
+            filtered_population = self._filter_population(
+                population, filter_details.pop_filter
+            )
             if filtered_population.empty:
                 continue
 

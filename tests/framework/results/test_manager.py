@@ -215,6 +215,7 @@ def test_add_observation_nop_stratifications(
         observation_type=AddingObservation,
         name="name",
         pop_filter='alive == "alive"',
+        exclude_untracked=True,
         aggregator_sources=[],
         aggregator=lambda: None,
         requires_attributes=[],
@@ -497,6 +498,7 @@ def test_prepare_population(
         AddingObservation(
             name=f"test_observation_{i}",
             pop_filter="",
+            exclude_untracked=True,
             when=lifecycle_states.COLLECT_METRICS,
             requires_attributes=columns + values,
             results_formatter=lambda *_: pd.DataFrame(),
@@ -545,6 +547,62 @@ def test_prepare_population(
             population[get_mapped_col_name(strat.name)]
             == strat.stratify(population[strat.requires_attributes])
         ).all()
+
+
+def test_prepare_population_all_untracked(prepare_population_sim: InteractiveContext) -> None:
+    mgr = prepare_population_sim._results
+    observation1 = AddingObservation(
+        name="familiar",
+        pop_filter="",
+        exclude_untracked=False,  # allow untracked
+        when=lifecycle_states.COLLECT_METRICS,
+        requires_attributes=["familiar"],
+        results_formatter=lambda *_: pd.DataFrame(),
+        aggregator_sources=[],
+        aggregator=lambda *_: pd.Series(),
+    )
+    observation2 = AddingObservation(
+        name="house_points",
+        pop_filter="",
+        exclude_untracked=True,
+        when=lifecycle_states.COLLECT_METRICS,
+        requires_attributes=["house_points"],
+        results_formatter=lambda *_: pd.DataFrame(),
+        aggregator_sources=[],
+        aggregator=lambda *_: pd.Series(),
+    )
+
+    index = prepare_population_sim.get_population_index()
+    event = Event(
+        name=lifecycle_states.COLLECT_METRICS,
+        index=index,
+        user_data={},
+        time=prepare_population_sim._clock.time + prepare_population_sim._clock.step_size,  # type: ignore [operator]
+        step_size=prepare_population_sim._clock.step_size,
+    )
+
+    # Add an untracking query
+    pop_mgr = prepare_population_sim._population
+    pop_mgr.tracked_queries = ['student_house != "slytherin"']
+
+    # Check that the exclusion is not applied since one of the observers allows untracked
+    private_columns = pop_mgr._private_columns
+    assert isinstance(private_columns, pd.DataFrame)
+    population = mgr._prepare_population(
+        event, observations=[observation1, observation2], stratifications=[]
+    )
+    assert set(population.columns) == {"familiar", "house_points"}
+    assert population.equals(private_columns[population.columns])
+    assert "slytherin" in private_columns["student_house"].values
+
+    # Now set both observers to exclude untracked
+    observation1.exclude_untracked = True
+    population = mgr._prepare_population(
+        event, observations=[observation1, observation2], stratifications=[]
+    )
+    slytherin_mask = private_columns["student_house"] == "slytherin"
+    expected = private_columns.loc[~slytherin_mask, list(population.columns)]
+    assert population.equals(expected)
 
 
 def test_stratified_observation_results() -> None:

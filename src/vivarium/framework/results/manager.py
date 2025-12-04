@@ -265,6 +265,7 @@ class ResultsManager(Manager):
         observation_type: type[Observation],
         name: str,
         pop_filter: str,
+        exclude_untracked: bool,
         when: str,
         requires_attributes: list[str],
         **kwargs: Any,
@@ -284,6 +285,8 @@ class ResultsManager(Manager):
         pop_filter
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
+        exclude_untracked
+            Whether to exclude simulants who are untracked from this observation.
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -315,6 +318,7 @@ class ResultsManager(Manager):
             observation_type=observation_type,
             name=name,
             pop_filter=pop_filter,
+            exclude_untracked=exclude_untracked,
             when=when,
             requires_attributes=requires_attributes,
             stratifications=stratifications,
@@ -373,20 +377,16 @@ class ResultsManager(Manager):
                 required_attributes.remove(key)
 
         if required_attributes:
-            # FIXME: Inefficiency: In the event every single observation has some identical filter
-            # (e.g. 'alive == "alive"'), we still calculate all attributes for the
-            # entire population and then apply the filter downstream.
-            # One easy (and probably most likely) example is the untracking filters.
-            # If every observation has exclude_untracked=True, then we can use
-            # that in the get_attributes call below.
+            # FIXME: (Inefficiency) In the event every single observation has some identical
+            # query string (e.g. 'alive == "alive"'), we still calculate all attributes for
+            # the entire population and then apply the query downstream.
+            attributes_df = self.population_view.get_attributes(
+                event.index,
+                required_attributes,
+                exclude_untracked=all(obs.exclude_untracked for obs in observations),
+            )
             population = pd.concat(
-                [
-                    self.population_view.get_attributes(
-                        event.index, required_attributes, exclude_untracked=False
-                    ),
-                    population,
-                ],
-                axis=1,
+                [attributes_df, population.reindex(attributes_df.index)], axis=1
             )
         for stratification in stratifications:
             new_column = get_mapped_col_name(stratification.name)
