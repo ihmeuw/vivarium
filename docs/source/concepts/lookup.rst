@@ -142,16 +142,199 @@ Female  40         60       30
 Female  60         100      27
 ======  =========  =======  ======
 
+Constructing Lookup Tables from a Component
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Components can to register lookup tables to be built by specifying
+a ``data_sources`` block in their ``configuration_defaults`` property. 
+As a basic example, DiseaseModel in ``vivarium_public_health`` has the following
+``data_sources`` configuration:
+.. code-block:: python
+
+    @property
+    def configuration_defaults(self) -> dict[str, Any]:
+        return {
+            f"{self.name}": {
+                "data_sources": {
+                    "cause_specific_mortality_rate": self.load_cause_specific_mortality_rate,
+                },
+            },
+        }
+
+which specifies a single lookup table named
+``cause_specific_mortality_rate`` whose data is provided by the component's
+``load_cause_specific_mortality_rate`` method.
+
+Each entry in
+``data_sources`` maps a table name to a data source from one of several supported types
+(see `Data Source Types`_). Barring edge cases (see
+`Limitations and When to Override`_), one should specify all of a component's
+lookup tables via ``data_sources``, instead of accessing the builder's lookup
+interface directly.
+
+When a component configures ``data_sources``, the base
+:class:`Component <vivarium.component.Component>` class automatically builds
+the lookup tables before the component's ``setup()`` method is called. The
+resulting tables are stored in the component's ``lookup_tables`` dictionary,
+keyed by the name specified in ``data_sources``. 
+
+This approach separates the *what* (which tables to build and where to get data) from the
+*how* (the mechanics of table construction), making components easier to
+write and configure. It also allows users to override data sources in model specification files
+without modifying component code. Following the example above, a model specification could adjust the 
+``cause_specific_mortality_rate`` data source to point to different data or a scalar value:
+
+.. code-block:: yaml
+
+    configuration:
+        disease_model:
+            data_sources:
+                cause_specific_mortality_rate: 0.02
+
+Data Source Types
+^^^^^^^^^^^^^^^^^
+
+Each entry in ``data_sources`` maps a table name to a data source. The
+following data source types are supported:
+
+**Artifact key (string without** ``::`` **):**
+    A string path to data in the artifact, e.g.,
+    ``"cause.all_causes.cause_specific_mortality_rate"``. The data is loaded
+    via ``builder.data.load()``.
+
+**Callable:**
+    Any callable (function, lambda, or bound method) that accepts a ``builder``
+    argument and returns the data.
+
+**Scalar value:**
+    A numeric value (``int``, ``float``), ``datetime``, or ``timedelta`` that
+    will be broadcast over the population index when the table is called.
+
+**Method reference (string with** ``self::`` **):**
+    A string of the form ``"self::method_name"`` that references a method on
+    the component itself. The method should accept a ``builder`` argument and
+    return the data. This is primarily for use in the `model specification YAML
+    files <model_specification_concept>`_ where direct method references are not
+    possible.
+
+**External function reference (string with** ``module.path::`` **):**
+    A string of the form ``"module.path::function_name"`` that references a
+    function in another module. The function should accept a ``builder``
+    argument and return the data. This is primarily for use in the
+    `model specification YAML files <model_specification_concept>`_ where direct
+    method references are not possible.
+
+
+
+Column Detection
+^^^^^^^^^^^^^^^^
+
+When building a lookup table from a :class:`pandas.DataFrame` using ``data_sources``,
+the component automatically determines key columns, parameter columns, and value columns
+based on the data structure:
+
+- **Value columns** default to ``["value"]`` (configurable via the artifact
+  interface).
+- **Parameter columns** are detected by finding columns ending in ``_start``
+  that have corresponding ``_end`` columns (e.g., ``age_start``/``age_end``).
+- **Key columns** are all remaining columns that are neither value columns
+  nor parameter bin edge columns.
+
+See the `Construction Parameters`_ section for definitions of these
+column types.
+
+Example: Writing a Component with Data Sources
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A more complete example is reproduced from the ``Mortality`` component in ``vivarium_public_health``:
+
+.. code-block:: python
+
+    from vivarium import Component
+
+    class Mortality(Component):
+
+        @property
+        def configuration_defaults(self) -> dict[str, Any]:
+            return {
+                "mortality": {
+                    "data_sources": {
+                        # Artifact key - loaded via builder.data.load()
+                        "all_cause_mortality_rate": "cause.all_causes.cause_specific_mortality_rate",
+                        # Method reference - calls self.load_unmodeled_csmr(builder)
+                        "unmodeled_cause_specific_mortality_rate": self.load_unmodeled_csmr,
+                        # Another artifact key
+                        "life_expectancy": "population.theoretical_minimum_risk_life_expectancy",
+                    },
+                    "unmodeled_causes": [],
+                },
+            }
+
+Example: Configuring Data Sources as a User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Users can override the default data sources in a model specification YAML
+file. This allows changing where data comes from without modifying component
+code:
+
+.. code-block:: yaml
+
+    configuration:
+        mortality:
+            data_sources:
+                # Override with a scalar value instead of artifact data
+                all_cause_mortality_rate: 0.01
+                # point to a module function
+                unmodeled_cause_specific_mortality_rate: "my_module.data::load_unmodeled_csmr"
+                # Or point to different artifact data
+                life_expectancy: "alternative.life_expectancy.data"
+
+Limitations and When to Override
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The automatic ``data_sources`` mechanism works well for straightforward cases,
+but some scenarios require overriding the ``build_all_lookup_tables()`` method:
+
+**Non-standard value columns:**
+    The component defaults to ``["value"]`` as the value column name. If your
+    data has differently named value columns or multiple value columns, you
+    must call ``build_lookup_table()`` directly with explicit
+    ``value_columns``.
+
+**Complex data transformations:**
+    When data requires transformation before building tables (e.g., pivoting,
+    computing derived parameters, combining multiple data sources), override
+    ``build_all_lookup_tables()`` to perform the transformation first.
+
+**Delegation to sub-components:**
+    When lookup tables should be built by sub-components rather than the
+    parent component, override ``build_all_lookup_tables()`` to skip the
+    default behavior.
+
+Examples of these patterns can be found in ``vivarium_public_health``:
+
+- ``RateTransition`` and ``DiseaseState`` in ``vivarium_public_health.disease``
+  demonstrate the basic ``data_sources`` pattern with various data source types.
+- ``Risk`` in ``vivarium_public_health.risks`` overrides ``build_all_lookup_tables()``
+  to delegate table construction to its exposure distribution sub-component.
+
+Using the Lookup Interface Directly
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For cases not covered by ``data_sources``, or when working in an interactive
+context, you can build lookup tables directly using the builder's lookup
+interface. 
+
 Example Usage
 ~~~~~~~~~~~~~
 
 The following is an example of creating and calling a lookup table in an
-:ref:`interactive setting <interactive_tutorial>` using the data above. The
-interface and process are the same when integrating a lookup table into a
-:term:`component <Component>`, which is primarily how they are used. Assuming
-you have a valid simulation object named ``sim`` and the data from the above
-table in a :class:`pandas.DataFrame` named ``data``, you can construct a
-lookup table in the following way, using the interface from the builder.
+:ref:`interactive setting <interactive_tutorial>` using the data from 
+`Construction Parameters`_ above. The interface and process are the same when 
+integrating a lookup table into a :term:`component <Component>`, which is primarily 
+how they are used. Assuming you have a valid simulation object named ``sim`` and 
+the data from the above table in a :class:`pandas.DataFrame` named ``data``, you 
+can construct a lookup table in the following way, using the interface from the builder.
 
 .. code-block:: python
 
