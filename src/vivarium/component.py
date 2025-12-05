@@ -205,7 +205,7 @@ class Component(ABC):
 
     @property
     def population_view(self) -> PopulationView:
-        """Provides the PopulationView for this component.
+        """Provides the :class:`~vivarium.framework.population.PopulationView` for this component.
 
         Returns
         -------
