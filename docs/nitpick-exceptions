@@ -62,8 +62,6 @@ py:class vivarium.framework.population.PopulationView
 py:class vivarium.framework.lookup.LookupTable
 py:class vivarium.framework.artifact.ArtifactManager
 py:meth vivarium.framework.artifact.ArtifactInterface.load
-py:attr lookup_tables
-py:attr vivarium.component.Component.lookup_tables
 py:class Component
 
 # TODO: Need to revisit this. Nitpicking here to avoid failing builds on 3.9
