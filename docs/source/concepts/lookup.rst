@@ -235,8 +235,8 @@ When building a lookup table from a :class:`pandas.DataFrame` using ``data_sourc
 the component automatically determines key columns, parameter columns, and value columns
 based on the data structure:
 
-- **Value columns** is assumed by the structure of the artifact to be ["value"]. In principle,
-  this could be configured by implementing a custom artifact manager.
+- **Value columns** are assumed by the structure of the artifact to be ``["value"]``. In principle,
+  this could be configured by implementing a custom :class:`~vivarium.framework.artifact.manager.ArtifactManager`.
 - **Parameter columns** are detected by finding columns ending in ``_start``
   that have corresponding ``_end`` columns (e.g., ``age_start``/``age_end``).
 - **Key columns** are all remaining columns that are neither value columns
@@ -275,7 +275,7 @@ A more complete example is reproduced from the ``Mortality`` component in ``viva
 Example: Configuring Data Sources as a User
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Users can override the default data sources in a model specification YAML
+Users can override the default data sources in a :ref:`model specification <model_specification_concept>`
 file. This allows changing where data comes from without modifying component
 code:
 
