@@ -51,8 +51,20 @@ py:class vivarium.framework.utilities.T
 
 # layered_config_tree
 py:class layered_config_tree.main.LayeredConfigTree
-py:class LayeredConfigTree
 py:exc layered_config_tree.exceptions.ConfigurationError
+
+# Special methods that Sphinx can't resolve
+py:meth __init__
+py:meth __repr__
+
+# vivarium internal references that may not be in the docs
+py:class vivarium.framework.population.PopulationView
+py:class vivarium.framework.lookup.LookupTable
+py:class vivarium.framework.artifact.ArtifactManager
+py:meth vivarium.framework.artifact.ArtifactInterface.load
+py:attr lookup_tables
+py:attr vivarium.component.Component.lookup_tables
+py:class Component
 
 # TODO: Need to revisit this. Nitpicking here to avoid failing builds on 3.9
 py:class Logger
