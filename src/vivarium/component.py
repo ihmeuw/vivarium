@@ -93,7 +93,8 @@ class Component(ABC):
 
     CONFIGURATION_DEFAULTS: dict[str, Any] = {}
     """A dictionary containing the defaults for any configurations managed by this
-    component. An empty dictionary indicates no managed configurations.
+    component. An empty dictionary indicates no managed configurations. Components will
+    look for a ``data_sources`` block in this dictionary to build lookup tables automatically.
     """
 
     def __init__(self) -> None:
