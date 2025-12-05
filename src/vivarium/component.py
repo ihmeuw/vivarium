@@ -108,6 +108,12 @@ class Component(ABC):
         self._name: str = ""
         self._sub_components: Sequence["Component"] = []
         self.logger: loguru.Logger | None = None
+        """A :class:`loguru.Logger` instance for this component.
+        
+        The logger is initialized during :meth:`setup_component` and can be used
+        to log messages specific to this component. The logger name is set to the
+        component's :attr:`name`.
+        """
         self.get_value_columns: (
             Callable[
                 [str | pd.DataFrame | dict[str, list[ScalarValue] | list[str]]], list[str]
@@ -363,10 +369,10 @@ class Component(ABC):
         This method is run by Vivarium during the setup phase. It performs a series
         of operations to prepare the component for the simulation.
 
-        It sets the logger for the component, sets up the component, sets the
-        population view, and registers various listeners including post_setup,
-        simulant_initializer, time_step_prepare, time_step, time_step_cleanup,
-        collect_metrics, and simulation_end listeners.
+        It sets the :attr:`logger` for the component, sets up the component, sets the
+        population view, and registers various listeners including ``post_setup``,
+        ``simulant_initializer``, ``time_step__prepare``, ``time_step``, ``time_step__cleanup``,
+        ``collect_metrics``, and ``simulation_end`` listeners.
 
         Parameters
         ----------
