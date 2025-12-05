@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any
 import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy
 
+from vivarium.framework import utilities as utils
 from vivarium.framework.event import Event
 from vivarium.framework.results.exceptions import ResultsConfigurationError
 from vivarium.framework.results.observation import Observation
@@ -82,6 +83,7 @@ class ResultsContext:
         self.excluded_categories = (
             builder.configuration.stratification.excluded_categories.to_dict()
         )
+        self.get_tracked_query = builder.population.get_tracked_query()
 
     # noinspection PyAttributeOutsideInit
     def set_default_stratifications(self, default_grouping_columns: list[str]) -> None:
@@ -328,7 +330,7 @@ class ResultsContext:
                 continue
 
             filtered_population = self._filter_population(
-                population, population_filter_details.query
+                population, population_filter_details
             )
             if filtered_population.empty:
                 continue
@@ -420,9 +422,15 @@ class ResultsContext:
             required_attributes.update(stratification.requires_attributes)
         return list(required_attributes)
 
-    def _filter_population(self, population: pd.DataFrame, pop_filter: str) -> pd.DataFrame:
+    def _filter_population(
+        self, population: pd.DataFrame, population_filter_details: PopulationFilterDetails
+    ) -> pd.DataFrame:
         """Filter out simulants not to observe."""
-        return population.query(pop_filter) if pop_filter else population.copy()
+        query = population_filter_details.query
+        if population_filter_details.exclude_untracked:
+            # combine the tracking query with the population filter query
+            query = utils.combine_queries(query, self.get_tracked_query())
+        return population.query(query) if query else population.copy()
 
     def _drop_na_stratifications(
         self, population: pd.DataFrame, stratification_names: tuple[str, ...] | None

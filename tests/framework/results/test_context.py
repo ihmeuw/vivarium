@@ -282,10 +282,12 @@ def test_adding_observation_gather_results(
     aggregator: Callable[..., int | float],
     stratifications: list[str],
     event: Event,
+    mocker: MockerFixture,
 ) -> None:
     """Test cases where every stratification is in gather_results. Checks for
     existence and correctness of results"""
     ctx = ResultsContext()
+    mocker.patch.object(ctx, "get_tracked_query", return_value="", create=True)
 
     # Generate population DataFrame
     population = BASE_POPULATION.copy()
@@ -349,9 +351,12 @@ def test_adding_observation_gather_results(
     assert i == 1
 
 
-def test_concatenating_observation_gather_results(event: Event) -> None:
+def test_concatenating_observation_gather_results(
+    event: Event, mocker: MockerFixture
+) -> None:
 
     ctx = ResultsContext()
+    mocker.patch.object(ctx, "get_tracked_query", return_value="", create=True)
 
     # Generate population DataFrame
     population = BASE_POPULATION.copy()
@@ -422,10 +427,12 @@ def test_gather_results_partial_stratifications_in_results(
     aggregator: Callable[..., int | float],
     stratifications: list[str],
     event: Event,
+    mocker: MockerFixture,
 ) -> None:
     """Test cases where not all stratifications are observed for gather_results. This looks for existence of
     unobserved stratifications and ensures their values are 0"""
     ctx = ResultsContext()
+    mocker.patch.object(ctx, "get_tracked_query", return_value="", create=True)
 
     # Generate population DataFrame
     population = BASE_POPULATION.copy()
@@ -479,11 +486,12 @@ def test_gather_results_partial_stratifications_in_results(
         assert (unladen_results[VALUE_COLUMN] == 0).all()
 
 
-def test_gather_results_with_empty_pop_filter(event: Event) -> None:
+def test_gather_results_with_empty_pop_filter(event: Event, mocker: MockerFixture) -> None:
     """Test case where pop_filter filters to an empty population. gather_results
     should return None.
     """
     ctx = ResultsContext()
+    mocker.patch.object(ctx, "get_tracked_query", return_value="", create=True)
 
     # Generate population DataFrame
     population = BASE_POPULATION.copy()
@@ -507,9 +515,10 @@ def test_gather_results_with_empty_pop_filter(event: Event) -> None:
         assert not result
 
 
-def test_gather_results_with_no_stratifications(event: Event) -> None:
+def test_gather_results_with_no_stratifications(event: Event, mocker: MockerFixture) -> None:
     """Test case where we have no stratifications. gather_results should return one value."""
     ctx = ResultsContext()
+    mocker.patch.object(ctx, "get_tracked_query", return_value="", create=True)
 
     # Generate population DataFrame
     population = BASE_POPULATION.copy()
@@ -541,10 +550,11 @@ def test_gather_results_with_no_stratifications(event: Event) -> None:
     )
 
 
-def test_bad_aggregator_stratification(event: Event) -> None:
+def test_bad_aggregator_stratification(event: Event, mocker: MockerFixture) -> None:
     """Test if an exception gets raised when a stratification that doesn't
     exist is attempted to be used, as expected."""
     ctx = ResultsContext()
+    mocker.patch.object(ctx, "get_tracked_query", return_value="", create=True)
 
     # Generate population DataFrame
     population = BASE_POPULATION.copy()
@@ -710,16 +720,28 @@ def test_get_required_attributes(
     ['familiar=="cat"', 'familiar=="spaghetti_yeti"', ""],
     ids=["pop_filter", "pop_filter_empties_dataframe", "no_pop_filter"],
 )
-def test__filter_population(pop_filter: str) -> None:
+@pytest.mark.parametrize("exclude_untracked", [True, False])
+@pytest.mark.parametrize("tracked_query", ["house=='hufflepuff'", "house=='whitehouse'", ""])
+def test__filter_population(
+    pop_filter: str, exclude_untracked: bool, tracked_query: str, mocker: MockerFixture
+) -> None:
     population = BASE_POPULATION.copy()
+    ctx = ResultsContext()
+    mocker.patch.object(ctx, "get_tracked_query", return_value=tracked_query, create=True)
 
-    filtered_pop = ResultsContext()._filter_population(
-        population=population, pop_filter=pop_filter
+    filtered_pop = ctx._filter_population(
+        population=population,
+        population_filter_details=PopulationFilterDetails(
+            pop_filter, exclude_untracked=exclude_untracked
+        ),
     )
     expected = population.copy()
     if pop_filter:
         familiar = pop_filter.split("==")[1].strip('"')
         expected = expected[expected["familiar"] == familiar]
+    if exclude_untracked and tracked_query:
+        house = tracked_query.split("==")[1].strip("'")
+        expected = expected[expected["house"] == house]
     assert filtered_pop.equals(expected)
 
 

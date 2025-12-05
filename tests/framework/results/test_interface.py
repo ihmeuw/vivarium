@@ -473,6 +473,7 @@ def test_register_adding_observation_when_options(when: str, mocker: MockerFixtu
     )
     # Run on_post_setup to initialize the raw_results attribute with 0s and set stratifications
     mgr.on_post_setup(event)
+    mgr._results_context.get_tracked_query = mocker.Mock(return_value="")
     mgr.gather_results(event)
 
     for phase, aggregator in aggregator_map.items():

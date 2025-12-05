@@ -358,37 +358,39 @@ class ResultsManager(Manager):
         required_attributes = self._results_context.get_required_attributes(
             observations, stratifications
         )
-        population = pd.DataFrame(index=event.index)
 
-        if "current_time" in required_attributes:
-            population["current_time"] = self.clock()
-            required_attributes.remove("current_time")
-        if "event_step_size" in required_attributes:
-            population["event_step_size"] = event.step_size
-            required_attributes.remove("event_step_size")
-        if "event_time" in required_attributes:
-            population["event_time"] = self.clock() + event.step_size  # type: ignore [operator]
-            required_attributes.remove("event_time")
-
-        for key, val in event.user_data.items():
-            if key in required_attributes:
-                population[key] = val
-                required_attributes.remove(key)
-
-        if required_attributes:
+        attributes_to_get = [
+            attribute
+            for attribute in required_attributes
+            if attribute
+            not in ["current_time", "event_step_size", "event_time"]
+            + list(event.user_data.keys())
+        ]
+        if attributes_to_get:
             # FIXME: (Inefficiency) In the event every single observation has some identical
             # query string (e.g. 'alive == "alive"'), we still calculate all attributes for
             # the entire population and then apply the query downstream.
-            attributes_df = self.population_view.get_attributes(
+            population = self.population_view.get_attributes(
                 event.index,
-                required_attributes,
+                attributes_to_get,
                 exclude_untracked=all(
                     obs.population_filter_details.exclude_untracked for obs in observations
                 ),
             )
-            population = pd.concat(
-                [attributes_df, population.reindex(attributes_df.index)], axis=1
-            )
+        else:
+            population = pd.DataFrame(index=event.index)
+
+        if "current_time" in required_attributes:
+            population["current_time"] = self.clock()
+        if "event_step_size" in required_attributes:
+            population["event_step_size"] = event.step_size
+        if "event_time" in required_attributes:
+            population["event_time"] = self.clock() + event.step_size  # type: ignore [operator]
+
+        for key, val in event.user_data.items():
+            if key in required_attributes:
+                population[key] = val
+
         for stratification in stratifications:
             new_column = get_mapped_col_name(stratification.name)
             if new_column in population.columns:
