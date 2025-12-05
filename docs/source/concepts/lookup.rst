@@ -201,7 +201,8 @@ following data source types are supported:
 **Artifact key (string without** ``::`` **):**
     A string path to data in the artifact, e.g.,
     ``"cause.all_causes.cause_specific_mortality_rate"``. The data is loaded
-    via ``builder.data.load()``.
+    via ``builder.data.load()``. Strings with ``::`` are reserved for method
+    or function references (see below).
 
 **Callable:**
     Any callable (function, lambda, or bound method) that accepts a ``builder``
@@ -234,8 +235,8 @@ When building a lookup table from a :class:`pandas.DataFrame` using ``data_sourc
 the component automatically determines key columns, parameter columns, and value columns
 based on the data structure:
 
-- **Value columns** default to ``["value"]`` (configurable via the artifact
-  interface).
+- **Value columns** is assumed by the structure of the artifact to be ["value"]. In principle,
+  this could be configured by implementing a custom artifact manager.
 - **Parameter columns** are detected by finding columns ending in ``_start``
   that have corresponding ``_end`` columns (e.g., ``age_start``/``age_end``).
 - **Key columns** are all remaining columns that are neither value columns
@@ -294,7 +295,7 @@ Limitations and When to Override
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The automatic ``data_sources`` mechanism works well for straightforward cases,
-but some scenarios require overriding the ``build_all_lookup_tables()`` method:
+but some situations require overriding the ``build_all_lookup_tables()`` method:
 
 **Non-standard value columns:**
     The component defaults to ``["value"]`` as the value column name. If your
