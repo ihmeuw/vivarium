@@ -146,7 +146,7 @@ Constructing Lookup Tables from a Component
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Components can register lookup tables to be built by specifying
-a ``data_sources`` block in their ``configuration_defaults`` property. 
+a ``data_sources`` block in their :attr:`~vivarium.component.Component.configuration_defaults` property. 
 As a basic example, DiseaseModel in ``vivarium_public_health`` has the following
 ``data_sources`` configuration:
 
@@ -175,8 +175,8 @@ interface directly.
 
 When a component configures ``data_sources``, the base
 :class:`Component <vivarium.component.Component>` class automatically builds
-the lookup tables before the component's ``setup()`` method is called. The
-resulting tables are stored in the component's ``lookup_tables`` dictionary,
+the lookup tables before the component's :meth:`~vivarium.component.Component.setup` method is called. The
+resulting tables are stored in the component's :attr:`~vivarium.component.Component.lookup_tables` dictionary,
 keyed by the name specified in ``data_sources``. 
 
 This approach separates the *what* (which tables to build and where to get data) from the
@@ -201,7 +201,7 @@ following data source types are supported:
 **Artifact key (string without** ``::`` **):**
     A string path to data in the artifact, e.g.,
     ``"cause.all_causes.cause_specific_mortality_rate"``. The data is loaded
-    via ``builder.data.load()``. Strings with ``::`` are reserved for method
+    via :meth:`builder.data.load() <vivarium.framework.artifact.interface.ArtifactInterface.load>`. Strings with ``::`` are reserved for method
     or function references (see below).
 
 **Callable:**
@@ -295,29 +295,29 @@ Limitations and When to Override
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The automatic ``data_sources`` mechanism works well for straightforward cases,
-but some situations require overriding the ``build_all_lookup_tables()`` method:
+but some situations require overriding the :meth:`~vivarium.component.Component.build_all_lookup_tables` method:
 
 **Non-standard value columns:**
     The component defaults to ``["value"]`` as the value column name. If your
     data has differently named value columns or multiple value columns, you
-    must call ``build_lookup_table()`` directly with explicit
+    must call :meth:`~vivarium.component.Component.build_lookup_table` directly with explicit
     ``value_columns``.
 
 **Complex data transformations:**
     When data requires transformation before building tables (e.g., pivoting,
     computing derived parameters, combining multiple data sources), override
-    ``build_all_lookup_tables()`` to perform the transformation first.
+    :meth:`~vivarium.component.Component.build_all_lookup_tables` to perform the transformation first.
 
 **Delegation to sub-components:**
     When lookup tables should be built by sub-components rather than the
-    parent component, override ``build_all_lookup_tables()`` to skip the
+    parent component, override :meth:`~vivarium.component.Component.build_all_lookup_tables` to skip the
     default behavior.
 
 Examples of these patterns can be found in ``vivarium_public_health``:
 
 - ``RateTransition`` and ``DiseaseState`` in ``vivarium_public_health.disease``
   demonstrate the basic ``data_sources`` pattern with various data source types.
-- ``Risk`` in ``vivarium_public_health.risks`` overrides ``build_all_lookup_tables()``
+- ``Risk`` in ``vivarium_public_health.risks`` overrides :meth:`~vivarium.component.Component.build_all_lookup_tables`
   to delegate table construction to its exposure distribution sub-component.
 
 Using the Lookup Interface Directly
