@@ -215,16 +215,16 @@ following data source types are supported:
 **Method reference (string with** ``self::`` **):**
     A string of the form ``"self::method_name"`` that references a method on
     the component itself. The method should accept a ``builder`` argument and
-    return the data. This is primarily for use in the `model specification YAML
-    files <model_specification_concept>`_ where direct method references are not
-    possible.
+    return the data. This is primarily for use in
+    :ref:`model specification YAML files <model_specification_concept>` where
+    direct method references are not possible.
 
 **External function reference (string with** ``module.path::`` **):**
     A string of the form ``"module.path::function_name"`` that references a
     function in another module. The function should accept a ``builder``
-    argument and return the data. This is primarily for use in the
-    `model specification YAML files <model_specification_concept>`_ where direct
-    method references are not possible.
+    argument and return the data. This is primarily for use in
+    :ref:`model specification YAML files <model_specification_concept>` where
+    direct method references are not possible.
 
 
 
