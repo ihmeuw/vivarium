@@ -8,7 +8,7 @@ import pandas as pd
 
 from vivarium.framework.utilities import from_yearly
 from vivarium.framework.values.exceptions import DynamicValueError
-from vivarium.types import NumberLike
+from vivarium.types import NumberLike, NumericArray
 
 if TYPE_CHECKING:
     from vivarium.framework.values.manager import ValuesManager
@@ -81,8 +81,8 @@ def rescale_post_processor(
 
 
 def union_post_processor(
-    index: pd.Index[int], values: list[NumberLike], manager: ValuesManager
-) -> NumberLike:
+    index: pd.Index[int], value: list[NumberLike], manager: ValuesManager
+) -> pd.Series[Any] | pd.DataFrame:
     """Computes a probability on the union of the sample spaces in the values.
 
     Given a list of values where each value is a probability of an independent
@@ -114,14 +114,40 @@ def union_post_processor(
         The probability over the union of the sample spaces represented
         by the original probabilities.
     """
-    # if there is only one value, return the value
-    if len(values) == 1:
-        return values[0]
+    if not isinstance(value, list):
+        raise DynamicValueError("The union post processor requires a list of values.")
 
-    # if there are multiple values, calculate the joint value
-    product: NumberLike = 1
-    for v in values:
-        new_value = 1 - v
-        product = product * new_value
-    joint_value = 1 - product
-    return joint_value
+    for v in value:
+        if not isinstance(v, (np.ndarray, pd.Series, pd.DataFrame, float, int)):
+            raise DynamicValueError(
+                "The union post processor only supports numeric types, "
+                f"pandas Series/DataFrames, and numpy ndarrays. "
+                f"You provided a value of type {type(v)}."
+            )
+
+    joint_value: NumericArray | pd.Series[float] | pd.DataFrame | float | int
+    if len(value) == 1:
+        # if there is only one value, return the value
+        joint_value = value[0]
+    else:
+        # if there are multiple values, calculate the joint value
+        product: NumberLike = 1
+        for v in value:
+            new_value = 1 - v
+            product = product * new_value
+        joint_value = 1 - product
+
+    if isinstance(joint_value, np.ndarray):
+        if joint_value.ndim == 1:
+            return pd.Series(joint_value, index=index)
+        elif joint_value.ndim == 2:
+            return pd.DataFrame(joint_value, index=index)
+        else:
+            raise DynamicValueError(
+                f"Numpy arrays with {joint_value.ndim} dimensions are not supported. "
+                "Only 1D and 2D arrays are allowed."
+            )
+    elif isinstance(joint_value, (float, int)):
+        return pd.Series(joint_value, index=index)
+    else:
+        return joint_value
