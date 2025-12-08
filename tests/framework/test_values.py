@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
@@ -22,6 +22,7 @@ from vivarium.framework.values import (
     union_post_processor,
 )
 from vivarium.framework.values.pipeline import ValueSource
+from vivarium.types import NumberLike
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
@@ -83,7 +84,7 @@ def test_joint_value(manager: ValuesManager, mocker: MockFixture) -> None:
         "test",
         source=lambda idx: [pd.Series(0.0, index=idx)],
         preferred_combiner=list_combiner,
-        preferred_post_processor=union_post_processor,  # type: ignore [arg-type]
+        preferred_post_processor=union_post_processor,
         component=mocker.Mock(),
     )
     assert np.all(value(INDEX) == 0)
@@ -214,6 +215,224 @@ def test_rescale_post_processor_types(
             ),
         ):
             pipeline(INDEX)
+
+
+# Tests for union_post_processor
+
+
+def test_union_post_processor_not_list(manager: ValuesManager) -> None:
+    """Test that union_post_processor raises an error when value is not a list."""
+    with pytest.raises(
+        DynamicValueError,
+        match=re.escape("The union post processor requires a list of values."),
+    ):
+        union_post_processor(INDEX, 0.5, manager)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("invalid_value", [[0.5, "string"], [pd.Series([0.5]), None]])
+def test_union_post_processor_invalid_element_type(
+    invalid_value: list[Any], manager: ValuesManager
+) -> None:
+    """Test that union_post_processor raises an error for invalid element types."""
+    with pytest.raises(
+        DynamicValueError,
+        match=re.escape(
+            "The union post processor only supports numeric types, "
+            "pandas Series/DataFrames, and numpy ndarrays."
+        ),
+    ):
+        union_post_processor(INDEX, invalid_value, manager)
+
+
+def test_union_post_processor_3d_array(manager: ValuesManager) -> None:
+    """Test that union_post_processor raises an error for 3D numpy arrays."""
+    value: list[NumberLike] = [np.array([[[0.5], [0.3]], [[0.2], [0.1]]])]
+    with pytest.raises(
+        DynamicValueError,
+        match=re.escape(
+            "Numpy arrays with 3 dimensions are not supported. Only 1D and 2D arrays are allowed."
+        ),
+    ):
+        union_post_processor(INDEX, value, manager)
+
+
+@pytest.mark.parametrize(
+    "value, expected_type",
+    [
+        ([0.5], pd.Series),
+        # 1D numpy array
+        ([np.array([0.3, 0.4, 0.5, 0.6, 0.7, 0.8])], pd.Series),
+        # 2D numpy array
+        (
+            [
+                np.array(
+                    [[0.1, 0.2], [0.2, 0.3], [0.3, 0.4], [0.4, 0.5], [0.5, 0.6], [0.6, 0.7]]
+                )
+            ],
+            pd.DataFrame,
+        ),
+        # pandas Series
+        ([pd.Series([0.2, 0.3, 0.4, 0.5, 0.6, 0.7], index=INDEX)], pd.Series),
+        # pandas DataFrame
+        (
+            [
+                pd.DataFrame(
+                    {
+                        "a": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
+                        "b": [0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+                    },
+                    index=INDEX,
+                )
+            ],
+            pd.DataFrame,
+        ),
+    ],
+)
+def test_union_post_processor_single_element(
+    value: list[NumberLike],
+    expected_type: type[pd.Series[Any] | pd.DataFrame],
+    manager: ValuesManager,
+) -> None:
+    """Test that union_post_processor returns the single element correctly formatted."""
+    result = union_post_processor(INDEX, value, manager)
+    if expected_type is pd.DataFrame:
+        assert isinstance(result, pd.DataFrame)
+        pd.testing.assert_frame_equal(result, pd.DataFrame(value[0], index=INDEX))  # type: ignore[arg-type]
+    else:
+        assert isinstance(result, pd.Series)
+        pd.testing.assert_series_equal(result, pd.Series(value[0], index=INDEX))
+
+
+@pytest.mark.parametrize(
+    "value, expected_value",
+    [
+        # Two scalars: 1 - (1-0.5)*(1-0.3) = 1 - 0.35 = 0.65
+        ([0.5, 0.3], pd.Series(0.65, index=INDEX[:2])),
+        # Three scalars: 1 - (1-0.5)*(1-0.3)*(1-0.2) = 1 - 0.28 = 0.72
+        ([0.5, 0.3, 0.2], pd.Series(0.72, index=INDEX[:2])),
+        # Multiple 1D arrays
+        (
+            [np.array([0.1, 0.2]), np.array([0.2, 0.3])],
+            (
+                pd.Series(
+                    [1 - (1 - 0.1) * (1 - 0.2), 1 - (1 - 0.2) * (1 - 0.3)], index=INDEX[:2]
+                )
+            ),
+        ),
+        # Multiple Series
+        (
+            [pd.Series([0.1, 0.2], index=INDEX[:2]), pd.Series([0.3, 0.4], index=INDEX[:2])],
+            pd.Series(
+                [1 - (1 - 0.1) * (1 - 0.3), 1 - (1 - 0.2) * (1 - 0.4)], index=INDEX[:2]
+            ),
+        ),
+        # Multiple DataFrames
+        (
+            [
+                pd.DataFrame({"a": [0.1, 0.2], "b": [0.5, 0.6]}, index=INDEX[:2]),
+                pd.DataFrame({"a": [0.3, 0.4], "b": [0.7, 0.8]}, index=INDEX[:2]),
+            ],
+            pd.DataFrame(
+                {
+                    "a": [1 - (1 - 0.1) * (1 - 0.3), 1 - (1 - 0.2) * (1 - 0.4)],
+                    "b": [1 - (1 - 0.5) * (1 - 0.7), 1 - (1 - 0.6) * (1 - 0.8)],
+                },
+                index=INDEX[:2],
+            ),
+        ),
+    ],
+)
+def test_union_post_processor_multiple_same_type(
+    value: list[NumberLike],
+    expected_value: pd.Series[float] | pd.DataFrame,
+    manager: ValuesManager,
+) -> None:
+    """Test union_post_processor with multiple elements of the same type."""
+    index = INDEX[:2]
+    result = union_post_processor(index, value, manager)
+
+    if isinstance(expected_value, pd.DataFrame):
+        # DataFrame result
+        assert isinstance(result, pd.DataFrame)
+        pd.testing.assert_frame_equal(result, expected_value)
+    else:
+        # Series result
+        assert isinstance(result, pd.Series)
+        pd.testing.assert_series_equal(result, expected_value)
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        # Scalar and 1D array: 1 - (1-0.5)*(1-[0.2, 0.3]) = [0.6, 0.65]
+        (
+            [0.5, np.array([0.2, 0.3])],
+            pd.Series(
+                [1 - (1 - 0.5) * (1 - 0.2), 1 - (1 - 0.5) * (1 - 0.3)], index=INDEX[:2]
+            ),
+        ),
+        # Scalar and Series
+        (
+            [0.4, pd.Series([0.3, 0.2], index=INDEX[:2])],
+            pd.Series(
+                [1 - (1 - 0.4) * (1 - 0.3), 1 - (1 - 0.4) * (1 - 0.2)], index=INDEX[:2]
+            ),
+        ),
+        # 1D array and Series
+        (
+            [np.array([0.1, 0.2]), pd.Series([0.3, 0.4], index=INDEX[:2])],
+            pd.Series(
+                [1 - (1 - 0.1) * (1 - 0.3), 1 - (1 - 0.2) * (1 - 0.4)], index=INDEX[:2]
+            ),
+        ),
+    ],
+)
+def test_union_post_processor_mixed_types_1d(
+    value: list[NumberLike], expected: pd.Series[float], manager: ValuesManager
+) -> None:
+    """Test union_post_processor with mixed types that result in 1D output."""
+    result = union_post_processor(INDEX[:2], value, manager)
+    assert isinstance(result, pd.Series)
+    pd.testing.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        # Scalar and 2D array
+        (
+            [0.5, np.array([[0.2, 0.3], [0.4, 0.5]])],
+            pd.DataFrame(
+                {
+                    0: [1 - (1 - 0.5) * (1 - 0.2), 1 - (1 - 0.5) * (1 - 0.4)],
+                    1: [1 - (1 - 0.5) * (1 - 0.3), 1 - (1 - 0.5) * (1 - 0.5)],
+                },
+                index=INDEX[:2],
+            ),
+        ),
+        # 2D array and DataFrame
+        (
+            [
+                np.array([[0.1, 0.2], [0.3, 0.4]]),
+                pd.DataFrame({"a": [0.5, 0.6], "b": [0.7, 0.8]}, index=INDEX[:2]),
+            ],
+            pd.DataFrame(
+                {
+                    "a": [1 - (1 - 0.1) * (1 - 0.5), 1 - (1 - 0.3) * (1 - 0.6)],
+                    "b": [1 - (1 - 0.2) * (1 - 0.7), 1 - (1 - 0.4) * (1 - 0.8)],
+                },
+                index=INDEX[:2],
+            ),
+        ),
+    ],
+)
+def test_union_post_processor_mixed_types_2d(
+    value: list[NumberLike], expected: pd.DataFrame, manager: ValuesManager
+) -> None:
+    """Test union_post_processor with mixed types that result in 2D output."""
+    result = union_post_processor(INDEX[:2], value, manager)
+    assert isinstance(result, pd.DataFrame)
+    pd.testing.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("pipeline_type", [Pipeline, AttributePipeline])
