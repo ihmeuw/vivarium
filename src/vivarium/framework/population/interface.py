@@ -148,3 +148,6 @@ class PopulationInterface(Interface):
             The new default query to apply to all population views.
         """
         self._manager.register_tracked_query(query)
+
+    def get_tracked_query(self) -> Callable[[], str]:
+        return self._manager.get_tracked_query
