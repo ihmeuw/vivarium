@@ -547,6 +547,11 @@ class PopulationView:
     def _build_query(
         self, query: str, include_default_query: bool, exclude_untracked: bool
     ) -> str:
+        """Builds the full query for this PopulationView.
+
+        This combines the provided query with the view's default query and the
+        population manager's tracked query as appropriate.
+        """
         return pop_utils.combine_queries(
             query,
             self._default_query if include_default_query else "",
