@@ -143,15 +143,10 @@ class PopulationView:
         squeeze: Literal[True] | Literal[False] = isinstance(attributes, str)
         attributes = [attributes] if isinstance(attributes, str) else list(attributes)
 
-        if include_default_query:
-            query = pop_utils.combine_queries(self._default_query, query)
-        if exclude_untracked:
-            query = self._manager.add_tracked_query(query)
-
         return self._manager.get_population(
             attributes=attributes,
             index=index,
-            query=query,
+            query=self._build_query(query, include_default_query, exclude_untracked),
             squeeze=squeeze,
         )
 
@@ -228,13 +223,11 @@ class PopulationView:
                 "This PopulationView is read-only, so it doesn't have access to get_private_columns()."
             )
 
-        if include_default_query:
-            query = pop_utils.combine_queries(self._default_query, query)
-        if exclude_untracked:
-            query = self._manager.add_tracked_query(query)
-
         index = self.get_filtered_index(
-            index, query, include_default_query=False, exclude_untracked=False
+            index,
+            query=self._build_query(query, include_default_query, exclude_untracked),
+            include_default_query=False,
+            exclude_untracked=False,
         )
 
         return self._manager.get_private_columns(self._component, index, private_columns)
@@ -550,3 +543,17 @@ class PopulationView:
             new_values, index=existing.index, name=existing.name
         )
         return new_data
+
+    def _build_query(
+        self, query: str, include_default_query: bool, exclude_untracked: bool
+    ) -> str:
+        """Builds the full query for this PopulationView.
+
+        This combines the provided query with the view's default query and the
+        population manager's tracked query as appropriate.
+        """
+        return pop_utils.combine_queries(
+            query,
+            self._default_query if include_default_query else "",
+            self._manager.get_tracked_query() if exclude_untracked else "",
+        )

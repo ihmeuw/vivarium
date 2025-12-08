@@ -22,6 +22,7 @@ from vivarium.types import ScalarMapper, VectorMapper
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
+    from vivarium.framework.results.interface import PopulationFilter
 
 
 class ResultsManager(Manager):
@@ -51,14 +52,6 @@ class ResultsManager(Manager):
 
     def get_results(self) -> dict[str, pd.DataFrame]:
         """Return the measure-specific formatted results in a dictionary.
-
-        Notes
-        -----
-        self._results_context.observations is a list where each item is a dictionary
-        of the form {lifecycle_phase: {(pop_filter, stratification_names): List[Observation]}}.
-        We use a triple-nested for loop to iterate over only the list of Observations
-        (i.e. we do not need the lifecycle_phase, pop_filter, or stratification_names
-        for this method).
 
         Returns
         -------
@@ -127,7 +120,6 @@ class ResultsManager(Manager):
             return
 
         population = self._prepare_population(event, observations, stratifications)
-
         for results_group, measure, updater in self._results_context.gather_results(
             population, event.name, observations
         ):
@@ -264,7 +256,7 @@ class ResultsManager(Manager):
         self,
         observation_type: type[Observation],
         name: str,
-        pop_filter: str,
+        population_filter: PopulationFilter,
         when: str,
         requires_attributes: list[str],
         **kwargs: Any,
@@ -281,9 +273,11 @@ class ResultsManager(Manager):
         name
             Name of the observation. It will also be the name of the output results file
             for this particular observation.
-        pop_filter
-            A Pandas query filter string to filter the population down to the simulants who should
-            be considered for the observation.
+        population_filter
+            A named tuple of population filtering details. The first item is a Pandas
+            query string to filter the population down to the simulants who should be
+            considered for the observation. The second item is a boolean indicating whether
+            to exclude untracked simulants from the observation.
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -314,7 +308,7 @@ class ResultsManager(Manager):
         self._results_context.register_observation(
             observation_type=observation_type,
             name=name,
-            pop_filter=pop_filter,
+            population_filter=population_filter,
             when=when,
             requires_attributes=requires_attributes,
             stratifications=stratifications,
@@ -355,39 +349,39 @@ class ResultsManager(Manager):
         required_attributes = self._results_context.get_required_attributes(
             observations, stratifications
         )
-        population = pd.DataFrame(index=event.index)
+
+        attributes_to_get = [
+            attribute
+            for attribute in required_attributes
+            if attribute
+            not in ["current_time", "event_step_size", "event_time"]
+            + list(event.user_data.keys())
+        ]
+        if attributes_to_get:
+            # FIXME: (Inefficiency) In the event every single observation has some identical
+            # query string (e.g. 'alive == "alive"'), we still calculate all attributes for
+            # the entire population and then apply the query downstream.
+            population = self.population_view.get_attributes(
+                event.index,
+                attributes_to_get,
+                exclude_untracked=all(
+                    obs.population_filter.exclude_untracked for obs in observations
+                ),
+            )
+        else:
+            population = pd.DataFrame(index=event.index)
 
         if "current_time" in required_attributes:
             population["current_time"] = self.clock()
-            required_attributes.remove("current_time")
         if "event_step_size" in required_attributes:
             population["event_step_size"] = event.step_size
-            required_attributes.remove("event_step_size")
         if "event_time" in required_attributes:
             population["event_time"] = self.clock() + event.step_size  # type: ignore [operator]
-            required_attributes.remove("event_time")
 
         for key, val in event.user_data.items():
             if key in required_attributes:
                 population[key] = val
-                required_attributes.remove(key)
 
-        if required_attributes:
-            # FIXME: Inefficiency: In the event every single observation has some identical filter
-            # (e.g. 'alive == "alive"'), we still calculate all attributes for the
-            # entire population and then apply the filter downstream.
-            # One easy (and probably most likely) example is the untracking filters.
-            # If every observation has exclude_untracked=True, then we can use
-            # that in the get_attributes call below.
-            population = pd.concat(
-                [
-                    self.population_view.get_attributes(
-                        event.index, required_attributes, exclude_untracked=False
-                    ),
-                    population,
-                ],
-                axis=1,
-            )
         for stratification in stratifications:
             new_column = get_mapped_col_name(stratification.name)
             if new_column in population.columns:
