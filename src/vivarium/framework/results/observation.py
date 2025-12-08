@@ -24,6 +24,7 @@ import itertools
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -32,6 +33,9 @@ from pandas.core.groupby.generic import DataFrameGroupBy
 from vivarium.exceptions import VivariumError
 from vivarium.framework.event import Event
 from vivarium.framework.results.stratification import Stratification, get_original_col_name
+
+if TYPE_CHECKING:
+    from vivarium.framework.results.interface import PopulationFilter
 
 VALUE_COLUMN = "value"
 
@@ -48,9 +52,11 @@ class Observation(ABC):
     name: str
     """Name of the observation. It will also be the name of the output results file
     for this particular observation."""
-    pop_filter: str
-    """A Pandas query filter string to filter the population down to the simulants
-    who should be considered for the observation."""
+    population_filter: PopulationFilter
+    """A named tuple of population filtering details. The first item is a Pandas 
+    query string to filter the population down to the simulants who should be 
+    considered for the observation. The second item is a boolean indicating whether 
+    to exclude untracked simulants from the observation."""
     when: str
     """Name of the lifecycle phase the observation should happen. Valid values are:
     "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics"."""
@@ -116,9 +122,11 @@ class UnstratifiedObservation(Observation):
     name
         Name of the observation. It will also be the name of the output results file
         for this particular observation.
-    pop_filter
-        A Pandas query filter string to filter the population down to the simulants who should
-        be considered for the observation.
+    population_filter
+        A named tuple of population filtering details. The first item is a Pandas
+        query string to filter the population down to the simulants who should be
+        considered for the observation. The second item is a boolean indicating whether
+        to exclude untracked simulants from the observation.
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -138,7 +146,7 @@ class UnstratifiedObservation(Observation):
     def __init__(
         self,
         name: str,
-        pop_filter: str,
+        population_filter: PopulationFilter,
         when: str,
         requires_attributes: list[str],
         results_gatherer: Callable[[pd.DataFrame], pd.DataFrame],
@@ -159,7 +167,7 @@ class UnstratifiedObservation(Observation):
 
         super().__init__(
             name=name,
-            pop_filter=pop_filter,
+            population_filter=population_filter,
             when=when,
             requires_attributes=requires_attributes,
             results_initializer=self.create_empty_df,
@@ -196,9 +204,11 @@ class StratifiedObservation(Observation):
     name
         Name of the observation. It will also be the name of the output results file
         for this particular observation.
-    pop_filter
-        A Pandas query filter string to filter the population down to the simulants who should
-        be considered for the observation.
+    population_filter
+        A named tuple of population filtering details. The first item is a Pandas
+        query string to filter the population down to the simulants who should be
+        considered for the observation. The second item is a boolean indicating whether
+        to exclude untracked simulants from the observation.
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -220,7 +230,7 @@ class StratifiedObservation(Observation):
     def __init__(
         self,
         name: str,
-        pop_filter: str,
+        population_filter: PopulationFilter,
         when: str,
         requires_attributes: list[str],
         results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
@@ -231,7 +241,7 @@ class StratifiedObservation(Observation):
     ):
         super().__init__(
             name=name,
-            pop_filter=pop_filter,
+            population_filter=population_filter,
             when=when,
             requires_attributes=requires_attributes,
             results_initializer=self.create_expanded_df,
@@ -395,9 +405,11 @@ class AddingObservation(StratifiedObservation):
     name
         Name of the observation. It will also be the name of the output results file
         for this particular observation.
-    pop_filter
-        A Pandas query filter string to filter the population down to the simulants who should
-        be considered for the observation.
+    population_filter
+        A named tuple of population filtering details. The first item is a Pandas
+        query string to filter the population down to the simulants who should be
+        considered for the observation. The second item is a boolean indicating whether
+        to exclude untracked simulants from the observation.
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -420,7 +432,7 @@ class AddingObservation(StratifiedObservation):
     def __init__(
         self,
         name: str,
-        pop_filter: str,
+        population_filter: PopulationFilter,
         when: str,
         requires_attributes: list[str],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
@@ -430,7 +442,7 @@ class AddingObservation(StratifiedObservation):
     ):
         super().__init__(
             name=name,
-            pop_filter=pop_filter,
+            population_filter=population_filter,
             when=when,
             requires_attributes=requires_attributes,
             results_updater=self.add_results,
@@ -485,9 +497,11 @@ class ConcatenatingObservation(UnstratifiedObservation):
     name
         Name of the observation. It will also be the name of the output results file
         for this particular observation.
-    pop_filter
-        A Pandas query filter string to filter the population down to the simulants who should
-        be considered for the observation.
+    population_filter
+        A named tuple of population filtering details. The first item is a Pandas
+        query string to filter the population down to the simulants who should be
+        considered for the observation. The second item is a boolean indicating whether
+        to exclude untracked simulants from the observation.
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -503,7 +517,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
     def __init__(
         self,
         name: str,
-        pop_filter: str,
+        population_filter: PopulationFilter,
         when: str,
         requires_attributes: list[str],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
@@ -512,7 +526,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
         requires_attributes = ["event_time"] + requires_attributes
         super().__init__(
             name=name,
-            pop_filter=pop_filter,
+            population_filter=population_filter,
             when=when,
             requires_attributes=requires_attributes,
             results_gatherer=self.get_results_of_interest,

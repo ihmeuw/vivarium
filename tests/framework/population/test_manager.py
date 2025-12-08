@@ -111,17 +111,11 @@ def test_initializer_set() -> None:
         component_set.add(component.initializer, columns)
 
 
-@pytest.mark.parametrize(
-    "query, expected_query",
-    [
-        ("", ""),
-        ("foo == True", "foo == True"),
-    ],
-)
-def test_setting_query_with_get_view(query: str, expected_query: str) -> None:
+@pytest.mark.parametrize("query", ["", "foo == True"])
+def test_setting_query_with_get_view(query: str) -> None:
     manager = PopulationManager()
     view = manager._get_view(component=None, default_query=query)
-    assert view._default_query == expected_query
+    assert view._default_query == query
 
 
 @pytest.mark.parametrize("columns_created", [[], ["age", "sex"]])

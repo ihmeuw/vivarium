@@ -10,6 +10,7 @@ import pytest
 from tests.framework.results.helpers import BASE_POPULATION, FAMILIARS, HOUSE_CATEGORIES
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
+from vivarium.framework.results.interface import PopulationFilter
 from vivarium.framework.results.observation import (
     AddingObservation,
     ConcatenatingObservation,
@@ -23,7 +24,7 @@ from vivarium.framework.results.observation import (
 def stratified_observation() -> StratifiedObservation:
     return StratifiedObservation(
         name="stratified_observation_name",
-        pop_filter="",
+        population_filter=PopulationFilter(),
         when="whenevs",
         requires_attributes=[],
         results_updater=lambda _, __: pd.DataFrame(),
@@ -37,7 +38,7 @@ def stratified_observation() -> StratifiedObservation:
 def concatenating_observation() -> ConcatenatingObservation:
     return ConcatenatingObservation(
         name="concatenating_observation_name",
-        pop_filter="",
+        population_filter=PopulationFilter(),
         when="whenevs",
         requires_attributes=["some-col", "some-other-col"],
         results_formatter=lambda _, __: pd.DataFrame(),
@@ -235,7 +236,7 @@ def test_adding_observation_results_updater(new_observations: pd.DataFrame) -> N
     existing_results = pd.DataFrame({"value": [0.0, 0.0]})
     obs = AddingObservation(
         name="adding_observation_name",
-        pop_filter="",
+        population_filter=PopulationFilter(),
         when="whenevs",
         requires_attributes=[],
         results_formatter=lambda _, __: pd.DataFrame(),
