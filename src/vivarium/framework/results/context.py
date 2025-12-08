@@ -416,6 +416,10 @@ class ResultsContext:
         required_attributes = set()
         for observation in observations:
             required_attributes.update(observation.requires_attributes)
+            if observation.population_filter.exclude_untracked:
+                required_attributes.update(
+                    pop_utils.extract_columns_from_query(self.get_tracked_query())
+                )
         for stratification in stratifications:
             required_attributes.update(stratification.requires_attributes)
         return list(required_attributes)

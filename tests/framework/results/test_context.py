@@ -654,17 +654,21 @@ def test_get_observations(
         "neither",
     ],
 )
+@pytest.mark.parametrize("exclude_untracked", [True, False])
 def test_get_required_attributes(
     observation_names: list[str],
     stratification_names: list[str],
     expected_resources: set[str],
+    exclude_untracked: bool,
+    mocker: MockerFixture,
 ) -> None:
     ctx = ResultsContext()
+    mocker.patch.object(ctx, "get_tracked_query", return_value='foo == "bar"', create=True)
 
     all_observations = {}
     register_observation_kwargs = {
         "observation_type": AddingObservation,
-        "population_filter": PopulationFilter(),
+        "population_filter": PopulationFilter(exclude_untracked=exclude_untracked),
         "when": lifecycle_states.COLLECT_METRICS,
         "results_formatter": lambda: None,
         "stratifications": (),
@@ -710,6 +714,8 @@ def test_get_required_attributes(
     stratifications = [all_stratifications[name] for name in stratification_names]
 
     actual_columns = ctx.get_required_attributes(observations, stratifications)
+    if observations and exclude_untracked:
+        expected_resources = expected_resources.union({"foo"})
     assert set(actual_columns) == expected_resources
 
 
