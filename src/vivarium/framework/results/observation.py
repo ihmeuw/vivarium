@@ -35,7 +35,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.results.stratification import Stratification, get_original_col_name
 
 if TYPE_CHECKING:
-    from vivarium.framework.results.interface import PopulationFilterDetails
+    from vivarium.framework.results.interface import PopulationFilter
 
 VALUE_COLUMN = "value"
 
@@ -52,7 +52,7 @@ class Observation(ABC):
     name: str
     """Name of the observation. It will also be the name of the output results file
     for this particular observation."""
-    population_filter_details: PopulationFilterDetails
+    population_filter: PopulationFilter
     """A named tuple of population filtering details. The first item is a Pandas 
     query string to filter the population down to the simulants who should be 
     considered for the observation. The second item is a boolean indicating whether 
@@ -122,7 +122,7 @@ class UnstratifiedObservation(Observation):
     name
         Name of the observation. It will also be the name of the output results file
         for this particular observation.
-    population_filter_details
+    population_filter
         A named tuple of population filtering details. The first item is a Pandas
         query string to filter the population down to the simulants who should be
         considered for the observation. The second item is a boolean indicating whether
@@ -146,7 +146,7 @@ class UnstratifiedObservation(Observation):
     def __init__(
         self,
         name: str,
-        population_filter_details: PopulationFilterDetails,
+        population_filter: PopulationFilter,
         when: str,
         requires_attributes: list[str],
         results_gatherer: Callable[[pd.DataFrame], pd.DataFrame],
@@ -167,7 +167,7 @@ class UnstratifiedObservation(Observation):
 
         super().__init__(
             name=name,
-            population_filter_details=population_filter_details,
+            population_filter=population_filter,
             when=when,
             requires_attributes=requires_attributes,
             results_initializer=self.create_empty_df,
@@ -204,7 +204,7 @@ class StratifiedObservation(Observation):
     name
         Name of the observation. It will also be the name of the output results file
         for this particular observation.
-    population_filter_details
+    population_filter
         A named tuple of population filtering details. The first item is a Pandas
         query string to filter the population down to the simulants who should be
         considered for the observation. The second item is a boolean indicating whether
@@ -230,7 +230,7 @@ class StratifiedObservation(Observation):
     def __init__(
         self,
         name: str,
-        population_filter_details: PopulationFilterDetails,
+        population_filter: PopulationFilter,
         when: str,
         requires_attributes: list[str],
         results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
@@ -241,7 +241,7 @@ class StratifiedObservation(Observation):
     ):
         super().__init__(
             name=name,
-            population_filter_details=population_filter_details,
+            population_filter=population_filter,
             when=when,
             requires_attributes=requires_attributes,
             results_initializer=self.create_expanded_df,
@@ -405,7 +405,7 @@ class AddingObservation(StratifiedObservation):
     name
         Name of the observation. It will also be the name of the output results file
         for this particular observation.
-    population_filter_details
+    population_filter
         A named tuple of population filtering details. The first item is a Pandas
         query string to filter the population down to the simulants who should be
         considered for the observation. The second item is a boolean indicating whether
@@ -432,7 +432,7 @@ class AddingObservation(StratifiedObservation):
     def __init__(
         self,
         name: str,
-        population_filter_details: PopulationFilterDetails,
+        population_filter: PopulationFilter,
         when: str,
         requires_attributes: list[str],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
@@ -442,7 +442,7 @@ class AddingObservation(StratifiedObservation):
     ):
         super().__init__(
             name=name,
-            population_filter_details=population_filter_details,
+            population_filter=population_filter,
             when=when,
             requires_attributes=requires_attributes,
             results_updater=self.add_results,
@@ -497,7 +497,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
     name
         Name of the observation. It will also be the name of the output results file
         for this particular observation.
-    population_filter_details
+    population_filter
         A named tuple of population filtering details. The first item is a Pandas
         query string to filter the population down to the simulants who should be
         considered for the observation. The second item is a boolean indicating whether
@@ -517,7 +517,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
     def __init__(
         self,
         name: str,
-        population_filter_details: PopulationFilterDetails,
+        population_filter: PopulationFilter,
         when: str,
         requires_attributes: list[str],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
@@ -526,7 +526,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
         requires_attributes = ["event_time"] + requires_attributes
         super().__init__(
             name=name,
-            population_filter_details=population_filter_details,
+            population_filter=population_filter,
             when=when,
             requires_attributes=requires_attributes,
             results_gatherer=self.get_results_of_interest,

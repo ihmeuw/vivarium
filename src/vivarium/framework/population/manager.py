@@ -696,10 +696,6 @@ class PopulationManager(Manager):
         query = re.sub(r"\s+", " ", query).strip()
         return set(query.split(" ") + columns)
 
-    def add_tracked_query(self, query: str) -> str:
-        """Combines the provided query with all registered tracked queries."""
-        return utils.combine_queries(self.tracked_queries, query)
-
     def get_tracked_query(self) -> str:
         return " and ".join(self.tracked_queries)
 

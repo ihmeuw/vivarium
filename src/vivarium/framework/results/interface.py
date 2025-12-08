@@ -64,7 +64,7 @@ def _default_unstratified_observation_formatter(
     return results
 
 
-class PopulationFilterDetails(NamedTuple):
+class PopulationFilter(NamedTuple):
     """Container class for population query string and exclude_untracked flag."""
 
     query: str = ""
@@ -242,7 +242,7 @@ class ResultsInterface(Interface):
         self._manager.register_observation(
             observation_type=StratifiedObservation,
             name=name,
-            population_filter_details=PopulationFilterDetails(pop_filter, exclude_untracked),
+            population_filter=PopulationFilter(pop_filter, exclude_untracked),
             when=when,
             requires_attributes=requires_attributes,
             results_updater=results_updater,
@@ -305,7 +305,7 @@ class ResultsInterface(Interface):
         self._manager.register_observation(
             observation_type=UnstratifiedObservation,
             name=name,
-            population_filter_details=PopulationFilterDetails(pop_filter, exclude_untracked),
+            population_filter=PopulationFilter(pop_filter, exclude_untracked),
             when=when,
             requires_attributes=requires_attributes,
             results_updater=results_updater,
@@ -370,7 +370,7 @@ class ResultsInterface(Interface):
         self._manager.register_observation(
             observation_type=AddingObservation,
             name=name,
-            population_filter_details=PopulationFilterDetails(pop_filter, exclude_untracked),
+            population_filter=PopulationFilter(pop_filter, exclude_untracked),
             when=when,
             requires_attributes=requires_attributes,
             results_formatter=results_formatter,
@@ -423,7 +423,7 @@ class ResultsInterface(Interface):
         self._manager.register_observation(
             observation_type=ConcatenatingObservation,
             name=name,
-            population_filter_details=PopulationFilterDetails(pop_filter, exclude_untracked),
+            population_filter=PopulationFilter(pop_filter, exclude_untracked),
             when=when,
             requires_attributes=requires_attributes,
             results_formatter=results_formatter,

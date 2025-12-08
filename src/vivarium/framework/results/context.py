@@ -14,8 +14,8 @@ from typing import TYPE_CHECKING, Any
 import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy
 
-from vivarium.framework import utilities as utils
 from vivarium.framework.event import Event
+from vivarium.framework.population import utilities as pop_utils
 from vivarium.framework.results.exceptions import ResultsConfigurationError
 from vivarium.framework.results.observation import Observation
 from vivarium.framework.results.stratification import Stratification, get_mapped_col_name
@@ -23,7 +23,7 @@ from vivarium.types import ScalarMapper, VectorMapper
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
-    from vivarium.framework.results.interface import PopulationFilterDetails
+    from vivarium.framework.results.interface import PopulationFilter
 
 
 class ResultsContext:
@@ -49,7 +49,7 @@ class ResultsContext:
         objects to be produced keyed by the observation name.
     grouped_observations
         Dictionary of observation details. It is of the format
-        {lifecycle_state: {PopulationFilterDetails: {stratifications: list[Observation]}}}.
+        {lifecycle_state: {PopulationFilter: {stratifications: list[Observation]}}}.
         Allowable lifecycle_states are "time_step__prepare", "time_step",
         "time_step__cleanup", and "collect_metrics".
     logger
@@ -64,7 +64,7 @@ class ResultsContext:
         self.grouped_observations: defaultdict[
             str,
             defaultdict[
-                PopulationFilterDetails,
+                PopulationFilter,
                 defaultdict[tuple[str, ...] | None, list[Observation]],
             ],
         ] = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -222,7 +222,7 @@ class ResultsContext:
         self,
         observation_type: type[Observation],
         name: str,
-        population_filter_details: PopulationFilterDetails,
+        population_filter: PopulationFilter,
         when: str,
         requires_attributes: list[str],
         stratifications: tuple[str, ...] | None,
@@ -237,7 +237,7 @@ class ResultsContext:
         name
             Name of the observation. It will also be the name of the output results file
             for this particular observation.
-        population_filter_details
+        population_filter
             A named tuple of population filtering details. The first item is a Pandas
             query string to filter the population down to the simulants who should be
             considered for the observation. The second item is a boolean indicating whether
@@ -264,13 +264,13 @@ class ResultsContext:
 
         observation = observation_type(
             name=name,
-            population_filter_details=population_filter_details,
+            population_filter=population_filter,
             when=when,
             requires_attributes=requires_attributes,
             **kwargs,
         )
         self.observations[name] = observation
-        self.grouped_observations[observation.when][population_filter_details][
+        self.grouped_observations[observation.when][observation.population_filter][
             stratifications
         ].append(observation)
         return observation
@@ -314,10 +314,10 @@ class ResultsContext:
             If a stratification's temporary column name already exists in the population DataFrame.
         """
 
-        # Optimization: We store all the producers by population_filter_details and stratifications
+        # Optimization: We store all the producers by population_filter and stratifications
         # so that we only have to apply them once each time we compute results.
         for (
-            population_filter_details,
+            population_filter,
             stratification_observations,
         ) in self.grouped_observations[lifecycle_state].items():
             event_pop_filter_observations = [
@@ -329,9 +329,7 @@ class ResultsContext:
             if not event_pop_filter_observations:
                 continue
 
-            filtered_population = self._filter_population(
-                population, population_filter_details
-            )
+            filtered_population = self._filter_population(population, population_filter)
             if filtered_population.empty:
                 continue
 
@@ -423,13 +421,13 @@ class ResultsContext:
         return list(required_attributes)
 
     def _filter_population(
-        self, population: pd.DataFrame, population_filter_details: PopulationFilterDetails
+        self, population: pd.DataFrame, population_filter: PopulationFilter
     ) -> pd.DataFrame:
         """Filter out simulants not to observe."""
-        query = population_filter_details.query
-        if population_filter_details.exclude_untracked:
+        query = population_filter.query
+        if population_filter.exclude_untracked:
             # combine the tracking query with the population filter query
-            query = utils.combine_queries(query, self.get_tracked_query())
+            query = pop_utils.combine_queries(query, self.get_tracked_query())
         return population.query(query) if query else population.copy()
 
     def _drop_na_stratifications(

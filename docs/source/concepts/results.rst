@@ -311,7 +311,7 @@ abstract base class, which contains the common attributes between observation ty
   * - | :attr:`name <vivarium.framework.results.observation.Observation.name>`
     - | Name of the observation. It will also be the name of the output results file
       | for this particular observation.
-  * - | :attr:`population_filter_details <vivarium.framework.results.interface.PopulationFilterDetails>`
+  * - | :attr:`population_filter <vivarium.framework.results.interface.PopulationFilter>`
     - | A named tuple of population filtering details. The first item is a Pandas 
       | query string to filter the population down to the simulants who should be 
       | considered for the observation. The second item is a boolean indicating whether 

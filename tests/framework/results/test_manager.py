@@ -32,17 +32,20 @@ from tests.framework.results.helpers import (
     NoStratificationsQuidditchWinsObserver,
     QuidditchWinsObserver,
     ValedictorianObserver,
+    results_formatter,
     sorting_hat_serial,
     sorting_hat_vectorized,
     verify_stratification_added,
 )
+from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
-from vivarium.framework.results.interface import PopulationFilterDetails
+from vivarium.framework.results.interface import PopulationFilter
 from vivarium.framework.results.manager import ResultsManager
 from vivarium.framework.results.observation import AddingObservation, Observation
+from vivarium.framework.results.observer import Observer
 from vivarium.framework.results.stratification import Stratification, get_mapped_col_name
 from vivarium.interface.interactive import InteractiveContext
 from vivarium.types import ScalarMapper, VectorMapper
@@ -215,7 +218,7 @@ def test_add_observation_nop_stratifications(
     mgr.register_observation(
         observation_type=AddingObservation,
         name="name",
-        population_filter_details=PopulationFilterDetails('alive == "alive"'),
+        population_filter=PopulationFilter('alive == "alive"'),
         aggregator_sources=[],
         aggregator=lambda: None,
         requires_attributes=[],
@@ -421,6 +424,47 @@ def test_gather_results_with_different_stratifications_and_to_observes() -> None
     ).all()
 
 
+def test_gather_results_different_exclude_untracked_observations() -> None:
+    class SimulantCountObserver(Observer):
+        def register_observations(self, builder: Builder) -> None:
+            builder.results.register_unstratified_observation(
+                name="simulant_counter",
+                requires_attributes=["student_house"],
+                results_gatherer=lambda df: df,  # type: ignore [arg-type, return-value]
+                results_updater=lambda _existing_df, new_df: new_df.groupby("student_house")
+                .size()
+                .reset_index(name=VALUE_COLUMN),
+            )
+            builder.results.register_unstratified_observation(
+                name="simulant_counter_include_untracked",
+                exclude_untracked=False,
+                requires_attributes=["student_house"],
+                results_gatherer=lambda df: df,  # type: ignore [arg-type, return-value]
+                results_updater=lambda _existing_df, new_df: new_df.groupby("student_house")
+                .size()
+                .reset_index(name=VALUE_COLUMN),
+            )
+
+    components = [
+        Hogwarts(),
+        # HogwartsResultsStratifier(),
+        SimulantCountObserver(),
+    ]
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
+    pop_mgr = sim._population
+    pop_mgr.tracked_queries = ['student_house != "slytherin"']
+    sim.step()
+    mgr = sim._results
+    results = mgr.get_results()
+    exclude_untracked = results["simulant_counter"]
+    include_untracked = results["simulant_counter_include_untracked"]
+    assert "slytherin" not in exclude_untracked["student_house"].values
+    assert "slytherin" in include_untracked["student_house"].values
+    assert exclude_untracked.equals(
+        include_untracked[include_untracked["student_house"] != "slytherin"]
+    )
+
+
 @pytest.fixture(scope="module")
 def prepare_population_sim() -> InteractiveContext:
     return InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=[Hogwarts()])
@@ -497,7 +541,7 @@ def test_prepare_population(
     observations: list[Observation] = [
         AddingObservation(
             name=f"test_observation_{i}",
-            population_filter_details=PopulationFilterDetails(),
+            population_filter=PopulationFilter(),
             when=lifecycle_states.COLLECT_METRICS,
             requires_attributes=columns + values,
             results_formatter=lambda *_: pd.DataFrame(),
@@ -552,9 +596,7 @@ def test_prepare_population_all_untracked(prepare_population_sim: InteractiveCon
     mgr = prepare_population_sim._results
     observation1 = AddingObservation(
         name="familiar",
-        population_filter_details=PopulationFilterDetails(
-            exclude_untracked=False
-        ),  # allow untracked
+        population_filter=PopulationFilter(exclude_untracked=False),  # allow untracked
         when=lifecycle_states.COLLECT_METRICS,
         requires_attributes=["familiar"],
         results_formatter=lambda *_: pd.DataFrame(),
@@ -563,7 +605,7 @@ def test_prepare_population_all_untracked(prepare_population_sim: InteractiveCon
     )
     observation2 = AddingObservation(
         name="house_points",
-        population_filter_details=PopulationFilterDetails(),
+        population_filter=PopulationFilter(),
         when=lifecycle_states.COLLECT_METRICS,
         requires_attributes=["house_points"],
         results_formatter=lambda *_: pd.DataFrame(),
@@ -598,7 +640,7 @@ def test_prepare_population_all_untracked(prepare_population_sim: InteractiveCon
     observation3 = AddingObservation(
         # identical to observation1 exclude excluding untracked
         name="familiar",
-        population_filter_details=PopulationFilterDetails(),
+        population_filter=PopulationFilter(),
         when=lifecycle_states.COLLECT_METRICS,
         requires_attributes=["familiar"],
         results_formatter=lambda *_: pd.DataFrame(),

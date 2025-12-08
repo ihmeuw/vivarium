@@ -22,7 +22,7 @@ from vivarium.types import ScalarMapper, VectorMapper
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
-    from vivarium.framework.results.interface import PopulationFilterDetails
+    from vivarium.framework.results.interface import PopulationFilter
 
 
 class ResultsManager(Manager):
@@ -52,14 +52,6 @@ class ResultsManager(Manager):
 
     def get_results(self) -> dict[str, pd.DataFrame]:
         """Return the measure-specific formatted results in a dictionary.
-
-        Notes
-        -----
-        self._results_context.observations is a list where each item is a dictionary
-        of the form {lifecycle_phase: {(PopulationFilterDetails, stratification_names): List[Observation]}}.
-        We use a triple-nested for loop to iterate over only the list of Observations
-        (i.e. we do not need the lifecycle_phase, PopulationFilterDetails, or stratification_names
-        for this method).
 
         Returns
         -------
@@ -128,7 +120,6 @@ class ResultsManager(Manager):
             return
 
         population = self._prepare_population(event, observations, stratifications)
-
         for results_group, measure, updater in self._results_context.gather_results(
             population, event.name, observations
         ):
@@ -265,7 +256,7 @@ class ResultsManager(Manager):
         self,
         observation_type: type[Observation],
         name: str,
-        population_filter_details: PopulationFilterDetails,
+        population_filter: PopulationFilter,
         when: str,
         requires_attributes: list[str],
         **kwargs: Any,
@@ -282,7 +273,7 @@ class ResultsManager(Manager):
         name
             Name of the observation. It will also be the name of the output results file
             for this particular observation.
-        population_filter_details
+        population_filter
             A named tuple of population filtering details. The first item is a Pandas
             query string to filter the population down to the simulants who should be
             considered for the observation. The second item is a boolean indicating whether
@@ -317,7 +308,7 @@ class ResultsManager(Manager):
         self._results_context.register_observation(
             observation_type=observation_type,
             name=name,
-            population_filter_details=population_filter_details,
+            population_filter=population_filter,
             when=when,
             requires_attributes=requires_attributes,
             stratifications=stratifications,
@@ -374,7 +365,7 @@ class ResultsManager(Manager):
                 event.index,
                 attributes_to_get,
                 exclude_untracked=all(
-                    obs.population_filter_details.exclude_untracked for obs in observations
+                    obs.population_filter.exclude_untracked for obs in observations
                 ),
             )
         else:

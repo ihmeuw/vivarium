@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import vivarium.framework.utilities as utils
+import vivarium.framework.population.utilities as pop_utils
 from vivarium.framework.utilities import (
     collapse_nested_dict,
     from_yearly,
@@ -171,24 +171,16 @@ def test_rate_to_probability_clipped(
 
 
 @pytest.mark.parametrize(
-    "query1", ["", "alive == 'alive'", ["alive == 'alive'", "is_aged_out == False"]]
+    "queries, expected_query",
+    [
+        [("", ""), ""],
+        [("alive == 'alive'", "age < 5"), "(alive == 'alive') and (age < 5)"],
+        [
+            ("alive == 'alive' or is_aged_out == False", "age < 5", "sex == 'Female'"),
+            "(alive == 'alive' or is_aged_out == False) and (age < 5) and (sex == 'Female')",
+        ],
+    ],
 )
-@pytest.mark.parametrize("query2", ["", "age < 5", ["age < 5", "sex == 'Female'"]])
-def test_combine_queries(query1: str | list[str], query2: str | list[str]) -> None:
-
-    combined = utils.combine_queries(query1, query2)
-
-    expected_parts = []
-    if query1:
-        if isinstance(query1, str):
-            expected_parts.append(query1)
-        else:
-            expected_parts.extend(query1)
-    if query2:
-        if isinstance(query2, str):
-            expected_parts.append(query2)
-        else:
-            expected_parts.extend(query2)
-
-    expected = " and ".join(expected_parts)
-    assert combined == expected
+def test_combine_queries(queries: tuple[str, ...], expected_query: str) -> None:
+    combined = pop_utils.combine_queries(*queries)
+    assert combined == expected_query
