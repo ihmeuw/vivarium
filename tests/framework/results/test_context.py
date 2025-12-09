@@ -719,6 +719,38 @@ def test_get_required_attributes(
     assert set(actual_columns) == expected_resources
 
 
+def test_get_required_attributes_columns_from_query(mocker: MockerFixture) -> None:
+    """Tests that columns used in queries are regardless of requires_attributes."""
+
+    ctx = ResultsContext()
+    mocker.patch.object(
+        ctx, "get_tracked_query", return_value="pet == 'cat' and lives < 9", create=True
+    )
+
+    observation = ctx.register_observation(
+        observation_type=AddingObservation,
+        name="obs_with_query",
+        population_filter=PopulationFilter(
+            "color in ['black', 'white'] or name == 'Garfield'"
+        ),
+        when=lifecycle_states.COLLECT_METRICS,
+        requires_attributes=["foo", "bar"],  # does NOT include any of the query columns
+        results_formatter=lambda: None,
+        stratifications=(),
+        aggregator_sources=None,
+        aggregator=len,
+    )
+
+    assert set(ctx.get_required_attributes([observation], [])) == {
+        "pet",
+        "lives",
+        "color",
+        "name",
+        "foo",
+        "bar",
+    }
+
+
 @pytest.mark.parametrize(
     "pop_filter",
     ['familiar=="cat"', 'familiar=="spaghetti_yeti"', ""],

@@ -415,11 +415,15 @@ class ResultsContext:
         """
         required_attributes = set()
         for observation in observations:
-            required_attributes.update(observation.requires_attributes)
-            if observation.population_filter.exclude_untracked:
-                required_attributes.update(
+            required_attributes.update(
+                set(observation.requires_attributes)
+                | (
                     pop_utils.extract_columns_from_query(self.get_tracked_query())
+                    if observation.population_filter.exclude_untracked
+                    else set()
                 )
+                | pop_utils.extract_columns_from_query(observation.population_filter.query)
+            )
         for stratification in stratifications:
             required_attributes.update(stratification.requires_attributes)
         return list(required_attributes)
