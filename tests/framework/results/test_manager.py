@@ -632,9 +632,11 @@ def test_prepare_population_all_untracked(prepare_population_sim: InteractiveCon
     population = mgr._prepare_population(
         event, observations=[observation1, observation2], stratifications=[]
     )
-    assert set(population.columns) == {"familiar", "house_points"}
+    # Check that 'student_house' is included since it is needed to apply the tracking
+    # query in observation2
+    assert set(population.columns) == {"student_house", "familiar", "house_points"}
     assert population.equals(private_columns[population.columns])
-    assert "slytherin" in private_columns["student_house"].values
+    assert "slytherin" in population["student_house"].values
 
     # Now set both observers to exclude untracked
     observation3 = AddingObservation(
