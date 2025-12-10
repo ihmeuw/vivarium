@@ -9,7 +9,6 @@ The manager and :ref:`builder <builder_concept>` interface for the
 """
 from __future__ import annotations
 
-import re
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from types import MethodType
@@ -17,7 +16,7 @@ from typing import TYPE_CHECKING, Any, Literal, overload
 
 import pandas as pd
 
-import vivarium.framework.utilities as utils
+import vivarium.framework.population.utilities as pop_utils
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.population.exceptions import PopulationError
@@ -623,7 +622,7 @@ class PopulationManager(Manager):
         # Filter the index based on the query
         columns_to_get = set(requested_attributes)
         if query:
-            query_columns = self.extract_columns_from_query(query)
+            query_columns = pop_utils.extract_columns_from_query(query)
             # We can remove these query columns from requested columns (and will fetch later)
             columns_to_get = columns_to_get.difference(query_columns)
             missing_query_columns = query_columns.difference(set(self._attribute_pipelines))
@@ -667,34 +666,6 @@ class PopulationManager(Manager):
                 df = df.squeeze(axis=1)
 
         return df
-
-    def extract_columns_from_query(self, query: str) -> set[str]:
-        """Extract column names required by a query string."""
-
-        # Extract columns with backticks
-        columns = re.findall(r"`([^`]*)`", query)
-
-        # Begin dropping known non-columns from query
-        # Remove backticked content
-        query = re.sub(r"`[^`]*`", "", query)
-        # Remove keywords including "in" and "not in"
-        query = re.sub(
-            r"\b(and|if|or|True|False|in|not\s+in)\b", "", query, flags=re.IGNORECASE
-        )
-        # Remove quoted strings
-        query = re.sub(r"'[^']*'|\"[^\"]*\"", "", query)
-        # Remove standalone numbers (not part of identifiers)
-        query = re.sub(r"\b\d+\b", "", query)
-        # Remove @ references
-        query = re.sub(r"@\S+", "", query)
-        # Remove list/array syntax
-        query = re.sub(r"\[[^\]]*\]", "", query)
-        # Remove operators and punctuation but preserve column names
-        query = re.sub(r"[!=<>]+|[()&|~\-+*/,.]", " ", query)
-
-        # Combine query words and columns
-        query = re.sub(r"\s+", " ", query).strip()
-        return set(query.split(" ") + columns)
 
     def get_tracked_query(self) -> str:
         return " and ".join(self.tracked_queries)
