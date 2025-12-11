@@ -191,18 +191,13 @@ class PopulationView:
             return a DataFrame.
 
         """
-        population = self._manager.get_population(
-            index=index,
-            attributes=[attribute],
-            query=self._build_query(query, include_default_query, exclude_untracked),
-        )
-        if not isinstance(population, pd.DataFrame):
-            raise ValueError(
-                "Expected a pandas DataFrame to be returned when requesting an "
-                "attribute frame, but got a Series instead. If you expect this "
-                "attribute to be a Series, you should call `get_attributes()` instead."
+        return pd.DataFrame(
+            self._manager.get_population(
+                index=index,
+                attributes=[attribute],
+                query=self._build_query(query, include_default_query, exclude_untracked),
             )
-        return population
+        )
 
     @overload
     def get_private_columns(

@@ -299,21 +299,18 @@ class TestGetAttributesReturnTypes:
         assert isinstance(df, pd.DataFrame)
         assert isinstance(df.columns, pd.MultiIndex)
 
+    @pytest.mark.parametrize(
+        "attribute", ["test_column_1", "attribute_generating_columns_6_7"]
+    )
     def test_get_attribute_frame(
-        self, population_view: PopulationView, index: pd.Index[int]
+        self, population_view: PopulationView, index: pd.Index[int], attribute: str
     ) -> None:
-        df = population_view.get_attribute_frame(index, "attribute_generating_columns_6_7")
+        df = population_view.get_attribute_frame(index, attribute)
         assert isinstance(df, pd.DataFrame)
         assert not isinstance(df.columns, pd.MultiIndex)
 
-        expected = population_view.get_attributes(index, ["attribute_generating_columns_6_7"])
+        expected = population_view.get_attributes(index, [attribute])
         assert (df.values == expected.values).all().all()
-
-    def test_get_attribute_frame_raises(
-        self, population_view: PopulationView, index: pd.Index[int]
-    ) -> None:
-        with pytest.raises(ValueError, match="Expected a pandas DataFrame to be returned"):
-            population_view.get_attribute_frame(index, "test_column_1")
 
 
 ######################################
