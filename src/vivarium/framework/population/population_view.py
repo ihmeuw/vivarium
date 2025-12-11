@@ -91,7 +91,7 @@ class PopulationView:
         query: str = "",
         include_default_query: bool = True,
         exclude_untracked: bool = True,
-    ) -> pd.Series[Any] | pd.DataFrame:
+    ) -> pd.Series[Any]:
         ...
 
     @overload
@@ -143,11 +143,60 @@ class PopulationView:
         squeeze: Literal[True] | Literal[False] = isinstance(attributes, str)
         attributes = [attributes] if isinstance(attributes, str) else list(attributes)
 
-        return self._manager.get_population(
+        population = self._manager.get_population(
             attributes=attributes,
             index=index,
             query=self._build_query(query, include_default_query, exclude_untracked),
             squeeze=squeeze,
+        )
+        if squeeze and not isinstance(population, pd.Series):
+            raise ValueError(
+                "Expected a pandas Series to be returned when requesting a single "
+                "attribute, but got a DataFrame instead. If you expect this attribute "
+                "to be a DataFrame, you should call `get_attribute_frame()` instead."
+            )
+        return population
+
+    def get_attribute_frame(
+        self,
+        index: pd.Index[int],
+        attribute: str,
+        query: str = "",
+        include_default_query: bool = True,
+        exclude_untracked: bool = True,
+    ) -> pd.DataFrame:
+        """Get a single attribute as a DataFrame.
+
+        For the rows in ``index``, return the ``attributes`` (i.e. columns) from the
+        simulation's population. The resulting rows may be further filtered by the
+        view's ``query`` and only return a subset of the population represented by the index.
+
+        Parameters
+        ----------
+        index
+            Index of the population to get.
+        attribute
+            The attribute to retrieve. This attribute may contain a one or more columns.
+        query
+            Additional conditions used to filter the index. If ``include_default_query``
+            is True, it will be combined with this PopulationView's query property.
+        include_default_query
+            Whether to combine this view's default query with the provided ``query``.
+        exclude_untracked
+            Whether to exclude untracked simulants.
+
+        Returns
+        -------
+            The attribute requested subset to the ``index`` and ``query``. Will always
+            return a DataFrame.
+
+        """
+        return pd.DataFrame(
+            self._manager.get_population(
+                index=index,
+                attributes=[attribute],
+                query=self._build_query(query, include_default_query, exclude_untracked),
+            )
         )
 
     @overload
