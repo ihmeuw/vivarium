@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import vivarium.framework.population.utilities as pop_utils
 from vivarium.framework.utilities import (
     collapse_nested_dict,
     from_yearly,
@@ -168,19 +167,3 @@ def test_rate_to_probability_clipped(
     else:
         assert (prob == pd.Series([1.0, 1.0, 0.5, 0.25])).all()
     assert "The probability has been clipped to 1.0" in caplog.text
-
-
-@pytest.mark.parametrize(
-    "queries, expected_query",
-    [
-        [("", ""), ""],
-        [("alive == 'alive'", "age < 5"), "(alive == 'alive') and (age < 5)"],
-        [
-            ("alive == 'alive' or is_aged_out == False", "age < 5", "sex == 'Female'"),
-            "(alive == 'alive' or is_aged_out == False) and (age < 5) and (sex == 'Female')",
-        ],
-    ],
-)
-def test_combine_queries(queries: tuple[str, ...], expected_query: str) -> None:
-    combined = pop_utils.combine_queries(*queries)
-    assert combined == expected_query
