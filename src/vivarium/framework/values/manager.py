@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
-from vivarium.framework.resource import Resource
+from vivarium.framework.resource.resource import Column, Resource
 from vivarium.framework.values.combiners import ValueCombiner, replace_combiner
 from vivarium.framework.values.pipeline import AttributePipeline, DynamicValueError, Pipeline
 from vivarium.framework.values.post_processors import AttributePostProcessor, PostProcessor
@@ -311,7 +311,12 @@ class ValuesManager(Manager):
         # declare that resource at post-setup once all sources and modifiers
         # are registered.
         dependencies = self._convert_dependencies(
-            source, requires_columns, requires_values, requires_streams, required_resources
+            source,
+            component,
+            requires_columns,
+            requires_values,
+            requires_streams,
+            required_resources,
         )
         self.resources.add_resources(
             component=pipeline.component,
@@ -341,7 +346,12 @@ class ValuesManager(Manager):
         value_modifier = pipeline.get_value_modifier(modifier, component)
         self.logger.debug(f"Registering {value_modifier.name} as modifier to {pipeline.name}")
         dependencies = self._convert_dependencies(
-            modifier, requires_columns, requires_values, requires_streams, required_resources
+            modifier,
+            component,
+            requires_columns,
+            requires_values,
+            requires_streams,
+            required_resources,
         )
         self.resources.add_resources(
             component=component, resources=[value_modifier], dependencies=dependencies
@@ -350,6 +360,7 @@ class ValuesManager(Manager):
     @staticmethod
     def _convert_dependencies(
         source: Callable[..., Any] | list[str],
+        component: Component | Manager | None,
         requires_columns: Iterable[str],
         requires_values: Iterable[str],
         requires_streams: Iterable[str],
@@ -361,10 +372,8 @@ class ValuesManager(Manager):
             return [source]
 
         if isinstance(source, list):
-            # The only dependencies are the columns in this list and these
-            # columns are guaranteed to be created by the component that is registering
-            # this pipeline.
-            return []
+            # Attribute pipelines specify their source as a list of columns.
+            return [Column(col, component) for col in source]
 
         if requires_columns or requires_values or requires_streams:
             warnings.warn(

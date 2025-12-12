@@ -734,7 +734,6 @@ class Component(ABC):
                 column,
                 source=[column],
                 component=self,
-                required_resources=self.initialization_requirements,
             )
 
     def _register_post_setup_listener(self, builder: Builder) -> None:
