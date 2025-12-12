@@ -56,7 +56,7 @@ class ResourceInterface(Interface):
         component
             The component or manager adding the resources.
         resources
-            The resources being added. A string represents a population attribute.
+            The resources being added. A string represents an attribute pipeline.
         dependencies
             A list of resources that the producer requires. A string represents
             a population attribute.
