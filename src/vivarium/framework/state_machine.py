@@ -539,9 +539,7 @@ class Machine(Component):
         return [self.state_column]
 
     @property
-    def initialization_requirements(
-        self,
-    ) -> list[str | Resource]:
+    def initialization_requirements(self) -> list[str | Resource]:
         return [self.randomness]
 
     #####################

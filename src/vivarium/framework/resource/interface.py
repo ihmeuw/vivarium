@@ -47,6 +47,7 @@ class ResourceInterface(Interface):
         component: Component | Manager | None,
         resources: Iterable[str | Resource],
         dependencies: Iterable[str | Resource],
+        are_columns: bool = False,
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -55,19 +56,19 @@ class ResourceInterface(Interface):
         component
             The component or manager adding the resources.
         resources
-            The resources being added. A string represents a column resource.
+            The resources being added. A string represents a population attribute.
         dependencies
             A list of resources that the producer requires. A string represents
-            a column resource.
+            a population attribute.
+        are_columns
+            Whether the resources are population attribute private columns.
 
         Raises
         ------
         ResourceError
-            If either the resource type is invalid, a component has multiple
-            resource producers for the ``column`` resource type, or
-            there are multiple producers of the same resource.
+            If there are multiple producers of the same resource.
         """
-        self._manager.add_resources(component, resources, dependencies)
+        self._manager.add_resources(component, resources, dependencies, are_columns)
 
     def get_population_initializers(self) -> list[Any]:
         """Returns a dependency-sorted list of population initializers.

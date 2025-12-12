@@ -80,7 +80,9 @@ class ValuesManager(Manager):
         # modifiers.
         for pipeline in self.values():
             self.resources.add_resources(
-                pipeline.component, [pipeline], [pipeline.source] + list(pipeline.mutators)
+                component=pipeline.component,
+                resources=[pipeline],
+                dependencies=[pipeline.source] + list(pipeline.mutators),
             )
 
     def register_value_producer(
@@ -311,7 +313,11 @@ class ValuesManager(Manager):
         dependencies = self._convert_dependencies(
             source, requires_columns, requires_values, requires_streams, required_resources
         )
-        self.resources.add_resources(pipeline.component, [pipeline.source], dependencies)
+        self.resources.add_resources(
+            component=pipeline.component,
+            resources=[pipeline.source],
+            dependencies=dependencies,
+        )
 
         self.add_constraint(
             pipeline._call,
@@ -337,7 +343,9 @@ class ValuesManager(Manager):
         dependencies = self._convert_dependencies(
             modifier, requires_columns, requires_values, requires_streams, required_resources
         )
-        self.resources.add_resources(component, [value_modifier], dependencies)
+        self.resources.add_resources(
+            component=component, resources=[value_modifier], dependencies=dependencies
+        )
 
     @staticmethod
     def _convert_dependencies(

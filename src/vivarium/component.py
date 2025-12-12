@@ -244,9 +244,7 @@ class Component(ABC):
         return []
 
     @property
-    def initialization_requirements(
-        self,
-    ) -> list[str | Resource]:
+    def initialization_requirements(self) -> list[str | Resource]:
         """A list containing the columns, pipelines, and randomness streams
         required by this component's simulant initializer."""
         return []
@@ -736,6 +734,7 @@ class Component(ABC):
                 column,
                 source=[column],
                 component=self,
+                required_resources=self.initialization_requirements,
             )
 
     def _register_post_setup_listener(self, builder: Builder) -> None:

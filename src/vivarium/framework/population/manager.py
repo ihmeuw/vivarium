@@ -442,7 +442,14 @@ class PopulationManager(Manager):
             creates_columns = [creates_columns]
 
         self._initializer_components.add(component.on_initialize_simulants, creates_columns)
-        self.resources.add_resources(component, creates_columns, list(required_resources))
+        # Add the created columns as resources. The attributes themselves are added
+        # as resources in the Component setup.
+        self.resources.add_resources(
+            component=component,
+            resources=creates_columns,
+            dependencies=required_resources,
+            are_columns=True,
+        )
 
     def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
         """Gets a function that can generate new simulants.
@@ -492,7 +499,7 @@ class PopulationManager(Manager):
         if missing:
             raise PopulationError(
                 "The following components include columns in their 'columns_created' "
-                "property but did not actually create them: {missing}."
+                f"property but did not actually create them: {missing}."
             )
 
         return index
