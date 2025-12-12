@@ -237,43 +237,83 @@ def test_get_attributes_query_removes_all(pies_and_cubes_pop_mgr: PopulationMana
     assert empty_pop.equals(PIE_DF.iloc[0:0][PIE_COL_NAMES])
 
 
-def test_get_attributes_squeezing() -> None:
+class TestGetAttributesReturnTypes:
     class SomeComponent(ColumnCreator, AttributePipelineCreator):
         """Class that creates multi-level column attributes and private columns."""
 
         ...
 
-    component = SomeComponent()
-    sim = InteractiveContext(components=[component], setup=True)
-    pv = sim._population.get_view()
-    index = sim._population.get_population_index()
+    @pytest.fixture(scope="class")
+    def simulation(self) -> InteractiveContext:
+        return InteractiveContext(
+            components=[TestGetAttributesReturnTypes.SomeComponent()], setup=True
+        )
 
-    # Single-level, single-column -> series
-    unsqueezed = pv.get_attributes(index, ["test_column_1"])
-    squeezed = pv.get_attributes(index, "test_column_1")
-    assert_squeezing_single_level_single_col(unsqueezed, squeezed)
+    @pytest.fixture(scope="class")
+    def population_view(self, simulation: InteractiveContext) -> PopulationView:
+        return simulation._population.get_view()
 
-    # Single-level, multiple-column -> dataframe
-    # There's no way to request a squeezed dataframe here.
-    df = pv.get_attributes(index, ["test_column_1", "test_column_2"])
-    assert isinstance(df, pd.DataFrame)
-    assert not isinstance(df.columns, pd.MultiIndex)
+    @pytest.fixture(scope="class")
+    def index(self, simulation: InteractiveContext) -> pd.Index[int]:
+        return simulation._population.get_population_index()
 
-    # Multi-level, single outer, single inner -> series
-    unsqueezed = pv.get_attributes(index, ["attribute_generating_column_8"])
-    squeezed = pv.get_attributes(index, "attribute_generating_column_8")
-    assert_squeezing_multi_level_single_outer_single_inner(unsqueezed, squeezed)
+    def test_single_level_single_column(
+        self, population_view: PopulationView, index: pd.Index[int]
+    ) -> None:
+        # Single-level, single-column -> series
+        unsqueezed = population_view.get_attributes(index, ["test_column_1"])
+        squeezed = population_view.get_attributes(index, "test_column_1")
+        assert_squeezing_single_level_single_col(unsqueezed, squeezed)
 
-    # Multi-level, single outer, multiple inner -> inner dataframe
-    unsqueezed = pv.get_attributes(index, ["attribute_generating_columns_4_5"])
-    squeezed = pv.get_attributes(index, "attribute_generating_columns_4_5")
-    assert_squeezing_multi_level_single_outer_multi_inner(unsqueezed, squeezed)
+    def test_single_level_multiple_columns(
+        self, population_view: PopulationView, index: pd.Index[int]
+    ) -> None:
+        # Single-level, multiple-column -> dataframe
+        # There's no way to request a squeezed dataframe here.
+        df = population_view.get_attributes(index, ["test_column_1", "test_column_2"])
+        assert isinstance(df, pd.DataFrame)
+        assert not isinstance(df.columns, pd.MultiIndex)
 
-    # Multi-level, multiple outer -> full unsqueezed multi-level dataframe
-    # There's no way to request a squeezed dataframe here.
-    df = pv.get_attributes(index, ["test_column_1", "attribute_generating_columns_6_7"])
-    assert isinstance(df, pd.DataFrame)
-    assert isinstance(df.columns, pd.MultiIndex)
+    def test_multi_level_single_outer_single_inner(
+        self, population_view: PopulationView, index: pd.Index[int]
+    ) -> None:
+        # Multi-level, single outer, single inner -> series
+        unsqueezed = population_view.get_attributes(index, ["attribute_generating_column_8"])
+        squeezed = population_view.get_attributes(index, "attribute_generating_column_8")
+        assert_squeezing_multi_level_single_outer_single_inner(unsqueezed, squeezed)
+
+    def test_single_dataframe_attribute_raises(
+        self, population_view: PopulationView, index: pd.Index[int]
+    ) -> None:
+        with pytest.raises(ValueError, match="Expected a pandas Series to be returned"):
+            population_view.get_attributes(index, "attribute_generating_columns_4_5")
+
+    def test_multi_level_multiple_outer(
+        self, population_view: PopulationView, index: pd.Index[int]
+    ) -> None:
+        # Multi-level, multiple outer -> full unsqueezed multi-level dataframe
+        # There's no way to request a squeezed dataframe here.
+        df = population_view.get_attributes(
+            index, ["test_column_1", "attribute_generating_columns_6_7"]
+        )
+        assert isinstance(df, pd.DataFrame)
+        assert isinstance(df.columns, pd.MultiIndex)
+
+    def test_get_attribute_frame(
+        self, population_view: PopulationView, index: pd.Index[int]
+    ) -> None:
+        df = population_view.get_attribute_frame(index, "attribute_generating_columns_6_7")
+        assert isinstance(df, pd.DataFrame)
+        assert not isinstance(df.columns, pd.MultiIndex)
+
+        expected = population_view.get_attributes(index, ["attribute_generating_columns_6_7"])
+        assert (df.values == expected.values).all().all()
+
+    def test_get_attribute_frame_raises(
+        self, population_view: PopulationView, index: pd.Index[int]
+    ) -> None:
+        with pytest.raises(ValueError, match="Expected a pandas DataFrame to be returned"):
+            population_view.get_attribute_frame(index, "test_column_1")
 
 
 ######################################
