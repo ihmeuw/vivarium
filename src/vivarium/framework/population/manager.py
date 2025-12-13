@@ -444,11 +444,10 @@ class PopulationManager(Manager):
         self._initializer_components.add(component.on_initialize_simulants, creates_columns)
         # Add the created columns as resources. The attributes themselves are added
         # as resources in the Component setup.
-        self.resources.add_resources(
+        self.resources.add_private_columns(
             component=component,
             resources=creates_columns,
             dependencies=required_resources,
-            are_columns=True,
         )
 
     def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:

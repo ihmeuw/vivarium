@@ -81,7 +81,6 @@ class ResourceManager(Manager):
         component: Component | Manager | None,
         resources: Iterable[str | Resource],
         dependencies: Iterable[str | Resource],
-        are_columns: bool = False,
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -94,17 +93,13 @@ class ResourceManager(Manager):
         dependencies
             A list of resources that the producer requires. A string represents
             a population attribute.
-        are_columns
-            Whether the resources are population attribute private columns.
 
         Raises
         ------
         ResourceError
             If there are multiple producers of the same resource.
         """
-        resource_group = self._get_resource_group(
-            component, resources, dependencies, are_columns
-        )
+        resource_group = self._get_resource_group(component, resources, dependencies)
         for resource_id, resource in resource_group.resources.items():
             if resource_id in self._resource_group_map:
                 other_resource = self._resource_group_map[resource_id]
@@ -125,7 +120,6 @@ class ResourceManager(Manager):
         component: Component | Manager | None,
         resources: Iterable[str | Resource],
         dependencies: Iterable[str | Resource],
-        are_columns: bool,
     ) -> ResourceGroup:
         """Packages resource information into a resource group.
 
@@ -134,16 +128,10 @@ class ResourceManager(Manager):
         :class:`ResourceGroup`
         """
 
-        # Convert string resources to their corresponding AttributePipeline and Column Resources
-        resources_: list[Resource]
-        if are_columns:
-            if not all(isinstance(res, str) for res in resources):
-                raise ResourceError("Column resources must be specified as strings.")
-            resources_ = [Column(col, component) for col in resources]  # type: ignore[arg-type]
-        else:
-            resources_ = [
-                self.get_attribute(res) if isinstance(res, str) else res for res in resources
-            ]
+        # Convert string resources to their corresponding AttributePipeline
+        resources_ = [
+            self.get_attribute(res) if isinstance(res, str) else res for res in resources
+        ]
 
         dependencies_ = [
             self.get_attribute(dep) if isinstance(dep, str) else dep for dep in dependencies

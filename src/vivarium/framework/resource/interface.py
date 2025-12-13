@@ -13,7 +13,7 @@ from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 from vivarium.framework.resource.manager import ResourceManager
-from vivarium.framework.resource.resource import Resource
+from vivarium.framework.resource.resource import Column, Resource
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
@@ -47,7 +47,6 @@ class ResourceInterface(Interface):
         component: Component | Manager | None,
         resources: Iterable[str | Resource],
         dependencies: Iterable[str | Resource],
-        are_columns: bool = False,
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -60,15 +59,38 @@ class ResourceInterface(Interface):
         dependencies
             A list of resources that the producer requires. A string represents
             a population attribute.
-        are_columns
-            Whether the resources are population attribute private columns.
 
         Raises
         ------
         ResourceError
             If there are multiple producers of the same resource.
         """
-        self._manager.add_resources(component, resources, dependencies, are_columns)
+        self._manager.add_resources(component, resources, dependencies)
+
+    def add_private_columns(
+        self,
+        component: Component | Manager,
+        resources: Iterable[str],
+        dependencies: Iterable[str | Resource],
+    ) -> None:
+        """Adds private column resources to the resource pool.
+
+        Parameters
+        ----------
+        component
+            The component or manager adding the resources.
+        creates_columns
+            The population attribute private columns being added.
+        required_resources
+            A list of resources that the producer requires. A string represents
+            a population attribute.
+        """
+        columns = [Column(col, component) for col in resources]
+        self._manager.add_resources(
+            component=component,
+            resources=columns,
+            dependencies=dependencies,
+        )
 
     def get_population_initializers(self) -> list[Any]:
         """Returns a dependency-sorted list of population initializers.

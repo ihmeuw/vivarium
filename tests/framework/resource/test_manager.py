@@ -43,7 +43,11 @@ def manager_with_resources(
     )
     pipeline = Pipeline("C", resource_producers[2])
 
-    manager.add_resources(resource_producers[3], ["D"], [stream, pipeline], True)
+    D_component = resource_producers[3]
+    manager.get_attribute = lambda name: AttributePipeline(name, D_component)
+    manager.add_resources(D_component, ["D"], [stream, pipeline])
+    # Add the private column resource
+    manager.add_resources(D_component, [Column("D", D_component)], [stream, pipeline])
 
     stream_component = stream.component
     assert isinstance(stream_component, Component)
@@ -58,8 +62,8 @@ def manager_with_resources(
     A_component = resource_producers[0]
     manager.get_attribute = lambda name: AttributePipeline(name, A_component)
     manager.add_resources(A_component, ["A"], [])
-    # Need to add the corresponding column
-    manager.add_resources(A_component, ["A"], [], True)
+    # Add the private column resource
+    manager.add_resources(A_component, [Column("A", A_component)], [])
 
     manager.add_resources(resource_producers[4], [], [stream])
 
@@ -108,7 +112,7 @@ def test_resource_manager_get_resource_group(
     component = ColumnCreator()
 
     group = manager._get_resource_group(
-        component, [resource_class(*init_args, component=component)], [], False
+        component, [resource_class(*init_args, component=component)], []
     )
 
     assert group.type == type_string
@@ -122,8 +126,8 @@ def test_resource_manager_get_resource_group_null(manager: ResourceManager) -> N
     component_1 = ColumnCreator()
     component_2 = ColumnCreatorAndRequirer()
 
-    group_1 = manager._get_resource_group(component_1, [], [], False)
-    group_2 = manager._get_resource_group(component_2, [], [], False)
+    group_1 = manager._get_resource_group(component_1, [], [])
+    group_2 = manager._get_resource_group(component_2, [], [])
 
     assert group_1.type == "null"
     assert group_1.names == ["null.0"]
@@ -134,17 +138,6 @@ def test_resource_manager_get_resource_group_null(manager: ResourceManager) -> N
     assert group_2.names == ["null.1"]
     assert group_2.initializer == component_2.on_initialize_simulants
     assert not group_2.dependencies
-
-
-def test_resource_manager_get_resource_group_raises(mocker: MockerFixture) -> None:
-    manager = ResourceManager()
-    with pytest.raises(ResourceError, match="Column resources must be specified as strings."):
-        manager._get_resource_group(
-            component=mocker.Mock(),
-            resources=["a string", Resource("test", "not a string", None)],
-            dependencies=[],
-            are_columns=True,
-        )
 
 
 def test_add_resource_wrong_component(manager: ResourceManager) -> None:
@@ -238,12 +231,12 @@ def test_resource_manager_sorted_nodes_acyclic(
 
     nodes = [str(node) for node in manager_with_resources.sorted_nodes]
 
-    assert nodes.index("(column.A)") < nodes.index("(stream.B)")
-    assert nodes.index("(column.A)") < nodes.index("(value.C)")
-    assert nodes.index("(column.A)") < nodes.index("(column.D)")
+    assert nodes.index("(attribute.A)") < nodes.index("(stream.B)")
+    assert nodes.index("(attribute.A)") < nodes.index("(value.C)")
+    assert nodes.index("(attribute.A)") < nodes.index("(attribute.D)")
 
-    assert nodes.index("(stream.B)") < nodes.index("(column.D)")
-    assert nodes.index("(value.C)") < nodes.index("(column.D)")
+    assert nodes.index("(stream.B)") < nodes.index("(attribute.D)")
+    assert nodes.index("(value.C)") < nodes.index("(attribute.D)")
 
     assert nodes.index("(stream.B)") < nodes.index(f"(null.0)")
 
