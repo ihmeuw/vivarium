@@ -563,6 +563,9 @@ class Component(ABC):
         builder
             The builder object used to set up the component.
         """
+        # todo instead of iterating through the config keys, look at an attribute that
+        #  defines the lookup tables to be built and specifies their value columns. Then
+        #  look for these lookup tables in the config. Error if there is a mismatch.
         if self.configuration and "data_sources" in self.configuration:
             for table_name in self.configuration.data_sources.keys():
                 try:
