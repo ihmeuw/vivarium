@@ -45,7 +45,7 @@ class NullResource(Resource):
 
 
 class Column(Resource):
-    """A resource representing a column in the state table."""
+    """A resource representing a column in the population private data."""
 
     # TODO [MIC-6433]: all resources should have a component
     def __init__(self, name: str, component: Component | Manager | None):

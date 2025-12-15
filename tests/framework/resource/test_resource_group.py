@@ -8,14 +8,14 @@ from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.resource.exceptions import ResourceError
 from vivarium.framework.resource.group import ResourceGroup
 from vivarium.framework.resource.resource import Column, NullResource, Resource
-from vivarium.framework.values import Pipeline, ValueModifier, ValueSource
+from vivarium.framework.values import AttributePipeline, Pipeline, ValueModifier, ValueSource
 
 
 def test_resource_group() -> None:
     component = ColumnCreator()
-    resources = [Column(str(i), component) for i in range(5)]
+    resources = [Resource("test", f"resource_{i}", component) for i in range(5)]
     r_dependencies = [
-        Column("an_interesting_column", None),
+        AttributePipeline("an_interesting_attribute", None),
         Pipeline("baz"),
         RandomnessStream("bar", lambda: datetime.now(), 1, IndexMap()),
         ValueSource(Pipeline("foo"), lambda: 1, None),
@@ -24,11 +24,11 @@ def test_resource_group() -> None:
     rg = ResourceGroup(resources, r_dependencies)
 
     assert rg.component == component
-    assert rg.type == "column"
-    assert rg.names == [f"column.{i}" for i in range(5)]
+    assert rg.type == "test"
+    assert rg.names == [f"test.resource_{i}" for i in range(5)]
     assert rg.initializer == component.on_initialize_simulants
     assert rg.dependencies == [
-        "column.an_interesting_column",
+        "attribute.an_interesting_attribute",
         "value.baz",
         "stream.bar",
         "value_source.foo",
@@ -40,6 +40,7 @@ def test_resource_group() -> None:
     "resource, has_initializer",
     [
         (Pipeline("foo"), False),
+        (AttributePipeline("foo"), False),
         (ValueSource(Pipeline("bar"), lambda: 1, ColumnCreator()), False),
         (ValueModifier(Pipeline("baz"), lambda: 1, ColumnCreator()), False),
         (Column("foo", ColumnCreator()), True),
@@ -48,13 +49,13 @@ def test_resource_group() -> None:
     ],
 )
 def test_resource_group_is_initializer(resource: Resource, has_initializer: bool) -> None:
-    rg = ResourceGroup([resource], [Column("bar", None)])
+    rg = ResourceGroup([resource], [Resource("test", "bar", None)])
     assert rg.is_initialized == has_initializer
 
 
 def test_resource_group_with_no_resources() -> None:
     with pytest.raises(ResourceError, match="must have at least one resource"):
-        _ = ResourceGroup([], [Column("foo", None)])
+        _ = ResourceGroup([], [Resource("test", "foo", None)])
 
 
 def test_resource_group_with_multiple_components() -> None:
