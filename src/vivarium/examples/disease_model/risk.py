@@ -43,25 +43,27 @@ class Risk(Component):
         super().__init__()
         self.risk = risk
         self.propensity_column = f"{risk}_propensity"
+        self.base_proportion_exposed_pipeline_name = f"{risk}.base_proportion_exposed"
+        self.exposure_threshold_pipleine_name = f"{self.risk}.proportion_exposed"
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
         proportion_exposed = builder.configuration[self.risk].proportion_exposed
-        self.base_exposure_threshold = builder.value.register_attribute_producer(
-            f"{self.risk}.base_proportion_exposed",
+        builder.value.register_attribute_producer(
+            self.base_proportion_exposed_pipeline_name,
             source=lambda index: pd.Series(proportion_exposed, index=index),
             component=self,
         )
-        self.exposure_threshold = builder.value.register_attribute_producer(
-            f"{self.risk}.proportion_exposed",
-            source=self.base_exposure_threshold,
+        builder.value.register_attribute_producer(
+            self.exposure_threshold_pipleine_name,
+            source = lambda index: self.population_view.get_attributes(index, self.base_proportion_exposed_pipeline_name),
             component=self,
         )
 
-        self.exposure = builder.value.register_attribute_producer(
+        builder.value.register_attribute_producer(
             f"{self.risk}.exposure",
             source=self._exposure,
-            required_resources=[self.propensity_column, self.exposure_threshold],
+            required_resources=[self.propensity_column, self.exposure_threshold_pipleine_name],
             component=self,
         )
         self.randomness = builder.randomness.get_stream(self.risk)
@@ -80,7 +82,8 @@ class Risk(Component):
 
     def _exposure(self, index):
         propensity = self.population_view.get_attributes(index, self.propensity_column)
-        return self.exposure_threshold(index) > propensity
+        exposure_threshold = self.population_view.get_attributes(index, self.exposure_threshold_pipleine_name)
+        return exposure_threshold > propensity
 
 
 class RiskEffect(Component):
@@ -107,6 +110,7 @@ class RiskEffect(Component):
         self.risk_name = risk_name
         self.disease_rate = disease_rate
         self.risk = f"effect_of_{risk_name}_on_{disease_rate}"
+        self.relative_risk_pipeline_name = f"{self.risk}.relative_risk"
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
@@ -116,8 +120,8 @@ class RiskEffect(Component):
         self.actual_risk_exposure = builder.value.get_attribute(f"{self.risk_name}.exposure")
 
         relative_risk = builder.configuration[self.risk].relative_risk
-        self.relative_risk = builder.value.register_attribute_producer(
-            f"{self.risk}.relative_risk",
+        builder.value.register_attribute_producer(
+            self.relative_risk_pipeline_name,
             source=lambda index: pd.Series(relative_risk, index=index),
             component=self,
         )
@@ -126,13 +130,13 @@ class RiskEffect(Component):
             f"{self.disease_rate}.population_attributable_fraction",
             modifier=self.population_attributable_fraction,
             component=self,
-            required_resources=[self.base_risk_exposure, self.relative_risk],
+            required_resources=[self.base_risk_exposure, self.relative_risk_pipeline_name],
         )
         builder.value.register_attribute_modifier(
             f"{self.disease_rate}",
             modifier=self.rate_adjustment,
             component=self,
-            required_resources=[self.actual_risk_exposure, self.relative_risk],
+            required_resources=[self.actual_risk_exposure, self.relative_risk_pipeline_name],
         )
 
     ##################################
@@ -141,11 +145,11 @@ class RiskEffect(Component):
 
     def population_attributable_fraction(self, index):
         exposure = self.base_risk_exposure(index)
-        relative_risk = self.relative_risk(index)
+        relative_risk = self.population_view.get_attributes(index, self.relative_risk_pipeline_name)
         return exposure * (relative_risk - 1) / (exposure * (relative_risk - 1) + 1)
 
     def rate_adjustment(self, index, rates):
         exposed = self.actual_risk_exposure(index)
-        rr = self.relative_risk(index)
+        rr = self.population_view.get_attributes(index, self.relative_risk_pipeline_name)
         rates[exposed] *= rr[exposed]
         return rates

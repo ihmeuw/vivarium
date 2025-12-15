@@ -106,7 +106,7 @@ class SimulationClock(Manager):
 
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
-        self._step_size_pipeline = builder.value.register_attribute_producer(
+        self._step_size_pipeline = builder.value.register_value_producer(
             self._pipeline_name,
             source=lambda idx: [pd.Series(np.nan, index=idx).astype("timedelta64[ns]")],
             component=self,
@@ -114,7 +114,7 @@ class SimulationClock(Manager):
             preferred_post_processor=self.step_size_post_processor,
         )
         self.register_step_modifier = partial(
-            builder.value.register_attribute_modifier,
+            builder.value.register_value_modifier,
             self._pipeline_name,
             component=self,
         )
@@ -192,7 +192,9 @@ class SimulationClock(Manager):
             self._simulants_to_snooze = self._simulants_to_snooze.union(index)
 
     def step_size_post_processor(
-        self, index: pd.Index[int], value: Any, manager: ValuesManager
+        self,
+        value: Any,
+        manager: ValuesManager,
     ) -> Any:
         """Computes the largest feasible step size for each simulant.
 

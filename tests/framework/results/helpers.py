@@ -80,7 +80,7 @@ class Hogwarts(Component):
             component=self,
             required_resources=["exam_score"],
         )
-        self.double_power = builder.value.register_attribute_producer(
+        builder.value.register_attribute_producer(
             "double_power",
             source=lambda index: self.population_view.get_attributes(index, "power_level")
             * 2,
