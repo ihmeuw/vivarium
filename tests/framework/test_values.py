@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -9,8 +9,9 @@ import pandas as pd
 import pytest
 from pytest_mock import MockFixture
 
-from vivarium import Component as _Component
+from vivarium import Component
 from vivarium.framework.engine import SimulationContext
+from vivarium.framework.resource.resource import Column, Resource
 from vivarium.framework.utilities import from_yearly
 from vivarium.framework.values import (
     AttributePipeline,
@@ -63,6 +64,32 @@ def manager_with_step_size(
     builder.time.simulant_step_sizes = lambda: request.getfixturevalue(request.param)
     manager.setup(builder)
     return manager
+
+
+@pytest.mark.parametrize(
+    "resource_source, expected_dependencies",
+    [
+        (lambda: None, ["foo", "bar"]),
+        (Pipeline("some_pipeline"), [Pipeline("some_pipeline")]),
+        (AttributePipeline("some_attribute"), [AttributePipeline("some_attribute")]),
+        (["qux", "quux"], [Column("qux", None), Column("quux", None)]),
+    ],
+)
+def test__convert_dependencies(
+    resource_source: Callable[..., Any] | list[str],
+    expected_dependencies: Iterable[str | Resource],
+) -> None:
+    manager = ValuesManager()
+    required_resources = ["foo", "bar"]
+    deps = manager._convert_dependencies(
+        source=resource_source,
+        component=None,
+        requires_columns=[],
+        requires_values=[],
+        requires_streams=[],
+        required_resources=required_resources,
+    )
+    assert deps == expected_dependencies
 
 
 def test_replace_combiner(manager: ValuesManager) -> None:
@@ -699,7 +726,7 @@ def test_source_callable(
 ) -> None:
     """Test that the source is correctly converted to a callable if needed."""
 
-    class Component(_Component):
+    class SomeComponent(Component):
         @property
         def columns_created(self) -> list[str]:
             return ["attr1", "attr2"]
@@ -715,7 +742,7 @@ def test_source_callable(
             update = pd.DataFrame({"attr1": [10.0], "attr2": [20.0]}, index=pop_data.index)
             self.population_view.update(update)
 
-    sim = SimulationContext(components=[Component()])
+    sim = SimulationContext(components=[SomeComponent()])
     sim.setup()
     sim.initialize_simulants()
     pl = sim._values.get_attribute("some-attribute")
