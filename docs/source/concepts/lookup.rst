@@ -166,15 +166,14 @@ which specifies a single lookup table named
 ``cause_specific_mortality_rate`` whose data is provided by the component's
 ``load_cause_specific_mortality_rate`` method.
 
-Each entry in
-``data_sources`` maps a table name to a data source from one of several supported types
-(see `Data Source Types`_). Barring edge cases (see
+Each entry in ``data_sources`` maps a table name to a data source from one of
+several supported types (see `Data Source Types`_). Barring edge cases (see
 `Limitations and When to Override`_), one should specify all of a component's
 lookup tables via ``data_sources``, instead of accessing the builder's lookup
 interface directly.
 
 When a component configures ``data_sources``, the base
-:class:`Component <vivarium.component.Component>` class automatically builds
+:class:`~vivarium.component.Component` class automatically builds
 the lookup tables before the component's :meth:`~vivarium.component.Component.setup` method is called. The
 resulting tables are stored in the component's :attr:`~vivarium.component.Component.lookup_tables` dictionary,
 keyed by the name specified in ``data_sources``. 
