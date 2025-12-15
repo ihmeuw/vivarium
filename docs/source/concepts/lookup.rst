@@ -247,7 +247,7 @@ column types.
 Example: Writing a Component with Data Sources
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A more complete example is reproduced from the `Mortality <https://vivarium.readthedocs.io/projects/vivarium-public-health/en/latest/api_reference/population/mortality.html> _` component in `vivarium_public_health <https://vivarium.readthedocs.io/projects/vivarium-public-health/en/latest/>`_:
+A more complete example is reproduced from the `Mortality <https://vivarium.readthedocs.io/projects/vivarium-public-health/en/latest/api_reference/population/mortality.html>`_ component in `vivarium_public_health <https://vivarium.readthedocs.io/projects/vivarium-public-health/en/latest/>`_:
 
 .. code-block:: python
 
@@ -314,7 +314,7 @@ but some situations require overriding the :meth:`~vivarium.component.Component.
 
 Examples of these patterns can be found in `vivarium_public_health <https://vivarium.readthedocs.io/projects/vivarium-public-health/en/latest/>`_:
 
-- `RateTransition <https://vivarium.readthedocs.io/projects/vivarium-public-health/en/latest/api_reference/disease/transition.html> _` and `DiseaseState <https://vivarium.readthedocs.io/projects/vivarium-public-health/en/latest/api_reference/disease/state.html> _` in `vivarium_public_health.disease <https://vivarium.readthedocs.io/projects/vivarium-public-health/en/latest/api_reference/disease/> _`
+- `RateTransition <https://vivarium.readthedocs.io/projects/vivarium-public-health/en/latest/api_reference/disease/transition.html>`_ and `DiseaseState <https://vivarium.readthedocs.io/projects/vivarium-public-health/en/latest/api_reference/disease/state.html>`_ in `vivarium_public_health.disease <https://vivarium.readthedocs.io/projects/vivarium-public-health/en/latest/api_reference/disease/>`_
   demonstrate the basic ``data_sources`` pattern with various data source types.
 - ``Risk`` in ``vivarium_public_health.risks`` overrides :meth:`~vivarium.component.Component.build_all_lookup_tables`
   to delegate table construction to its exposure distribution sub-component.
