@@ -137,9 +137,14 @@ class RandomnessManager(Manager):
         stream = self._get_randomness_stream(
             decision_point, component, initializes_crn_attributes, rate_conversion_type
         )
-        if not initializes_crn_attributes:
-            # We need the key columns to be created before this stream can be called.
-            self.resources.add_resources(component, [stream], self._key_columns)
+
+        # We need the key columns to be created before this stream can be called.
+        self.resources.add_resources(
+            component=component,
+            resources=[stream],
+            dependencies=self._key_columns if not initializes_crn_attributes else [],
+        )
+
         self._add_constraint(
             stream.get_draw,
             restrict_during=[
