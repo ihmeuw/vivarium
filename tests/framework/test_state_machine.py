@@ -101,9 +101,7 @@ def test_initialize_with_array_initialization_weights(
             #  specified by the states or the configuration.
             return ["test_column_1"]
 
-    def initialization_weights(
-        key: str,
-    ) -> DataInput:
+    def initialization_weights(key: str) -> DataInput:
         weights = {
             "artifact": key,
             "callable": lambda _: state_weights[key],
