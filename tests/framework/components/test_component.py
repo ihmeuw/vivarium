@@ -106,7 +106,7 @@ def test_component_with_initialization_requirements() -> None:
     component_dependencies = component_dependencies_list[0]
 
     assert "value.pipeline_1" in component_dependencies
-    assert "column.test_column_2" in component_dependencies
+    assert "attribute.test_column_2" in component_dependencies
     assert "stream.stream_1" in component_dependencies
 
 
