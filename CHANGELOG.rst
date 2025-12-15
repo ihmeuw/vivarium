@@ -1,3 +1,7 @@
+**3.6.4 - 12/15/25**
+
+  - Type-hinting: Fix mypy errors in framework/utilities.py
+  
 **3.6.3 - 11/20/25**
 
   - Raise ValueError if null values are present in probabilities in RandomnessStream.filter_for_probability()

@@ -60,19 +60,23 @@ def test_disease_model(fuzzy_checker: FuzzyChecker, disease_model_spec: Path) ->
     pop = simulation.get_population()
     is_alive = pop["alive"] == "alive"
 
+    alive_target = from_yearly(20, timedelta(days=0.5))
+    assert isinstance(alive_target, float)
     fuzzy_checker.fuzzy_assert_proportion(
         observed_numerator=(len(pop[~is_alive])),
         observed_denominator=len(pop),
-        target_proportion=from_yearly(20, timedelta(days=0.5)),
+        target_proportion=alive_target,
         # todo: remove this parameter when MIC-5412 is resolved
         name="alive_proportion",
     )
 
     has_lri = pop["lower_respiratory_infections"] == "infected_with_lower_respiratory_infections"
+    lri_target = from_yearly(25, timedelta(days=0.5))
+    assert isinstance(lri_target, float)
     fuzzy_checker.fuzzy_assert_proportion(
         observed_numerator=(len(pop[is_alive & has_lri])),
         observed_denominator=len(pop[is_alive]),
-        target_proportion=from_yearly(25, timedelta(days=0.5)),
+        target_proportion=lri_target,
         # todo: remove this parameter when MIC-5412 is resolved
         name="lri_proportion",
     )
