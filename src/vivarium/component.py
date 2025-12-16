@@ -93,6 +93,30 @@ class Component(ABC):
     component. An empty dictionary indicates no managed configurations.
     """
 
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Automatically collect lookup table descriptors from the class.
+
+        This method is called when a subclass of Component is created. It scans
+        the class for LookupTableDescriptor instances and stores them for later
+        use when building lookup tables.
+
+        Parameters
+        ----------
+        **kwargs
+            Additional keyword arguments passed to the superclass.
+        """
+        super().__init_subclass__(**kwargs)
+
+        # Avoid circular import
+        from vivarium.framework.lookup.descriptor import LookupTableDescriptor
+
+        # Find all LookupTableDescriptor instances in the class
+        cls._lookup_table_descriptors: dict[str, LookupTableDescriptor[Any]] = {
+            name: descriptor
+            for name, descriptor in cls.__dict__.items()
+            if isinstance(descriptor, LookupTableDescriptor)
+        }
+
     def __init__(self) -> None:
         """Initializes a new instance of the Component class.
 
@@ -261,17 +285,6 @@ class Component(ABC):
             this component.
         """
         return self.CONFIGURATION_DEFAULTS
-
-    @property
-    def lookup_table_value_columns(self) -> dict[str, str | list[str]]:
-        """Provides a mapping of lookup table names to their value columns.
-
-        Returns
-        -------
-        A dictionary mapping lookup table names to their value columns.
-        The value columns can be a string or a list of strings.
-        """
-        return {}
 
     @property
     def columns_created(self) -> list[str]:
@@ -562,37 +575,60 @@ class Component(ABC):
         return LayeredConfigTree({"data_sources": {}})
 
     def build_all_lookup_tables(self, builder: Builder) -> None:
-        # TODO update this docstring to match method behavior
         """Builds all lookup tables for this component.
 
-        This method builds lookup tables for this component based on the data
-        sources specified in the configuration. If no data sources are specified,
-        no lookup tables are built.
+        This method builds lookup tables for this component based on:
+        1. LookupTableDescriptor instances declared as class attributes
+        2. Data sources specified in the configuration
 
-        The created lookup tables are stored in the lookup_tables dictionary of
-        the component, with the table name as the key.
+        The created lookup tables are stored in the lookup_tables dictionary and
+        can be accessed via the descriptors as attributes.
 
         Parameters
         ----------
         builder
             The builder object used to set up the component.
         """
-        if not self.configuration or "data_sources" not in self.configuration:
-            return
+        descriptors = self.__class__._lookup_table_descriptors if hasattr(
+            self.__class__, "_lookup_table_descriptors"
+        ) else {}
+        
+        has_config = self.configuration and "data_sources" in self.configuration
+        configured_sources = (
+            set(self.configuration.data_sources.keys()) if has_config else set()
+        )
+        descriptor_names = set(descriptors.keys())
 
-        if missing := set(self.lookup_table_value_columns).difference(
-            set(self.configuration.data_sources)
-        ):
-            raise ConfigurationError(
-                f"Missing data sources in configuration for lookup tables: {missing}"
-            )
+        # Validate configuration matches descriptors
+        if descriptor_names != configured_sources:
+            missing = descriptor_names - configured_sources
+            extra = configured_sources - descriptor_names
+            
+            if missing and not configured_sources:
+                # Descriptors exist but no config at all
+                raise ConfigurationError(
+                    f"Component has lookup table descriptors {descriptor_names} "
+                    f"but is missing data_sources configuration."
+                )
+            elif missing:
+                # Some descriptors missing from config
+                raise ConfigurationError(
+                    f"Missing data sources in configuration for lookup tables: {missing}"
+                )
+            elif extra:
+                # Config has extra sources not in descriptors
+                self.logger.warning(
+                    f"Data sources in configuration have no corresponding lookup table "
+                    f"descriptors and will be ignored: {extra}"
+                )
 
-        for table_name in self.configuration.data_sources:
+        # Build all lookup tables
+        for table_name, descriptor in descriptors.items():
             try:
                 self.lookup_tables[table_name] = self.build_lookup_table(
                     builder=builder,
                     data_source=self.configuration.data_sources[table_name],
-                    value_columns=self.lookup_table_value_columns.get(table_name),
+                    value_columns=descriptor.value_columns,
                 )
             except ConfigurationError as e:
                 raise ConfigurationError(f"Error building lookup table '{table_name}': {e}")

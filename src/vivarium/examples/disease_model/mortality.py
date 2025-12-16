@@ -9,9 +9,13 @@ import pandas as pd
 from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
+from vivarium.framework.lookup import series_lookup
 from vivarium.framework.population import SimulantData
 
+
 class Mortality(Component):
+    mortality_rate = series_lookup()
+
     ##############
     # Properties #
     ##############
@@ -24,7 +28,7 @@ class Mortality(Component):
         providing override values when constructing an interactive simulation.
         """
         return {self.name: {"data_sources": {"mortality_rate": 0.01}}}
-    
+
     @property
     def columns_created(self) -> list[str]:
         return ["alive"]
@@ -47,8 +51,8 @@ class Mortality(Component):
             Access to simulation tools and subsystems.
         """
         self.randomness = builder.randomness.get_stream("mortality")
-        self.mortality_rate = builder.value.register_rate_producer(
-            "mortality_rate", source=self.lookup_tables["mortality_rate"], component=self
+        self.mortality_rate_pipeline = builder.value.register_rate_producer(
+            "mortality_rate", source=self.mortality_rate, component=self
         )
 
     ########################
