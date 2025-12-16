@@ -59,12 +59,12 @@ class LookupTableDescriptor(Generic[T]):
         self.name = name
 
     @overload
-    def __get__(
-        self, obj: None, objtype: type
-    ) -> LookupTableDescriptor[T]: ...
+    def __get__(self, obj: None, objtype: type) -> LookupTableDescriptor[T]:
+        ...
 
     @overload
-    def __get__(self, obj: Component, objtype: type) -> LookupTable[T]: ...
+    def __get__(self, obj: Component, objtype: type) -> LookupTable[T]:
+        ...
 
     def __get__(
         self, obj: Component | None, objtype: type

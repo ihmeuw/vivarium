@@ -93,6 +93,10 @@ class Component(ABC):
     component. An empty dictionary indicates no managed configurations.
     """
 
+    _lookup_table_descriptors: dict[str, Any] = {}
+    """Dictionary of LookupTableDescriptor instances declared on the component class.
+    Populated automatically by __init_subclass__."""
+
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Automatically collect lookup table descriptors from the class.
 
@@ -111,7 +115,7 @@ class Component(ABC):
         from vivarium.framework.lookup.descriptor import LookupTableDescriptor
 
         # Find all LookupTableDescriptor instances in the class
-        cls._lookup_table_descriptors: dict[str, LookupTableDescriptor[Any]] = {
+        cls._lookup_table_descriptors = {
             name: descriptor
             for name, descriptor in cls.__dict__.items()
             if isinstance(descriptor, LookupTableDescriptor)
@@ -589,10 +593,7 @@ class Component(ABC):
         builder
             The builder object used to set up the component.
         """
-        descriptors = self.__class__._lookup_table_descriptors if hasattr(
-            self.__class__, "_lookup_table_descriptors"
-        ) else {}
-        
+        descriptors = self.__class__._lookup_table_descriptors
         has_config = self.configuration and "data_sources" in self.configuration
         configured_sources = (
             set(self.configuration.data_sources.keys()) if has_config else set()
@@ -603,7 +604,7 @@ class Component(ABC):
         if descriptor_names != configured_sources:
             missing = descriptor_names - configured_sources
             extra = configured_sources - descriptor_names
-            
+
             if missing and not configured_sources:
                 # Descriptors exist but no config at all
                 raise ConfigurationError(
