@@ -26,7 +26,7 @@ from layered_config_tree import ConfigurationError, LayeredConfigTree
 from vivarium.framework.artifact import ArtifactException
 from vivarium.framework.lifecycle import LifeCycleError, lifecycle_states
 from vivarium.framework.population import PopulationError
-from vivarium.types import ScalarValue
+from vivarium.types import LookupTableData, ScalarValue
 
 if TYPE_CHECKING:
     import loguru
@@ -117,7 +117,9 @@ class Component(ABC):
         ] = _raise_get_value_columns_error
         self.configuration: LayeredConfigTree = LayeredConfigTree()
         self._population_view: PopulationView | None = None
-        self.lookup_tables: dict[str, LookupTable] = {}
+        self.lookup_tables: dict[
+            str, LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]
+        ] = {}
 
     def __repr__(self) -> str:
         """Returns a string representation of the __init__ call made to create this
@@ -259,6 +261,17 @@ class Component(ABC):
             this component.
         """
         return self.CONFIGURATION_DEFAULTS
+
+    @property
+    def lookup_table_value_columns(self) -> dict[str, str | list[str]]:
+        """Provides a mapping of lookup table names to their value columns.
+
+        Returns
+        -------
+        A dictionary mapping lookup table names to their value columns.
+        The value columns can be a string or a list of strings.
+        """
+        return {}
 
     @property
     def columns_created(self) -> list[str]:
@@ -549,6 +562,7 @@ class Component(ABC):
         return LayeredConfigTree({"data_sources": {}})
 
     def build_all_lookup_tables(self, builder: Builder) -> None:
+        # TODO update this docstring to match method behavior
         """Builds all lookup tables for this component.
 
         This method builds lookup tables for this component based on the data
@@ -563,26 +577,32 @@ class Component(ABC):
         builder
             The builder object used to set up the component.
         """
-        # todo instead of iterating through the config keys, look at an attribute that
-        #  defines the lookup tables to be built and specifies their value columns. Then
-        #  look for these lookup tables in the config. Error if there is a mismatch.
-        if self.configuration and "data_sources" in self.configuration:
-            for table_name in self.configuration.data_sources.keys():
-                try:
-                    self.lookup_tables[table_name] = self.build_lookup_table(
-                        builder, self.configuration.data_sources[table_name]
-                    )
-                except ConfigurationError as e:
-                    raise ConfigurationError(
-                        f"Error building lookup table '{table_name}': {e}"
-                    )
+        if not self.configuration or "data_sources" not in self.configuration:
+            return
+
+        if missing := set(self.lookup_table_value_columns).difference(
+            set(self.configuration.data_sources)
+        ):
+            raise ConfigurationError(
+                f"Missing data sources in configuration for lookup tables: {missing}"
+            )
+
+        for table_name in self.configuration.data_sources:
+            try:
+                self.lookup_tables[table_name] = self.build_lookup_table(
+                    builder=builder,
+                    data_source=self.configuration.data_sources[table_name],
+                    value_columns=self.lookup_table_value_columns.get(table_name),
+                )
+            except ConfigurationError as e:
+                raise ConfigurationError(f"Error building lookup table '{table_name}': {e}")
 
     def build_lookup_table(
         self,
         builder: Builder,
         data_source: DataInput,
-        value_columns: Sequence[str] | None = None,
-    ) -> LookupTable:
+        value_columns: list[str] | tuple[str, ...] | str | None,
+    ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
         """Builds a LookupTable from a data source.
 
         Uses `get_data` to parse the data source and retrieve the lookup table
@@ -610,6 +630,9 @@ class Component(ABC):
             If the data source is invalid.
         """
         data = self.get_data(builder, data_source)
+        value_columns_ = (
+            value_columns if value_columns is not None else self.get_value_columns(data)
+        )
         # TODO update this to use vivarium.types.LookupTableData once we drop
         #  support for Python 3.9
         if not isinstance(
@@ -617,40 +640,33 @@ class Component(ABC):
         ):
             raise ConfigurationError(f"Data '{data}' must be a LookupTableData instance.")
 
-        if isinstance(data, list):
-            return builder.lookup.build_table(
-                data, value_columns=list(value_columns) if value_columns else ()
-            )
         if isinstance(data, pd.DataFrame):
             duplicated_columns = set(data.columns[data.columns.duplicated()])
             if duplicated_columns:
                 raise ConfigurationError(
                     f"Dataframe contains duplicate columns {duplicated_columns}."
                 )
-            value_columns, parameter_columns, key_columns = self._get_columns(
-                value_columns, data
-            )
+            parameter_columns, key_columns = self._get_columns(value_columns_, data)
 
             return builder.lookup.build_table(
                 data=data,
                 key_columns=key_columns,
                 parameter_columns=parameter_columns,
-                value_columns=value_columns,
+                value_columns=value_columns_,
             )
 
-        return builder.lookup.build_table(data)
+        return builder.lookup.build_table(data=data, value_columns=value_columns_)
 
+    # TODO can push this logic inside build_table in LookupTableManager
     def _get_columns(
         self,
-        value_columns: Sequence[str] | None,
+        value_columns: list[str] | tuple[str, ...] | str,
         data: pd.DataFrame | dict[str, list[ScalarValue] | list[str]],
-    ) -> tuple[Sequence[str], list[str], list[str]]:
+    ) -> tuple[list[str], list[str]]:
         if isinstance(data, pd.DataFrame):
             all_columns = list(data.columns)
         else:
             all_columns = list(data.keys())
-        if value_columns is None:
-            value_columns = self.get_value_columns(data)
 
         potential_parameter_columns = [
             str(col).removesuffix("_start")
@@ -670,9 +686,9 @@ class Component(ABC):
             if col not in value_columns and col not in bin_edge_columns
         ]
 
-        return value_columns, parameter_columns, key_columns
+        return parameter_columns, key_columns
 
-    def get_data(self, builder: Builder, data_source: DataInput) -> Any:
+    def get_data(self, builder: Builder, data_source: DataInput) -> LookupTableData:
         """Retrieves data from a data source.
 
         If the data source is a float or a DataFrame, it is treated as the data
@@ -716,7 +732,7 @@ class Component(ABC):
                     raise ConfigurationError(
                         f"There is no method '{method}' for the {module_string}."
                     )
-                data = data_source_callable(builder)
+                data: LookupTableData = data_source_callable(builder)
             else:
                 try:
                     data = builder.data.load(data_source)

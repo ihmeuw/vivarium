@@ -623,9 +623,9 @@ way to understand this system is by :doc:`example. </concepts/values>`
 
 In our current context we register a named attribute "pipeline" into the
 simulation called ``'mortality_rate'`` via the ``builder.value.register_rate_producer`` 
-method. The source for a value is always a callable function or method 
-(``self.base_mortality_rate`` in this case) which typically takes in a 
-``pandas.Index`` as its only argument. Other things are possible, but not 
+method. The source for a value is always a callable which typically takes in a 
+``pandas.Index`` as its only argument. In this case, the source is a LookupTable,
+which is callable, so meets this requirement. Other things are possible, but not 
 necessary for our current use case.
 
 The ``'mortality_rate'`` source is then responsible for returning a
@@ -669,13 +669,11 @@ Finally, we update the state table ``'alive'`` column with the newly dead simula
 Supplying a base mortality rate
 +++++++++++++++++++++++++++++++
 
-As discussed above, the ``base_mortality_rate`` method is the source for
-the ``'mortality_rate'`` value. Here we take in an index and build
-a ``pandas.Series`` that assigns each individual the mortality rate
-specified in the configuration.
+As discussed above, the source for the ``'mortality_rate'`` value is a LookupTable
+defined in component's configuration.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 85, 98
+   :lines: 20-27
 
 In an actual simulation, we'd inform the base mortality rate with data
 specific to the age, sex, location, year (and potentially other demographic

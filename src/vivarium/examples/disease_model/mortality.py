@@ -1,7 +1,7 @@
 # mypy: ignore-errors
 from __future__ import annotations
 
-from typing import Any, TypedDict
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -9,7 +9,6 @@ import pandas as pd
 from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
-from vivarium.framework.lookup import LookupTable
 from vivarium.framework.population import SimulantData
 
 class Mortality(Component):
@@ -29,17 +28,10 @@ class Mortality(Component):
     @property
     def columns_created(self) -> list[str]:
         return ["alive"]
-    
-    class LookupTables(TypedDict):
-        mortality_rate: LookupTable[pd.Series[float]]
 
     #####################
     # Lifecycle methods #
     #####################
-
-    def __init__(self) -> None:
-        super().__init__()
-        self._mortality_rate_data: LookupTable | None = None
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
@@ -55,10 +47,8 @@ class Mortality(Component):
             Access to simulation tools and subsystems.
         """
         self.randomness = builder.randomness.get_stream("mortality")
-        self._lookup_tables: Mortality.LookupTables = Mortality.LookupTables(self.lookup_tables)
-
         self.mortality_rate = builder.value.register_rate_producer(
-            "mortality_rate", source=self._lookup_tables["mortality_rate"], component=self
+            "mortality_rate", source=self.lookup_tables["mortality_rate"], component=self
         )
 
     ########################

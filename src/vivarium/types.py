@@ -19,12 +19,16 @@ ClockTime = Time | int
 ClockStepSize = Timedelta | int
 
 ScalarValue = Numeric | Timedelta | Time
+DataFrameMapping = Mapping[str, list[ScalarValue] | list[str]]
 LookupTableData = (
+    # FIXME: this is not correct - a LookupTable can return a str, so it should be
+    #  possible to build a LookupTable from str data as well, but adding a string here
+    #  will break some assumptions of Component.get_data()
     ScalarValue
     | pd.DataFrame
     | list[ScalarValue]
     | tuple[ScalarValue, ...]
-    | Mapping[str, list[ScalarValue] | list[str]]
+    | DataFrameMapping
 )
 
 DataInput = LookupTableData | str | Callable[["Builder"], LookupTableData]
