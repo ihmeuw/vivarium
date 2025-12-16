@@ -1,4 +1,4 @@
-**3.6.4 - 12/15/25**
+**3.6.4 - 12/16/25**
 
   - Add documentation for Component LookupTable configuration
   
