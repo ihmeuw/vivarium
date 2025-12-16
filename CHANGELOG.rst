@@ -1,6 +1,10 @@
-**3.6.4 - 12/15/25**
+**3.6.5 - 12/16/25**
 
   - Type-hinting: Fix mypy errors in framework/utilities.py
+
+**3.6.4 - 12/16/25**
+
+  - Add documentation for Component LookupTable configuration
   
 **3.6.3 - 11/20/25**
 
