@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 ===========================
 Framework Utility Functions
@@ -11,21 +10,21 @@ import functools
 from bdb import BdbQuit
 from collections.abc import Callable, Sequence
 from importlib import import_module
-from typing import Any, Literal, TypeVar
+from typing import Any, Literal
 
 import numpy as np
 from loguru import logger
 
 from vivarium.types import NumberLike, NumericArray, Timedelta
 
-TimeValue = TypeVar("T", bound=NumberLike)
 
-
-def from_yearly(value: TimeValue, time_step: Timedelta) -> TimeValue:
+def from_yearly(value: NumberLike, time_step: Timedelta) -> NumberLike:
+    """Rescale a yearly rate to the size of a time step."""
     return value * (time_step.total_seconds() / (60 * 60 * 24 * 365.0))
 
 
-def to_yearly(value: TimeValue, time_step: Timedelta) -> TimeValue:
+def to_yearly(value: NumberLike, time_step: Timedelta) -> NumberLike:
+    """Convert a time-step-scaled rate back to a yearly rate."""
     return value / (time_step.total_seconds() / (60 * 60 * 24 * 365.0))
 
 
@@ -56,15 +55,16 @@ def rate_to_probability(
             f"Rate conversion type {rate_conversion_type} is not implemented. "
             "Allowable types are 'linear' or 'exponential'."
         )
+    probability: NumericArray
     if rate_conversion_type == "linear":
         # NOTE: The default behavior for randomness streams is to use a rate that is already
         # scaled to the time step which is why the default time scaling factor is 1.0.
-        probability = np.array(rate * time_scaling_factor)
+        # Use asarray to handle both scalars and arrays
+        probability = np.asarray(rate) * time_scaling_factor
 
         # Clip to 1.0 if the probability is greater than 1.0.
-        exceeds_one = probability > 1.0
-        if exceeds_one.any():
-            probability[exceeds_one] = 1.0
+        if np.any(probability > 1.0):
+            probability = np.clip(probability, None, 1.0)
             logger.warning(
                 "The rate to probability conversion resulted in a probability greater than 1.0. "
                 "The probability has been clipped to 1.0 and indicates the rate is too high. "
@@ -73,9 +73,9 @@ def rate_to_probability(
         # encountered underflow from rate > 30k
         # for rates greater than 250, exp(-rate) evaluates to 1e-109
         # beware machine-specific floating point issues
-        rate = np.array(rate)
+        rate = np.asarray(rate)
         rate[rate > 250] = 250.0
-        probability: NumericArray = 1 - np.exp(-rate * time_scaling_factor)
+        probability = 1 - np.exp(-rate * time_scaling_factor)
 
     return probability
 
@@ -109,11 +109,13 @@ def probability_to_rate(
             f"Rate conversion type {rate_conversion_type} is not implemented. "
             "Allowable types are 'linear' or 'exponential'."
         )
+    rate: NumericArray
     if rate_conversion_type == "linear":
-        rate = np.array(probability / time_scaling_factor)
+        # Use asarray to handle both scalars and arrays
+        rate = np.asarray(probability) / time_scaling_factor
     else:
-        probability = np.array(probability)
-        rate: NumericArray = -np.log(1 - probability)
+        probability = np.asarray(probability)
+        rate = -np.log(1 - probability)
     return rate
 
 
