@@ -105,10 +105,17 @@ class Component(ABC):
         self._name: str = ""
         self._sub_components: Sequence["Component"] = []
         self._logger: loguru.Logger | None = None
+
+        def _raise_get_value_columns_error(_: Any) -> list[str]:
+            raise LifeCycleError(
+                f"get_value_columns for component '{self.name}' has not been initialized. "
+                "This is likely due to having called this prior to simulation setup."
+            )
+
         self.get_value_columns: Callable[
             [str | pd.DataFrame | dict[str, list[ScalarValue] | list[str]]], list[str]
-        ] | None = None
-        self.configuration: LayeredConfigTree | None = None
+        ] = _raise_get_value_columns_error
+        self.configuration: LayeredConfigTree = LayeredConfigTree()
         self._population_view: PopulationView | None = None
         self.lookup_tables: dict[str, LookupTable] = {}
 
@@ -520,7 +527,7 @@ class Component(ABC):
             if hasattr(self, parameter_name)
         }
 
-    def get_configuration(self, builder: Builder) -> LayeredConfigTree | None:
+    def get_configuration(self, builder: Builder) -> LayeredConfigTree:
         """Retrieves the configuration for this component from the builder.
 
         This method retrieves the configuration for this component from the
@@ -534,13 +541,12 @@ class Component(ABC):
 
         Returns
         -------
-            The configuration for this component, or `None` if the component has
-            no configuration.
+            The configuration for this component, or a default empty configuration.
         """
 
         if self.name in builder.configuration:
             return builder.configuration.get_tree(self.name)
-        return None
+        return LayeredConfigTree({"data_sources": {}})
 
     def build_all_lookup_tables(self, builder: Builder) -> None:
         """Builds all lookup tables for this component.
@@ -641,14 +647,7 @@ class Component(ABC):
         else:
             all_columns = list(data.keys())
         if value_columns is None:
-            # NOTE: self.get_value_columns cannot be None at this point of the call stack
-            value_column_getter = cast(
-                Callable[
-                    [str | pd.DataFrame | dict[str, list[ScalarValue] | list[str]]], list[str]
-                ],
-                self.get_value_columns,
-            )
-            value_columns = value_column_getter(data)
+            value_columns = self.get_value_columns(data)
 
         potential_parameter_columns = [
             str(col).removesuffix("_start")

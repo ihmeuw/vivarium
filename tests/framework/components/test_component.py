@@ -229,13 +229,9 @@ def test_component_configuration_gets_set() -> None:
 
     sim = InteractiveContext(components=[with_config, without_config], setup=False)
     sim.configuration.update(column_requirer_config)
-
-    assert without_config.configuration is None
-    assert with_config.configuration is None
-
     sim.setup()
 
-    assert without_config.configuration is None
+    assert without_config.configuration.to_dict() == {"data_sources": {}} 
     assert with_config.configuration is not None
     assert (
         with_config.configuration.to_dict()
