@@ -731,7 +731,6 @@ class Component(ABC):
     def _register_attribute_producers(self, builder: Builder) -> None:
         for column in self.columns_created:
             builder.value.register_attribute_producer(
-                # register_private_column_attribute_producer
                 column,
                 source=[column],
                 component=self,
