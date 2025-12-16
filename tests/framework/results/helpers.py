@@ -74,6 +74,7 @@ class Hogwarts(Component):
     def setup(self, builder: Builder) -> None:
         builder.value.register_attribute_producer(
             "grade",
+            # FIXME [MIC-6631]: Allow source to be AttributePipelines directly
             source=lambda index: self.population_view.get_attributes(index, "exam_score").map(
                 lambda x: x // 10
             ),
@@ -82,6 +83,7 @@ class Hogwarts(Component):
         )
         builder.value.register_attribute_producer(
             "double_power",
+            # FIXME [MIC-6631]: Allow source to be AttributePipelines directly
             source=lambda index: self.population_view.get_attributes(index, "power_level")
             * 2,
             component=self,

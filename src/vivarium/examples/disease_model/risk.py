@@ -56,7 +56,8 @@ class Risk(Component):
         )
         builder.value.register_attribute_producer(
             self.exposure_threshold_pipleine_name,
-            source = lambda index: self.population_view.get_attributes(index, self.base_proportion_exposed_pipeline_name),
+            # FIXME [MIC-6631]: Allow source to be AttributePipelines directly
+            source=lambda index: self.population_view.get_attributes(index, self.base_proportion_exposed_pipeline_name),
             component=self,
         )
 
