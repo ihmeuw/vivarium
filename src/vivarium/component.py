@@ -24,7 +24,7 @@ import pandas as pd
 from layered_config_tree import ConfigurationError, LayeredConfigTree
 
 from vivarium.framework.artifact import ArtifactException
-from vivarium.framework.lifecycle import lifecycle_states
+from vivarium.framework.lifecycle import LifeCycleError, lifecycle_states
 from vivarium.framework.population import PopulationError
 from vivarium.types import ScalarValue
 
@@ -104,7 +104,7 @@ class Component(ABC):
         self._repr: str = ""
         self._name: str = ""
         self._sub_components: Sequence["Component"] = []
-        self.logger: loguru.Logger | None = None
+        self._logger: loguru.Logger | None = None
         self.get_value_columns: Callable[
             [str | pd.DataFrame | dict[str, list[ScalarValue] | list[str]]], list[str]
         ] | None = None
@@ -184,6 +184,27 @@ class Component(ABC):
             self._name = ".".join([base_name] + args)
 
         return self._name
+
+    @property
+    def logger(self) -> loguru.Logger:
+        """Provides the logger for this component.
+
+        Returns
+        -------
+        Logger
+            The logger for this component.
+
+        Raises
+        ------
+        AttributeError
+            If the logger has not been initialized.
+        """
+        if self._logger is None:
+            raise LifeCycleError(
+                f"Logger for component '{self.name}' has not been initialized. "
+                "This is likely due to having called this prior to simulation setup."
+            )
+        return self._logger
 
     @property
     def population_view(self) -> PopulationView:
@@ -335,7 +356,7 @@ class Component(ABC):
         builder
             The builder object used to set up the component.
         """
-        self.logger = builder.logging.get_logger(self.name)
+        self._logger = builder.logging.get_logger(self.name)
         self.get_value_columns = builder.data.value_columns()
         self.configuration = self.get_configuration(builder)
         self.build_all_lookup_tables(builder)
