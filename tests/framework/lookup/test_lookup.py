@@ -159,7 +159,10 @@ def test_interpolated_tables__exact_values_at_input_points(
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     years = manager._build_table(
-        years_df, key_columns=["sex"], parameter_columns=["age", "year"], value_columns=()
+        years_df,
+        key_columns=["sex"],
+        parameter_columns=["age", "year"],
+        value_columns="value",
     )
 
     for year in input_years:
@@ -187,7 +190,10 @@ def test_interpolated_tables__only_categorical_parameters(
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     lookup_table = manager._build_table(
-        input_data, key_columns=["sex", "location"], parameter_columns=(), value_columns=()
+        input_data,
+        key_columns=["sex", "location"],
+        parameter_columns=(),
+        value_columns="some_value",
     )
 
     population = simulation.get_population(["sex", "location"])
@@ -217,9 +223,9 @@ def test_lookup_table_scalar_from_list(
 def test_lookup_table_scalar_from_single_value(base_config: LayeredConfigTree) -> None:
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
-    table = manager._build_table(
-        1, key_columns=(), parameter_columns=(), value_columns=["a"]
-    )(simulation.get_population_index())
+    table = manager._build_table(1, key_columns=(), parameter_columns=(), value_columns="a")(
+        simulation.get_population_index()
+    )
     assert isinstance(table, pd.Series)
     assert np.all(table == 1)
 
@@ -245,7 +251,7 @@ def test_lookup_table_interpolated_return_types(base_config: LayeredConfigTree) 
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     table = manager._build_table(
-        data, key_columns=["sex"], parameter_columns=["age", "year"], value_columns=()
+        data, key_columns=["sex"], parameter_columns=["age", "year"], value_columns="value"
     )(simulation.get_population_index())
     # make sure a single value column is returned as a series
     assert isinstance(table, pd.Series)
@@ -253,7 +259,10 @@ def test_lookup_table_interpolated_return_types(base_config: LayeredConfigTree) 
     # now add a second value column to make sure the result is a df
     data["value2"] = data.value
     table = manager._build_table(
-        data, key_columns=["sex"], parameter_columns=["age", "year"], value_columns=()
+        data,
+        key_columns=["sex"],
+        parameter_columns=["age", "year"],
+        value_columns=["value", "value2"],
     )(simulation.get_population_index())
 
     assert isinstance(table, pd.DataFrame)
@@ -268,6 +277,34 @@ def test_validate_parameters_no_data(data: LookupTableData) -> None:
 
 
 @pytest.mark.parametrize(
+    "data, val_cols, match",
+    [
+        ([1, 2, 3], "a", "value_columns must be a list or tuple of strings"),
+        (5, ["a", "b"], "value_columns must be a string"),
+    ],
+)
+def test_validate_parameters_value_columns_type_mismatch(
+    data: LookupTableData, val_cols: str | list[str], match: str
+) -> None:
+    with pytest.raises(ValueError, match=match):
+        validate_build_table_parameters(data, [], [], val_cols)
+
+
+@pytest.mark.parametrize(
+    "key_cols, param_cols, match",
+    [
+        (["a"], [], "key_columns are not allowed"),
+        ([], ["a"], "parameter_columns are not allowed"),
+    ],
+)
+def test_validate_parameters_scalar_data_with_columns(
+    key_cols: list[str], param_cols: list[str], match: str
+) -> None:
+    with pytest.raises(ValueError, match=match):
+        validate_build_table_parameters(5, key_cols, param_cols, ["t"])
+
+
+@pytest.mark.parametrize(
     "key_cols, param_cols, val_cols, match",
     [
         ((), (), (), "supply value_columns"),
@@ -278,7 +315,10 @@ def test_validate_parameters_no_data(data: LookupTableData) -> None:
     ],
 )
 def test_validate_parameters_error_scalar_data(
-    key_cols: Sequence[str], param_cols: Sequence[str], val_cols: Sequence[str], match: str
+    key_cols: Sequence[str],
+    param_cols: Sequence[str],
+    val_cols: list[str] | tuple[str, ...],
+    match: str,
 ) -> None:
     with pytest.raises(ValueError, match=match):
         validate_build_table_parameters([1, 2, 3], key_cols, param_cols, val_cols)
@@ -303,7 +343,7 @@ def test_validate_parameters_fail_other_data(data: LookupTableData) -> None:
     ],
 )
 def test_validate_parameters_error_dataframe(
-    key_cols: Sequence[str], param_cols: Sequence[str], val_cols: Sequence[str], match: str
+    key_cols: Sequence[str], param_cols: Sequence[str], val_cols: list[str], match: str
 ) -> None:
     data = pd.DataFrame({"a": [1, 2], "b_start": [0, 5], "b_end": [5, 10], "c": [100, 150]})
     with pytest.raises(ValueError, match=match):
@@ -328,29 +368,10 @@ def test_validate_parameters_pass_scalar_data() -> None:
     ],
 )
 def test_validate_parameters_pass_dataframe(
-    key_cols: Sequence[str], param_cols: Sequence[str], val_cols: Sequence[str]
+    key_cols: Sequence[str], param_cols: Sequence[str], val_cols: list[str]
 ) -> None:
     data = pd.DataFrame({"a": [1, 2], "b_start": [0, 5], "b_end": [5, 10], "c": [100, 150]})
     validate_build_table_parameters(data, key_cols, param_cols, val_cols)
-
-
-@pytest.mark.parametrize("validate", [True, False])
-def test_validate_flag(mocker: MockerFixture, validate: bool) -> None:
-    manager = LookupTableManager()
-    manager.setup(mocker.Mock())
-    manager._validate = validate
-    interface = LookupTableInterface(manager)
-
-    mock_validator = mocker.patch(
-        "vivarium.framework.lookup.manager.validate_build_table_parameters"
-    )
-
-    interface.build_table(0, value_columns=["a"])
-
-    if validate:
-        mock_validator.assert_called_once()
-    else:
-        mock_validator.assert_not_called()
 
 
 def test__build_table_from_dict(base_config: LayeredConfigTree) -> None:

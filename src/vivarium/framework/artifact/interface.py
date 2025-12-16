@@ -17,6 +17,7 @@ import pandas as pd
 
 from vivarium.framework.artifact.manager import ArtifactManager
 from vivarium.manager import Interface
+from vivarium.types import LookupTableData
 
 if TYPE_CHECKING:
     from vivarium.types import ScalarValue
@@ -62,7 +63,7 @@ class ArtifactInterface(Interface):
 
     def value_columns(
         self,
-    ) -> Callable[[str | pd.DataFrame | dict[str, list[ScalarValue] | list[str]]], list[str]]:
+    ) -> Callable[[LookupTableData], list[str] | str]:
         """Returns a function that returns the value columns for the given input.
 
         The function can be called with either a string or a pandas DataFrame.
