@@ -39,7 +39,7 @@ class Movement(Component):
     def setup(self, builder: Builder) -> None:
         self.config = builder.configuration
 
-        self.acceleration = builder.value.register_attribute_producer(
+        builder.value.register_attribute_producer(
             "acceleration", source=self.base_acceleration, component=self
         )
         self.randomness = builder.randomness.get_stream(self.name)
@@ -70,7 +70,7 @@ class Movement(Component):
 
     def on_time_step(self, event: Event) -> None:
         pop = self.population_view.get_private_columns(event.index)
-        acceleration = self.acceleration(event.index)
+        acceleration = self.population_view.get_attribute_frame(event.index, "acceleration")
 
         # Accelerate and limit velocity
         if not isinstance(acceleration, pd.DataFrame):
