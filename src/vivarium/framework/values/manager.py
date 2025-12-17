@@ -90,7 +90,7 @@ class ValuesManager(Manager):
         value_name: str,
         source: Callable[..., Any],
         # TODO [MIC-6433]: all calls should have a component
-        component: Component | None = None,
+        component: Component | Manager | None = None,
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
@@ -127,7 +127,7 @@ class ValuesManager(Manager):
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: AttributePostProcessor | None = None,
-    ) -> AttributePipeline:
+    ) -> None:
         """Marks a ``Callable`` as the producer of a named attribute.
 
         See Also
@@ -144,7 +144,6 @@ class ValuesManager(Manager):
             preferred_combiner=preferred_combiner,
             preferred_post_processor=preferred_post_processor,
         )
-        return pipeline
 
     def register_value_modifier(
         self,

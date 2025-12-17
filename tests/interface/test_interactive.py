@@ -10,6 +10,7 @@ from tests.helpers import (
     ColumnCreator,
     MultiLevelMultiColumnCreator,
     MultiLevelSingleColumnCreator,
+    SingleColumnCreator,
 )
 from vivarium import InteractiveContext
 from vivarium.framework.values import Pipeline
@@ -41,11 +42,10 @@ def test_run_for_duration() -> None:
 def test_get_population_squeezing() -> None:
 
     # Single-level, single-column -> series
-    # The time manager creates the 'simulant_step_size' column
-    sim = InteractiveContext(setup=True)
-    unsqueezed = sim.get_population(["simulant_step_size"])
-    squeezed = sim.get_population("simulant_step_size")
-    assert_squeezing_single_level_single_col(unsqueezed, squeezed, "simulant_step_size")
+    sim = InteractiveContext(components=[SingleColumnCreator()])
+    unsqueezed = sim.get_population(["test_column_1"])
+    squeezed = sim.get_population("test_column_1")
+    assert_squeezing_single_level_single_col(unsqueezed, squeezed, "test_column_1")
     default = sim.get_population()
     assert isinstance(default, pd.Series)
     assert isinstance(squeezed, pd.Series)
@@ -55,9 +55,7 @@ def test_get_population_squeezing() -> None:
     component = ColumnCreator()
     sim = InteractiveContext(components=[component], setup=True)
     # There's no way to request a squeezed dataframe here.
-    df = sim.get_population(
-        ["simulant_step_size", "test_column_1", "test_column_2", "test_column_3"]
-    )
+    df = sim.get_population(["test_column_1", "test_column_2", "test_column_3"])
     assert isinstance(df, pd.DataFrame)
     assert not isinstance(df.columns, pd.MultiIndex)
     default = sim.get_population()
@@ -65,7 +63,6 @@ def test_get_population_squeezing() -> None:
 
     # Multi-level, single outer, single inner -> series
     sim = InteractiveContext(components=[MultiLevelSingleColumnCreator()], setup=True)
-    sim._population._attribute_pipelines.pop("simulant_step_size")
     unsqueezed = sim.get_population(["some_attribute"])
     squeezed = sim.get_population("some_attribute")
     assert_squeezing_multi_level_single_outer_single_inner(
@@ -78,7 +75,7 @@ def test_get_population_squeezing() -> None:
 
     # Multi-level, single outer, multiple inner -> inner dataframe
     sim = InteractiveContext(components=[MultiLevelMultiColumnCreator()], setup=True)
-    sim._population._attribute_pipelines.pop("simulant_step_size")
+    sim._population._attribute_pipelines.pop("some_other_attribute")
     unsqueezed = sim.get_population(["some_attribute"])
     squeezed = sim.get_population("some_attribute")
     assert_squeezing_multi_level_single_outer_multi_inner(unsqueezed, squeezed)
@@ -89,7 +86,7 @@ def test_get_population_squeezing() -> None:
     # Multi-level, multiple outer -> full unsqueezed multi-level dataframe
     sim = InteractiveContext(components=[MultiLevelMultiColumnCreator()], setup=True)
     # There's no way to request a squeezed dataframe here.
-    df = sim.get_population(["simulant_step_size", "some_attribute"])
+    df = sim.get_population(["some_attribute", "some_other_attribute"])
     assert isinstance(df, pd.DataFrame)
     assert isinstance(df.columns, pd.MultiIndex)
     default = sim.get_population()

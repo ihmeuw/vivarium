@@ -23,7 +23,7 @@ class Neighbors(Component):
 
         self.neighbors_calculated = False
         self._neighbors = pd.Series()
-        self.neighbors = builder.value.register_attribute_producer(
+        builder.value.register_attribute_producer(
             "neighbors", source=self.get_neighbors, component=self, required_resources=["x", "y"]
         )
 
