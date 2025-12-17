@@ -63,7 +63,7 @@ class ArtifactInterface(Interface):
 
     def value_columns(
         self,
-    ) -> Callable[[LookupTableData], list[str] | str]:
+    ) -> Callable[[LookupTableData | str], list[str] | str]:
         """Returns a function that returns the value columns for the given input.
 
         The function can be called with either a string or a pandas DataFrame.
