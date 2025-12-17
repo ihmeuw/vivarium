@@ -200,12 +200,7 @@ def test_get_attributes_skip_post_processor_raises(
     full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
 
     with pytest.raises(
-        PopulationError, match="Cannot use a query when skip_post_processor is True."
-    ):
-        pv.get_attributes(full_idx, "pie", query="foo == 'bar'", skip_post_processor=True)
-
-    with pytest.raises(
-        PopulationError,
+        ValueError,
         match="Cannot request multiple attributes when skip_post_processor is True.",
     ):
         pv.get_attributes(full_idx, ["pie", "pi"], skip_post_processor=True)

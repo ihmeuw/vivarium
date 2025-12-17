@@ -346,9 +346,7 @@ def test_get_population_raises_missing_attributes(
 
 
 def test_get_population_raises_bad_string(pies_and_cubes_pop_mgr: PopulationManager) -> None:
-    with pytest.raises(
-        PopulationError, match="Attributes must be a list of strings or 'all'"
-    ):
+    with pytest.raises(TypeError, match="Attributes must be a list of strings or 'all'"):
         pies_and_cubes_pop_mgr.get_population("invalid_string")  # type: ignore[call-overload]
 
 

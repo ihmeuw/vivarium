@@ -542,6 +542,7 @@ class PopulationManager(Manager):
         index: pd.Index[int] | None = None,
         query: str = "",
         squeeze: Literal[True] = True,
+        skip_post_processor: Literal[False] = False,
     ) -> pd.Series[Any] | pd.DataFrame:
         ...
 
@@ -552,6 +553,7 @@ class PopulationManager(Manager):
         index: pd.Index[int] | None = None,
         query: str = "",
         squeeze: Literal[False] = ...,
+        skip_post_processor: Literal[False] = False,
     ) -> pd.DataFrame:
         ...
 
@@ -562,6 +564,7 @@ class PopulationManager(Manager):
         index: pd.Index[int] | None = None,
         query: str = "",
         squeeze: Literal[True, False] = True,
+        skip_post_processor: Literal[True] = ...,
     ) -> Any:
         ...
 
@@ -571,6 +574,7 @@ class PopulationManager(Manager):
         index: pd.Index[int] | None = None,
         query: str = "",
         squeeze: Literal[True, False] = True,
+        skip_post_processor: Literal[True, False] = False,
     ) -> Any:
         """Provides a copy of the population state table.
 
@@ -586,6 +590,16 @@ class PopulationManager(Manager):
         squeeze
             Whether or not to attempt to squeeze a single-column dataframe into a
             series and/or a multi-level column into a single-level column.
+        skip_post_processor
+            Whether we should invoke the post-processor on the combined
+            source and mutator output or return without post-processing.
+            This is useful when the post-processor acts as some sort of final
+            unit conversion (e.g. the rescale post processor).
+
+        Notes
+        -----
+        If ``skip_post_processor`` is True, the returned data will not be squeezed
+        regarless of the ``squeeze`` argument passed.
 
         Returns
         -------
@@ -593,17 +607,24 @@ class PopulationManager(Manager):
 
         Raises
         ------
+        TypeError
+            If ``attributes`` is not a list of strings or "all".
         PopulationError
-            If any of the requested attributes do not exist in the population table.
+            - If any of the requested attributes do not exist in the population table.
+            - If a required column for querying is missing from the population table.
+            - If the population has not yet been initialized.
+        ValueError
+            If multiple attributes are requested when ``skip_post_processor`` is True.
         """
 
         if self._private_columns is None:
             return pd.DataFrame()
 
         if isinstance(attributes, str) and attributes != "all":
-            raise PopulationError(
+            raise TypeError(
                 f"Attributes must be a list of strings or 'all'; got '{attributes}'."
             )
+
         if attributes == "all":
             requested_attributes = list(self._attribute_pipelines.keys())
         else:
@@ -644,14 +665,19 @@ class PopulationManager(Manager):
             missing_query_columns = query_columns.difference(set(self._attribute_pipelines))
             if missing_query_columns:
                 raise PopulationError(
-                    f"Query references attribute(s) {missing_query_columns} not in "
-                    "population table."
+                    f"Query references missing from population table: {missing_query_columns}."
                 )
             query_df = self._get_attributes(idx, list(query_columns))
             query_df = query_df.query(query)
             idx = query_df.index
 
-        df = self._get_attributes(idx, list(columns_to_get))
+        data = self._get_attributes(
+            idx,
+            requested_attributes if skip_post_processor else list(columns_to_get),
+            skip_post_processor,
+        )
+        if skip_post_processor:
+            return data
 
         # Add on any query columns that are actually requested to be returned
         requested_query_columns = (
@@ -659,37 +685,68 @@ class PopulationManager(Manager):
         )
         if requested_query_columns:
             requested_query_df = query_df[list(requested_query_columns)]
-            if isinstance(df.columns, pd.MultiIndex):
+            if isinstance(data.columns, pd.MultiIndex):
                 # Make the query df multi-index to prevent converting columns from
                 # multi-index to single index w/ tuples for column names
                 requested_query_df.columns = pd.MultiIndex.from_product(
                     [requested_query_df.columns, [""]]
                 )
-            df = pd.concat([df, requested_query_df], axis=1)
+            data = pd.concat([data, requested_query_df], axis=1)
 
         # Maintain column ordering
-        df = df[requested_attributes]
+        data = data[requested_attributes]
 
         if squeeze:
             if (
-                isinstance(df.columns, pd.MultiIndex)
-                and len(set(df.columns.get_level_values(0))) == 1
+                isinstance(data.columns, pd.MultiIndex)
+                and len(set(data.columns.get_level_values(0))) == 1
             ):
                 # If multi-index columns with a single outer level, drop the outer level
-                df = df.droplevel(0, axis=1)
-            if len(df.columns) == 1:
+                data = data.droplevel(0, axis=1)
+            if len(data.columns) == 1:
                 # If single column df, squeeze to series
-                df = df.squeeze(axis=1)
+                data = data.squeeze(axis=1)
 
-        return df
+        return data
 
     def get_tracked_query(self) -> str:
         return " and ".join(self.tracked_queries)
 
+    @overload
     def _get_attributes(
-        self, idx: pd.Index[int], requested_attributes: Sequence[str]
+        self,
+        idx: pd.Index[int],
+        requested_attributes: Sequence[str],
+        skip_post_processor: Literal[False] = ...,
     ) -> pd.DataFrame:
-        """Gets the popoulation for a given index and requested attributes."""
+        ...
+
+    @overload
+    def _get_attributes(
+        self,
+        idx: pd.Index[int],
+        requested_attributes: Sequence[str],
+        skip_post_processor: Literal[True] = ...,
+    ) -> Any:
+        ...
+
+    def _get_attributes(
+        self,
+        idx: pd.Index[int],
+        requested_attributes: Sequence[str],
+        skip_post_processor: Literal[True, False] = False,
+    ) -> Any:
+        """Gets the population for a given index and requested attributes."""
+
+        if skip_post_processor:
+            if len(requested_attributes) > 1:
+                raise ValueError(
+                    "Cannot request multiple attributes when skip_post_processor is True."
+                )
+            return self._attribute_pipelines[requested_attributes[0]](
+                idx, skip_post_processor=skip_post_processor
+            )
+
         attributes_list: list[pd.Series[Any] | pd.DataFrame] = []
 
         # batch simple attributes and directly leverage private column backing dataframe
