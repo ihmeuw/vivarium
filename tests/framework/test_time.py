@@ -25,8 +25,8 @@ def builder(mocker: pytest_mock.MockFixture) -> Any:
     builder = mocker.MagicMock()
     manager = ValuesManager()
     manager.setup(builder)
-    builder.value.register_attribute_producer = manager.register_attribute_producer
-    builder.value.register_attribute_modifier = manager.register_attribute_modifier
+    builder.value.register_value_producer = manager.register_value_producer
+    builder.value.register_value_modifier = manager.register_value_modifier
     return builder
 
 
@@ -41,9 +41,7 @@ def components() -> list[Component | Listener]:
 
 def validate_step_column_is_pipeline(sim: SimulationContext) -> None:
     """Ensure that the pipeline and column step sizes are aligned"""
-    step_pipeline = sim._values.get_attribute("simulant_step_size")(
-        sim.get_population_index()
-    )
+    step_pipeline = sim._values.get_value("simulant_step_size")(sim.get_population_index())
     assert sim._clock._individual_clocks is not None
     assert np.all(step_pipeline == sim._clock._individual_clocks["step_size"])
 
@@ -175,18 +173,21 @@ class StepModifierWithRatePipeline(StepModifier):
         modified_simulants: str = "all",
     ) -> None:
         super().__init__(name, step_modifier_even, step_modifier_odd, modified_simulants)
+        self.rate_pipeline = f"test_rate_{self.name}"
 
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
-        self.rate_pipeline = builder.value.register_attribute_producer(
-            f"test_rate_{self.name}",
+        builder.value.register_attribute_producer(
+            self.rate_pipeline,
             source=lambda idx: pd.Series(1.75, index=idx),
             preferred_post_processor=rescale_post_processor,
             component=self,
         )
 
     def on_time_step(self, event: Event) -> None:
-        self.ts_pipeline_value = self.rate_pipeline(event.index)
+        self.ts_pipeline_value = self.population_view.get_attributes(
+            event.index, self.rate_pipeline
+        )
 
 
 class StepModifierWithMovement(StepModifierWithRatePipeline):
