@@ -30,13 +30,13 @@ class TreatmentIntervention(Component):
         super().__init__()
         self.intervention = intervention
         self.affected_value = affected_value
-        self.effect_size_pipeline_name = f"{self.intervention}.effect_size"
+        self.effect_size_pipeline = f"{self.intervention}.effect_size"
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
         effect_size = builder.configuration[self.intervention].effect_size
         builder.value.register_attribute_producer(
-            self.effect_size_pipeline_name,
+            self.effect_size_pipeline,
             source=lambda index: pd.Series(effect_size, index=index),
             component=self,
         )
@@ -44,7 +44,7 @@ class TreatmentIntervention(Component):
             self.affected_value,
             modifier=self.intervention_effect,
             component=self,
-            required_resources=[self.effect_size_pipeline_name],
+            required_resources=[self.effect_size_pipeline],
         )
 
     ##################################
@@ -52,5 +52,5 @@ class TreatmentIntervention(Component):
     ##################################
 
     def intervention_effect(self, index: pd.Index, value: pd.Series) -> pd.Series:
-        effect_size = self.population_view.get_attributes(index, self.effect_size_pipeline_name)
+        effect_size = self.population_view.get_attributes(index, self.effect_size_pipeline)
         return value * (1 - effect_size)
