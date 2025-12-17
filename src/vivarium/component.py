@@ -113,7 +113,7 @@ class Component(ABC):
             )
 
         self.get_value_columns: Callable[
-            [str | pd.DataFrame | dict[str, list[ScalarValue] | list[str]]], list[str]
+            [LookupTableData | str], list[str] | str
         ] = _raise_get_value_columns_error
         self.configuration: LayeredConfigTree = LayeredConfigTree()
         self._population_view: PopulationView | None = None
