@@ -127,6 +127,7 @@ class ValuesManager(Manager):
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: AttributePostProcessor | None = None,
+        source_is_private_column: bool = False,
     ) -> None:
         """Marks a ``Callable`` as the producer of a named attribute.
 
@@ -143,6 +144,7 @@ class ValuesManager(Manager):
             required_resources=required_resources,
             preferred_combiner=preferred_combiner,
             preferred_post_processor=preferred_post_processor,
+            source_is_private_column=source_is_private_column,
         )
 
     def register_value_modifier(
@@ -296,7 +298,34 @@ class ValuesManager(Manager):
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | AttributePostProcessor | None = None,
+        source_is_private_column: bool = False,
     ) -> None:
+        if isinstance(source, (list, Resource)) and required_resources:
+            self.logger.warning(
+                f"Conflicting information for {pipeline.name}. Ignoring 'required_resources' "
+                f"since the `source` is of type {type(source)} and we can infer "
+                "the required resources directly."
+            )
+            required_resources = source
+        if source_is_private_column:
+            generic_error_msg = (
+                f"Invalid source for {pipeline.name}. When 'source_is_private_column' "
+                "is True, 'source' must be list containinig a single private column name."
+            )
+            error_msg = ""
+            if not isinstance(source, list):
+                error_msg = generic_error_msg + f"Got `source` type {type(source)} instead."
+            if isinstance(source, list) and len(source) != 1:
+                error_msg = generic_error_msg + f"Got {len(source)} names instead."
+            if error_msg:
+                raise ValueError(error_msg)
+
+        if isinstance(source, list) and not source_is_private_column:
+            # convert the list of attribute names to a callable
+            attributes = source
+            source = lambda index: self._population_mgr.get_population(
+                attributes=attributes, index=index
+            )
         pipeline.set_attributes(
             component,
             source,
