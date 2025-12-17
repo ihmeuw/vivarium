@@ -555,13 +555,23 @@ class PopulationManager(Manager):
     ) -> pd.DataFrame:
         ...
 
+    @overload
     def get_population(
         self,
         attributes: list[str] | tuple[str, ...] | Literal["all"],
         index: pd.Index[int] | None = None,
         query: str = "",
         squeeze: Literal[True, False] = True,
-    ) -> pd.Series[Any] | pd.DataFrame:
+    ) -> Any:
+        ...
+
+    def get_population(
+        self,
+        attributes: list[str] | tuple[str, ...] | Literal["all"],
+        index: pd.Index[int] | None = None,
+        query: str = "",
+        squeeze: Literal[True, False] = True,
+    ) -> Any:
         """Provides a copy of the population state table.
 
         Parameters

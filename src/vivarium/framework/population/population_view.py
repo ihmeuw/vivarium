@@ -91,6 +91,7 @@ class PopulationView:
         query: str = "",
         include_default_query: bool = True,
         exclude_untracked: bool = True,
+        skip_post_processor: bool = False,
     ) -> pd.Series[Any]:
         ...
 
@@ -102,7 +103,20 @@ class PopulationView:
         query: str = "",
         include_default_query: bool = True,
         exclude_untracked: bool = True,
+        skip_post_processor: bool = False,
     ) -> pd.DataFrame:
+        ...
+
+    @overload
+    def get_attributes(
+        self,
+        index: pd.Index[int],
+        attributes: str | list[str] | tuple[str, ...],
+        query: str = "",
+        include_default_query: bool = True,
+        exclude_untracked: bool = True,
+        skip_post_processor: bool = True,
+    ) -> Any:
         ...
 
     def get_attributes(
@@ -112,7 +126,8 @@ class PopulationView:
         query: str = "",
         include_default_query: bool = True,
         exclude_untracked: bool = True,
-    ) -> pd.DataFrame | pd.Series[Any]:
+        skip_post_processor: bool = False,
+    ) -> Any:
         """Get a specific subset of this ``PopulationView``.
 
         For the rows in ``index``, return the ``attributes`` (i.e. columns) from the
@@ -133,13 +148,33 @@ class PopulationView:
             Whether to combine this view's default query with the provided ``query``.
         exclude_untracked
             Whether to exclude untracked simulants.
+        skip_post_processor
+            Whether we should invoke the post-processor on the combined
+            source and mutator output or return without post-processing.
+            This is useful when the post-processor acts as some sort of final
+            unit conversion (e.g. the rescale post processor).
 
         Returns
         -------
-            The attribute(s) requested subset to the ``index`` and ``query``. Will return
-            a Series if a single column is requested or a Dataframe otherwise.
+            The attribute(s) requested subset to the ``index`` and ``query``.
+            If ``skip_post_processor`` is False, will return a Series if a single
+            column is requested or a Dataframe otherwise.
 
         """
+
+        if skip_post_processor:
+            # Short-circuit querying or handling private columns and directly call the pipeline
+            if query:
+                raise PopulationError("Cannot use a query when skip_post_processor is True.")
+            if not isinstance(attributes, str) and len(attributes) > 1:
+                raise PopulationError(
+                    "Cannot request multiple attributes when skip_post_processor is True."
+                )
+            attribute = attributes if isinstance(attributes, str) else attributes[0]
+            return self._manager._attribute_pipelines[attribute](
+                index, skip_post_processor=True
+            )
+
         squeeze: Literal[True] | Literal[False] = isinstance(attributes, str)
         attributes = [attributes] if isinstance(attributes, str) else list(attributes)
 

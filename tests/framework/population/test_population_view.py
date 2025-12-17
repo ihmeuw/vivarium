@@ -180,6 +180,37 @@ def test_get_attributes_raises(pies_and_cubes_pop_mgr: PopulationManager) -> Non
         pv.get_attributes(index, "foo")
 
 
+@pytest.mark.parametrize("attribute", ["pie", ["pie"]])
+def test_get_attributes_skip_post_processor(
+    attribute: str | list[str], pies_and_cubes_pop_mgr: PopulationManager
+) -> None:
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+
+    key = attribute if isinstance(attribute, str) else attribute[0]
+    mocked_pie_pipeline = pies_and_cubes_pop_mgr._attribute_pipelines[key]
+    pv.get_attributes(full_idx, attribute, skip_post_processor=True)
+    mocked_pie_pipeline.assert_called_once_with(full_idx, skip_post_processor=True)  # type: ignore[attr-defined]
+
+
+def test_get_attributes_skip_post_processor_raises(
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+
+    with pytest.raises(
+        PopulationError, match="Cannot use a query when skip_post_processor is True."
+    ):
+        pv.get_attributes(full_idx, "pie", query="foo == 'bar'", skip_post_processor=True)
+
+    with pytest.raises(
+        PopulationError,
+        match="Cannot request multiple attributes when skip_post_processor is True.",
+    ):
+        pv.get_attributes(full_idx, ["pie", "pi"], skip_post_processor=True)
+
+
 @pytest.mark.parametrize("include_default_query", [True, False])
 @pytest.mark.parametrize("register_tracked_query", [True, False])
 @pytest.mark.parametrize("exclude_untracked", [True, False])
