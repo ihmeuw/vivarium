@@ -47,7 +47,7 @@ class ValuesInterface(Interface):
         value_name: str,
         source: Callable[..., Any],
         # TODO [MIC-6433]: all calls should have a component
-        component: Component | None = None,
+        component: Component | Manager | None = None,
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
@@ -116,7 +116,7 @@ class ValuesInterface(Interface):
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: AttributePostProcessor | None = None,
-    ) -> AttributePipeline:
+    ) -> None:
         """Marks a ``Callable`` as the producer of a named attribute.
 
         Parameters
@@ -144,12 +144,8 @@ class ValuesInterface(Interface):
             and ``union_post_processor`` which are importable from
             ``vivarium.framework.values``. Client code may define additional
             strategies as necessary.
-
-        Returns
-        -------
-            A callable reference to the named dynamic attribute pipeline.
         """
-        return self._manager.register_attribute_producer(
+        self._manager.register_attribute_producer(
             value_name,
             source,
             component,
@@ -164,7 +160,7 @@ class ValuesInterface(Interface):
         source: Callable[[pd.Index[int]], Any] | list[str],
         component: Component,
         required_resources: Sequence[str | Resource] = (),
-    ) -> AttributePipeline:
+    ) -> None:
         """Marks a ``Callable`` as the producer of a named rate.
 
         This is a convenience wrapper around ``register_attribute_producer`` that
@@ -189,12 +185,8 @@ class ValuesInterface(Interface):
             A list of resources that need to be properly sourced before the
             pipeline source is called. This is a list of strings, pipelines,
             or randomness streams.
-
-        Returns
-        -------
-            A callable reference to the named dynamic rate pipeline.
         """
-        return self.register_attribute_producer(
+        self.register_attribute_producer(
             rate_name,
             source,
             component,

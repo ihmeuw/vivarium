@@ -164,7 +164,6 @@ def test_get_population_different_attribute_types() -> None:
     # We have columnar multi-index due to AttributePipelines that return dataframes
     assert isinstance(pop.columns, pd.MultiIndex)
     assert set(pop.columns) == {
-        ("simulant_step_size", ""),
         ("test_column_1", ""),
         ("test_column_2", ""),
         ("test_column_3", ""),
@@ -239,9 +238,9 @@ class TestGetPopulationSqueezing:
         )
 
     def test_all_columns_single_level_single_column_returns_series(self) -> None:
-        sim = InteractiveContext(setup=True)
+        sim = InteractiveContext(components=[SingleColumnCreator()])
         self.assert_squeezing(
-            sim, "all", assert_squeezing_single_level_single_col, "simulant_step_size"
+            sim, "all", assert_squeezing_single_level_single_col, "test_column_1"
         )
 
     def test_all_columns_single_level_multi_column_returns_dataframe(self) -> None:
@@ -250,7 +249,6 @@ class TestGetPopulationSqueezing:
 
     def test_all_columns_multi_level_single_outer_single_inner_returns_series(self) -> None:
         sim = InteractiveContext(components=[MultiLevelSingleColumnCreator()])
-        sim._population._attribute_pipelines.pop("simulant_step_size")
         self.assert_squeezing(
             sim,
             "all",
@@ -262,7 +260,7 @@ class TestGetPopulationSqueezing:
         self,
     ) -> None:
         sim = InteractiveContext(components=[MultiLevelMultiColumnCreator()])
-        sim._population._attribute_pipelines.pop("simulant_step_size")
+        sim._population._attribute_pipelines.pop("some_other_attribute")
         self.assert_squeezing(
             sim, "all", assert_squeezing_multi_level_single_outer_multi_inner
         )
