@@ -23,7 +23,7 @@ class LookupTableDescriptor(Generic[T]):
     """Descriptor for type-safe lookup table access.
 
     This descriptor allows Components to declare lookup tables as class attributes
-    with proper type annotations, enabling IDE autocomplete and mypy type checking.
+    with proper type annotations.
 
     Examples
     --------
@@ -94,18 +94,6 @@ class LookupTableDescriptor(Generic[T]):
                 f"Make sure the component has been set up."
             )
         return obj._lookup_tables[self.name]  # type: ignore[return-value]
-
-    def __set__(self, obj: Component, value: LookupTable[T]) -> None:
-        """Store the lookup table in the instance.
-
-        Parameters
-        ----------
-        obj
-            The component instance.
-        value
-            The LookupTable to store.
-        """
-        obj._lookup_tables[self.name] = value  # type: ignore[index]
 
 
 def series_lookup(value_column: str | None = None) -> LookupTableDescriptor[pd.Series[Any]]:

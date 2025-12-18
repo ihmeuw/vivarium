@@ -15,6 +15,5 @@ from vivarium._version import __version__
 from vivarium.component import Component
 from vivarium.framework.artifact import Artifact
 from vivarium.framework.configuration import build_model_specification
-from vivarium.framework.lookup import dataframe_lookup, series_lookup
 from vivarium.framework.results.observer import Observer
 from vivarium.interface import InteractiveContext

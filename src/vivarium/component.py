@@ -616,27 +616,15 @@ class Component(ABC):
 
         # Validate configuration matches descriptors
         if descriptor_names != configured_sources:
-            missing = descriptor_names - configured_sources
-            extra = configured_sources - descriptor_names
-
-            if missing and not configured_sources:
-                # Descriptors exist but no config at all
+            if descriptor_names and not configured_sources:
                 raise ConfigurationError(
                     f"Component has lookup table descriptors {descriptor_names} "
                     f"but is missing data_sources configuration."
                 )
-            elif missing:
-                # Some descriptors missing from config
+            elif missing := descriptor_names - configured_sources:
                 raise ConfigurationError(
                     f"Missing data sources in configuration for lookup tables: {missing}"
                 )
-            # TODO we'd like to warn here, but it won't work if sub-components share the config
-            # elif extra:
-            #     # Config has extra sources not in descriptors
-            #     self.logger.warning(
-            #         f"Data sources in configuration have no corresponding lookup table "
-            #         f"descriptors and will be ignored: {extra}"
-            #     )
 
         # Build all lookup tables
         for table_name, descriptor in descriptors.items():

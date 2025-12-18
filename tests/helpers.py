@@ -277,6 +277,25 @@ class SingleLookupCreator(ColumnCreator):
 
 
 class OrderedColumnsLookupCreator(Component):
+    VALUE_COLUMNS = ["one", "two", "three", "four", "five", "six", "seven"]
+    ORDERED_COLUMNS = pd.DataFrame(
+        [[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14]],
+        columns=VALUE_COLUMNS,
+    )
+    ordered_columns_categorical = dataframe_lookup(value_columns=VALUE_COLUMNS)
+    ordered_columns_interpolated = dataframe_lookup(value_columns=VALUE_COLUMNS)
+
+    @property
+    def configuration_defaults(self) -> dict[str, Any]:
+        return {
+            self.name: {
+                "data_sources": {
+                    "ordered_columns_categorical": self._get_ordered_columns_categorical(),
+                    "ordered_columns_interpolated": self._get_ordered_columns_interpolated(),
+                },
+            }
+        }
+
     @property
     def columns_created(self) -> list[str]:
         return ["foo", "bar"]
@@ -291,28 +310,17 @@ class OrderedColumnsLookupCreator(Component):
         )
         self.population_view.update(initialization_data)
 
-    def build_all_lookup_tables(self, builder: "Builder") -> None:
-        value_columns = ["one", "two", "three", "four", "five", "six", "seven"]
-        ordered_columns = pd.DataFrame(
-            [[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14]],
-            columns=value_columns,
-        )
-        ordered_columns_categorical = ordered_columns.copy()
-        ordered_columns_categorical["foo"] = ["key1", "key2"]
-        ordered_columns_interpolated = ordered_columns.copy()
-        ordered_columns_interpolated["foo"] = ["key1", "key1"]
-        ordered_columns_interpolated["bar_start"] = [10, 20]
-        ordered_columns_interpolated["bar_end"] = [20, 30]
-        self._lookup_tables["ordered_columns_categorical"] = self.build_lookup_table(
-            builder,
-            ordered_columns_categorical,
-            value_columns,
-        )
-        self._lookup_tables["ordered_columns_interpolated"] = self.build_lookup_table(
-            builder,
-            ordered_columns_interpolated,
-            value_columns,
-        )
+    def _get_ordered_columns_categorical(self) -> pd.DataFrame:
+        df = self.ORDERED_COLUMNS.copy()
+        df["foo"] = ["key1", "key2"]
+        return df
+
+    def _get_ordered_columns_interpolated(self) -> pd.DataFrame:
+        df = self.ORDERED_COLUMNS.copy()
+        df["foo"] = ["key1", "key1"]
+        df["bar_start"] = [10, 20]
+        df["bar_end"] = [20, 30]
+        return df
 
 
 class ColumnCreatorAndRequirer(Component):
