@@ -28,7 +28,7 @@ class Mortality(Component):
         providing override values when constructing an interactive simulation.
         """
         return {self.name: {"data_sources": {"mortality_rate": 0.01}}}
-
+    
     @property
     def columns_created(self) -> list[str]:
         return ["alive"]
@@ -51,8 +51,8 @@ class Mortality(Component):
             Access to simulation tools and subsystems.
         """
         self.randomness = builder.randomness.get_stream("mortality")
-        self.mortality_rate_pipeline = builder.value.register_rate_producer(
-            "mortality_rate", source=self.mortality_rate, component=self
+        self.mortality_rate = builder.value.register_rate_producer(
+            "mortality_rate", source=self.lookup_tables["mortality_rate"], component=self
         )
 
     ########################
@@ -85,7 +85,7 @@ class Mortality(Component):
             representing the simulants affected by the event and timing
             information.
         """
-        effective_rate = self.mortality_rate(event.index)
+        effective_rate = self.population_view.get_attributes(event.index, "mortality_rate")
         effective_probability = 1 - np.exp(-effective_rate)
         draw = self.randomness.get_draw(event.index)
         affected_simulants = draw < effective_probability

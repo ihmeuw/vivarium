@@ -36,7 +36,6 @@ def test_disease_model(fuzzy_checker: FuzzyChecker, disease_model_spec: Path) ->
         "age",
         "sex",
         "entrance_time",
-        "simulant_step_size",
         "mortality_rate",
         "lower_respiratory_infections",
         "lower_respiratory_infections.cause_specific_mortality_rate",

@@ -180,6 +180,11 @@ class MultiLevelMultiColumnCreator(Component):
             ),
             component=self,
         )
+        builder.value.register_attribute_producer(
+            "some_other_attribute",
+            lambda idx: pd.DataFrame({"column_3": [i % 3 for i in idx]}, index=idx),
+            component=self,
+        )
 
 
 class AttributePipelineCreator(Component):

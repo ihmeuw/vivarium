@@ -293,6 +293,17 @@ class Component(ABC):
         return self.CONFIGURATION_DEFAULTS
 
     @property
+    def lookup_table_value_columns(self) -> dict[str, str | list[str]]:
+        """Provides a mapping of lookup table names to their value columns.
+
+        Returns
+        -------
+        A dictionary mapping lookup table names to their value columns.
+        The value columns can be a string or a list of strings.
+        """
+        return {}
+
+    @property
     def columns_created(self) -> list[str]:
         """Provides names of columns created by the component.
 
@@ -581,6 +592,7 @@ class Component(ABC):
         return LayeredConfigTree({"data_sources": {}})
 
     def build_all_lookup_tables(self, builder: Builder) -> None:
+        # TODO update this docstring to match method behavior
         """Builds all lookup tables for this component.
 
         This method builds lookup tables for this component based on:
