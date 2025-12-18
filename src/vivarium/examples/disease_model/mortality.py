@@ -52,7 +52,7 @@ class Mortality(Component):
         self.config = builder.configuration.mortality
         self.randomness = builder.randomness.get_stream("mortality")
 
-        self.mortality_rate = builder.value.register_rate_producer(
+        builder.value.register_rate_producer(
             "mortality_rate", source=self.base_mortality_rate, component=self
         )
 
@@ -86,7 +86,7 @@ class Mortality(Component):
             representing the simulants affected by the event and timing
             information.
         """
-        effective_rate = self.mortality_rate(event.index)
+        effective_rate = self.population_view.get_attributes(event.index, "mortality_rate")
         effective_probability = 1 - np.exp(-effective_rate)
         draw = self.randomness.get_draw(event.index)
         affected_simulants = draw < effective_probability

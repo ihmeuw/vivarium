@@ -107,13 +107,14 @@ def test_replace_combiner(manager: ValuesManager) -> None:
 def test_joint_value(manager: ValuesManager, mocker: MockFixture) -> None:
     # This is the normal configuration for PAF and disability weight type values
 
-    value = manager.register_attribute_producer(
+    manager.register_attribute_producer(
         "test",
         source=lambda idx: [pd.Series(0.0, index=idx)],
         preferred_combiner=list_combiner,
         preferred_post_processor=union_post_processor,
         component=mocker.Mock(),
     )
+    value = manager.get_attribute_pipelines()["test"]
     assert np.all(value(INDEX) == 0)
 
     manager.register_attribute_modifier(
@@ -152,12 +153,13 @@ def test_rescale_post_processor_static(
     manager_with_step_size: ValuesManager, mocker: MockFixture
 ) -> None:
 
-    pipeline = manager_with_step_size.register_attribute_producer(
+    manager_with_step_size.register_attribute_producer(
         "test",
         source=lambda idx: pd.Series(0.75, index=idx),
         component=mocker.Mock(),
         preferred_post_processor=rescale_post_processor,
     )
+    pipeline = manager_with_step_size.get_attribute_pipelines()["test"]
     assert np.all(pipeline(INDEX) == from_yearly(0.75, pd.Timedelta(days=6)))
 
 
@@ -166,12 +168,13 @@ def test_rescale_post_processor_variable(
     manager_with_step_size: ValuesManager, mocker: MockFixture
 ) -> None:
 
-    pipeline = manager_with_step_size.register_attribute_producer(
+    manager_with_step_size.register_attribute_producer(
         "test",
         source=lambda idx: pd.Series(0.5, index=idx),
         component=mocker.Mock(),
         preferred_post_processor=rescale_post_processor,
     )
+    pipeline = manager_with_step_size.get_attribute_pipelines()["test"]
     value = pipeline(INDEX)
     evens = value[INDEX % 2 == 0]
     odds = value[INDEX % 2 == 1]
@@ -220,12 +223,13 @@ def test_rescale_post_processor_types(
     mocker: MockFixture,
 ) -> None:
 
-    pipeline = manager_with_step_size.register_attribute_producer(
+    manager_with_step_size.register_attribute_producer(
         "test",
         source=source,
         component=mocker.Mock(),
         preferred_post_processor=rescale_post_processor,
     )
+    pipeline = manager_with_step_size.get_attribute_pipelines()["test"]
     if expected is not None:
         attributes = pipeline(INDEX)
         if isinstance(expected, pd.DataFrame):
@@ -498,9 +502,8 @@ def test_attribute_pipeline_register_producer(
         )
 
     # Register the attribute producer
-    pipeline = manager.register_attribute_producer(
-        "age", source=age_source, component=mocker.Mock()
-    )
+    manager.register_attribute_producer("age", source=age_source, component=mocker.Mock())
+    pipeline = manager.get_attribute_pipelines()["age"]
 
     # Verify it returns an AttributePipeline
     assert isinstance(pipeline, AttributePipeline)
@@ -548,12 +551,13 @@ def test_attribute_pipeline_usage(
         df["col2"] += 2.0
         return df
 
-    pipeline = manager.register_attribute_producer(
+    manager.register_attribute_producer(
         "test_attribute",
         source=attribute_source,
         component=mocker.Mock(),
         preferred_post_processor=attribute_post_processor if use_postprocessor else None,
     )
+    pipeline = manager.get_attribute_pipelines()["test_attribute"]
     manager.register_attribute_modifier(
         "test_attribute", modifier=attribute_modifier1, component=mocker.Mock()
     )
@@ -581,9 +585,10 @@ def test_attribute_pipeline_raises_returns_different_index(
             {"col1": [1.0] * len(index), "col2": [2.0] * len(index)}, index=index
         )
 
-    pipeline = manager.register_attribute_producer(
+    manager.register_attribute_producer(
         "test_attribute", source=bad_attribute_source, component=mocker.Mock()
     )
+    pipeline = manager.get_attribute_pipelines()["test_attribute"]
 
     with pytest.raises(
         DynamicValueError,
@@ -603,19 +608,23 @@ def test_attribute_pipeline_return_types(manager: ValuesManager, mocker: MockFix
     def str_attribute_source(index: pd.Index[int]) -> str:
         return "foo"
 
-    series_pipeline = manager.register_attribute_producer(
+    manager.register_attribute_producer(
         "test_series_attribute", source=series_attribute_source, component=mocker.Mock()
     )
-    dataframe_pipeline = manager.register_attribute_producer(
+    series_pipeline = manager.get_attribute_pipelines()["test_series_attribute"]
+    manager.register_attribute_producer(
         "test_dataframe_attribute", source=dataframe_attribute_source, component=mocker.Mock()
     )
-
-    series_pipeline_with_str_source = manager.register_attribute_producer(
+    dataframe_pipeline = manager.get_attribute_pipelines()["test_dataframe_attribute"]
+    manager.register_attribute_producer(
         "test_series_attribute_with_str_source",
         source=str_attribute_source,
         component=mocker.Mock(),
         preferred_post_processor=lambda idx, val, mgr: pd.Series(val, index=idx),
     )
+    series_pipeline_with_str_source = manager.get_attribute_pipelines()[
+        "test_series_attribute_with_str_source"
+    ]
 
     assert isinstance(series_pipeline(INDEX), pd.Series)
     assert series_pipeline(INDEX).index.equals(INDEX)
@@ -627,9 +636,10 @@ def test_attribute_pipeline_return_types(manager: ValuesManager, mocker: MockFix
     assert series_pipeline_with_str_source(INDEX).index.equals(INDEX)
 
     # Register the string source w/ no post-processors, i.e. calling will return str
-    bad_pipeline = manager.register_attribute_producer(
+    manager.register_attribute_producer(
         "test_bad_attribute", source=str_attribute_source, component=mocker.Mock()
     )
+    bad_pipeline = manager.get_attribute_pipelines()["test_bad_attribute"]
 
     with pytest.raises(
         DynamicValueError,
@@ -659,12 +669,13 @@ def test_attribute_pipeline_with_post_processor(
         result["value"] = result["value"] * 2
         return result
 
-    pipeline = manager.register_attribute_producer(
+    manager.register_attribute_producer(
         "test_attribute",
         source=attribute_source,
         preferred_post_processor=double_post_processor,
         component=mocker.Mock(),
     )
+    pipeline = manager.get_attribute_pipelines()["test_attribute"]
 
     result = pipeline(INDEX, skip_post_processor=skip_post_processor)
 
@@ -732,7 +743,7 @@ def test_source_callable(
             return ["attr1", "attr2"]
 
         def setup(self, builder: Builder) -> None:
-            self.attribute_pipeline = builder.value.register_attribute_producer(
+            builder.value.register_attribute_producer(
                 "some-attribute",
                 source=source,  # type: ignore [arg-type] # we are testing invalid types too
                 component=self,
@@ -788,12 +799,13 @@ def test_attribute_pipeline_is_simple(
 ) -> None:
     """Test the is_simple property of AttributePipeline."""
     component = mocker.Mock()
-    pipeline = manager.register_attribute_producer(
+    manager.register_attribute_producer(
         "test_attribute",
         source=source,
         component=component,
         preferred_post_processor=post_processor,
     )
+    pipeline = manager.get_attribute_pipelines()["test_attribute"]
     if modifier:
         if post_processor is None and isinstance(source, list):
             assert pipeline.is_simple

@@ -100,22 +100,22 @@ class SimulationClock(Manager):
         self._standard_step_size: ClockStepSize | None = None
         self._clock_step_size: ClockStepSize | None = None
         self._individual_clocks: pd.DataFrame | None = None
-        self._pipeline_name = "simulant_step_size"
+        self._simulant_step_size_pipeline = "simulant_step_size"
         # TODO: Delegate this functionality a better place when appropriate
         self._simulants_to_snooze = pd.Index([])
 
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
-        self._step_size_pipeline = builder.value.register_attribute_producer(
-            self._pipeline_name,
+        self._step_size_pipeline = builder.value.register_value_producer(
+            self._simulant_step_size_pipeline,
             source=lambda idx: [pd.Series(np.nan, index=idx).astype("timedelta64[ns]")],
             component=self,
             preferred_combiner=list_combiner,
             preferred_post_processor=self.step_size_post_processor,
         )
         self.register_step_modifier = partial(
-            builder.value.register_attribute_modifier,
-            self._pipeline_name,
+            builder.value.register_value_modifier,
+            self._simulant_step_size_pipeline,
             component=self,
         )
         builder.population.initializes_simulants(self)
@@ -191,9 +191,7 @@ class SimulationClock(Manager):
         if self._individual_clocks is not None and not index.empty:
             self._simulants_to_snooze = self._simulants_to_snooze.union(index)
 
-    def step_size_post_processor(
-        self, index: pd.Index[int], value: Any, manager: ValuesManager
-    ) -> Any:
+    def step_size_post_processor(self, value: Any, manager: ValuesManager) -> Any:
         """Computes the largest feasible step size for each simulant.
 
         This is the smallest component-modified step size (rounded down to increments
