@@ -13,7 +13,7 @@ to the underlying simulation :term:`state table`. It has two primary responsibil
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, overload
+from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
 import pandas as pd
 
@@ -91,6 +91,7 @@ class PopulationView:
         query: str = "",
         include_default_query: bool = True,
         exclude_untracked: bool = True,
+        skip_post_processor: bool = False,
     ) -> pd.Series[Any]:
         ...
 
@@ -102,7 +103,20 @@ class PopulationView:
         query: str = "",
         include_default_query: bool = True,
         exclude_untracked: bool = True,
+        skip_post_processor: bool = False,
     ) -> pd.DataFrame:
+        ...
+
+    @overload
+    def get_attributes(
+        self,
+        index: pd.Index[int],
+        attributes: str | list[str] | tuple[str, ...],
+        query: str = "",
+        include_default_query: bool = True,
+        exclude_untracked: bool = True,
+        skip_post_processor: bool = True,
+    ) -> Any:
         ...
 
     def get_attributes(
@@ -112,7 +126,8 @@ class PopulationView:
         query: str = "",
         include_default_query: bool = True,
         exclude_untracked: bool = True,
-    ) -> pd.DataFrame | pd.Series[Any]:
+        skip_post_processor: Literal[True, False] = False,
+    ) -> Any:
         """Get a specific subset of this ``PopulationView``.
 
         For the rows in ``index``, return the ``attributes`` (i.e. columns) from the
@@ -133,14 +148,29 @@ class PopulationView:
             Whether to combine this view's default query with the provided ``query``.
         exclude_untracked
             Whether to exclude untracked simulants.
+        skip_post_processor
+            Whether we should invoke the post-processor on the combined
+            source and mutator output or return without post-processing.
+            This is useful when the post-processor acts as some sort of final
+            unit conversion (e.g. the rescale post processor).
+
+        Notes
+        -----
+        If ``skip_post_processor`` is True, the returned data will not be squeezed.
 
         Returns
         -------
-            The attribute(s) requested subset to the ``index`` and ``query``. Will return
-            a Series if a single column is requested or a Dataframe otherwise.
+            The attribute(s) requested subset to the ``index`` and ``query``.
+            If ``skip_post_processor`` is False, will return a Series if a single
+            column is requested or a Dataframe otherwise.
 
+        Raises
+        ------
+        ValueError
+            If the result is expected to be a Series but is not.
         """
-        squeeze: Literal[True] | Literal[False] = isinstance(attributes, str)
+
+        squeeze: Literal[True, False] = isinstance(attributes, str)
         attributes = [attributes] if isinstance(attributes, str) else list(attributes)
 
         population = self._manager.get_population(
@@ -148,8 +178,9 @@ class PopulationView:
             index=index,
             query=self._build_query(query, include_default_query, exclude_untracked),
             squeeze=squeeze,
+            skip_post_processor=skip_post_processor,
         )
-        if squeeze and not isinstance(population, pd.Series):
+        if not skip_post_processor and squeeze and not isinstance(population, pd.Series):
             raise ValueError(
                 "Expected a pandas Series to be returned when requesting a single "
                 "attribute, but got a DataFrame instead. If you expect this attribute "
