@@ -202,7 +202,7 @@ class ValuesManager(Manager):
     def register_attribute_modifier(
         self,
         value_name: str,
-        modifier: Callable[..., Any],
+        modifier: Callable[..., Any] | str,
         component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
@@ -214,8 +214,10 @@ class ValuesManager(Manager):
             The name of the dynamic attribute pipeline to be modified.
         modifier :
             A function that modifies the source of the dynamic attribute pipeline
-            when called. If the pipeline has a ``replace_combiner``, the
-            modifier must have the same arguments as the pipeline source
+            when called; if a string is passed, it refers to the name of an
+            :class:`~vivarium.framework.values.pipeline.AttributePipeline`.
+            If the pipeline has a ``replace_combiner``, the
+            modifier should accept the same arguments as the pipeline source
             with an additional last positional argument for the results of the
             previous stage in the pipeline. For the ``list_combiner`` strategy,
             the pipeline modifiers should have the same signature as the pipeline
@@ -227,6 +229,7 @@ class ValuesManager(Manager):
             pipeline modifier is called. This is a list of strings, pipelines,
             or randomness streams.
         """
+        modifier = self.get_attribute(modifier) if isinstance(modifier, str) else modifier
         self._configure_modifier(
             self.get_attribute(value_name),
             modifier,

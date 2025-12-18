@@ -216,9 +216,9 @@ class ValuesInterface(Interface):
 
         Parameters
         ----------
-        value_name :
+        value_name
             The name of the dynamic value pipeline to be modified.
-        modifier :
+        modifier
             A function that modifies the source of the dynamic value pipeline
             when called. If the pipeline has a ``replace_combiner``, the
             modifier must have the same arguments as the pipeline source
@@ -256,7 +256,7 @@ class ValuesInterface(Interface):
     def register_attribute_modifier(
         self,
         value_name: str,
-        modifier: Callable[..., Any],
+        modifier: Callable[..., Any] | str,
         component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
@@ -264,11 +264,13 @@ class ValuesInterface(Interface):
 
         Parameters
         ----------
-        value_name :
+        value_name
             The name of the dynamic attribute pipeline to be modified.
-        modifier :
+        modifier
             A function that modifies the source of the dynamic attribute pipeline
-            when called. If the pipeline has a ``replace_combiner``, the
+            when called; if a string is passed, it refers to the name of an
+            :class:`~vivarium.framework.values.pipeline.AttributePipeline`.
+            If the pipeline has a ``replace_combiner``, the
             modifier should accept the same arguments as the pipeline source
             with an additional last positional argument for the results of the
             previous stage in the pipeline. For the ``list_combiner`` strategy,
