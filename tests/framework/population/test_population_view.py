@@ -206,6 +206,51 @@ def test_get_attributes_skip_post_processor_raises(
         pv.get_attributes(full_idx, ["pie", "pi"], skip_post_processor=True)
 
 
+@pytest.mark.parametrize(
+    "attribute, query", [("pie", "pie == 'apple'"), ("pie", "cube > 1000")]
+)
+def test_get_attributes_skip_post_processor_with_query(
+    attribute: str,
+    query: str,
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    """Test that the index is reduced when a query is passed with skip_post_processor=True."""
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+
+    # Set up the mocked pipelines to return actual data from the private columns
+    # so that the query can be executed
+    def mock_pie_pipeline(idx: pd.Index[int], skip_post_processor: bool) -> pd.Series[Any]:
+        private_col_df = pies_and_cubes_pop_mgr._private_columns
+        assert isinstance(private_col_df, pd.DataFrame)
+        return private_col_df.loc[idx, "pie"]
+
+    def mock_cube_pipeline(idx: pd.Index[int], skip_post_processor: bool) -> pd.Series[Any]:
+        private_col_df = pies_and_cubes_pop_mgr._private_columns
+        assert isinstance(private_col_df, pd.DataFrame)
+        return private_col_df.loc[idx, "cube"]
+
+    pies_and_cubes_pop_mgr._attribute_pipelines["pie"].side_effect = mock_pie_pipeline  # type: ignore[attr-defined]
+    pies_and_cubes_pop_mgr._attribute_pipelines["cube"].side_effect = mock_cube_pipeline  # type: ignore[attr-defined]
+
+    # Execute get_attributes with a query and skip_post_processor=True
+    # Query should filter the data
+    result = pv.get_attributes(full_idx, attribute, query=query, skip_post_processor=True)
+
+    # The expected index should be the filtered index based on the query
+    expected_index = pd.concat([PIE_DF, CUBE_DF], axis=1).query(query).index
+    assert len(expected_index) < len(full_idx)
+
+    # Assert that the returned data has the reduced index
+    assert result.index.equals(expected_index)
+
+    # Verify that the pipeline was called with the reduced index, not the full index
+    pies_and_cubes_pop_mgr._attribute_pipelines[attribute].assert_called_once()  # type: ignore[attr-defined]
+    call_args = pies_and_cubes_pop_mgr._attribute_pipelines[attribute].call_args  # type: ignore[attr-defined]
+    assert call_args[0][0].equals(expected_index)
+    assert call_args[1] == {"skip_post_processor": True}
+
+
 @pytest.mark.parametrize("include_default_query", [True, False])
 @pytest.mark.parametrize("register_tracked_query", [True, False])
 @pytest.mark.parametrize("exclude_untracked", [True, False])
