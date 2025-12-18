@@ -5,6 +5,7 @@ from typing import Any
 import pandas as pd
 from layered_config_tree import ConfigurationError
 
+from vivarium.framework.lookup import series_lookup, dataframe_lookup
 from vivarium import Component, Observer
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
@@ -240,6 +241,14 @@ class AttributePipelineCreator(Component):
 
 
 class LookupCreator(ColumnCreator):
+    favorite_team = series_lookup()
+    favorite_scalar = series_lookup(value_column="scalar")
+    favorite_color = series_lookup()
+    favorite_number = series_lookup()
+    favorite_list = dataframe_lookup(value_columns=["column_1", "column_2"])
+    baking_time = series_lookup()
+    cooling_time = series_lookup()
+
     CONFIGURATION_DEFAULTS = {
         "lookup_creator": {
             "data_sources": {
@@ -247,26 +256,12 @@ class LookupCreator(ColumnCreator):
                 "favorite_scalar": 0.4,
                 "favorite_color": "simulants.favorite_color",
                 "favorite_number": "simulants.favorite_number",
+                "favorite_list": [9, 4],
                 "baking_time": "self::load_baking_time",
                 "cooling_time": "tests.framework.components.test_component::load_cooling_time",
             },
-            "alternate_data_sources": {
-                "favorite_list": [9, 4],
-            },
         }
     }
-
-    def build_all_lookup_tables(self, builder: "Builder") -> None:
-        super().build_all_lookup_tables(builder)
-        if not self.configuration:
-            raise ConfigurationError(
-                "Configuration not set. This may break tests using the lookup table creator helper."
-            )
-        self.lookup_tables["favorite_list"] = self.build_lookup_table(
-            builder,
-            self.configuration["alternate_data_sources"]["favorite_list"],
-            ["column_1", "column_2"],
-        )
 
     @staticmethod
     def load_baking_time(_builder: Builder) -> float:
@@ -274,7 +269,7 @@ class LookupCreator(ColumnCreator):
 
 
 class SingleLookupCreator(ColumnCreator):
-    pass
+    favorite_color = series_lookup()
 
 
 class OrderedColumnsLookupCreator(Component):
@@ -304,12 +299,12 @@ class OrderedColumnsLookupCreator(Component):
         ordered_columns_interpolated["foo"] = ["key1", "key1"]
         ordered_columns_interpolated["bar_start"] = [10, 20]
         ordered_columns_interpolated["bar_end"] = [20, 30]
-        self.lookup_tables["ordered_columns_categorical"] = self.build_lookup_table(
+        self._lookup_tables["ordered_columns_categorical"] = self.build_lookup_table(
             builder,
             ordered_columns_categorical,
             value_columns,
         )
-        self.lookup_tables["ordered_columns_interpolated"] = self.build_lookup_table(
+        self._lookup_tables["ordered_columns_interpolated"] = self.build_lookup_table(
             builder,
             ordered_columns_interpolated,
             value_columns,

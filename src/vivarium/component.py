@@ -114,12 +114,14 @@ class Component(ABC):
         # Avoid circular import
         from vivarium.framework.lookup.descriptor import LookupTableDescriptor
 
-        # Find all LookupTableDescriptor instances in the class
-        cls._lookup_table_descriptors = {
-            name: descriptor
-            for name, descriptor in cls.__dict__.items()
-            if isinstance(descriptor, LookupTableDescriptor)
-        }
+        # Find all LookupTableDescriptor instances in the class and its bases
+        # Walk the MRO to collect descriptors, with subclass definitions taking precedence
+        cls._lookup_table_descriptors = {}
+        for base in cls.__mro__:
+            for name, descriptor in base.__dict__.items():
+                if isinstance(descriptor, LookupTableDescriptor):
+                    if name not in cls._lookup_table_descriptors:
+                        cls._lookup_table_descriptors[name] = descriptor
 
     def __init__(self) -> None:
         """Initializes a new instance of the Component class.
@@ -145,7 +147,7 @@ class Component(ABC):
         ] = _raise_get_value_columns_error
         self.configuration: LayeredConfigTree = LayeredConfigTree()
         self._population_view: PopulationView | None = None
-        self.lookup_tables: dict[
+        self._lookup_tables: dict[
             str, LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]
         ] = {}
 
@@ -616,17 +618,18 @@ class Component(ABC):
                 raise ConfigurationError(
                     f"Missing data sources in configuration for lookup tables: {missing}"
                 )
-            elif extra:
-                # Config has extra sources not in descriptors
-                self.logger.warning(
-                    f"Data sources in configuration have no corresponding lookup table "
-                    f"descriptors and will be ignored: {extra}"
-                )
+            # TODO we'd like to warn here, but it won't work if sub-components share the config
+            # elif extra:
+            #     # Config has extra sources not in descriptors
+            #     self.logger.warning(
+            #         f"Data sources in configuration have no corresponding lookup table "
+            #         f"descriptors and will be ignored: {extra}"
+            #     )
 
         # Build all lookup tables
         for table_name, descriptor in descriptors.items():
             try:
-                self.lookup_tables[table_name] = self.build_lookup_table(
+                self._lookup_tables[table_name] = self.build_lookup_table(
                     builder=builder,
                     data_source=self.configuration.data_sources[table_name],
                     value_columns=descriptor.value_columns,
@@ -700,6 +703,8 @@ class Component(ABC):
         value_columns: list[str] | tuple[str, ...] | str,
         data: pd.DataFrame | dict[str, list[ScalarValue] | list[str]],
     ) -> tuple[list[str], list[str]]:
+        if isinstance(value_columns, str):
+            value_columns = [value_columns]
         if isinstance(data, pd.DataFrame):
             all_columns = list(data.columns)
         else:

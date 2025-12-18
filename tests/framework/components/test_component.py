@@ -292,31 +292,37 @@ def test_component_lookup_table_configuration(hdf_file_path: Path) -> None:
         "baking_time",
         "cooling_time",
     }
-    assert expected_tables == set(component.lookup_tables.keys())
+    assert expected_tables == set(component._lookup_tables.keys())
+
     # check that tables have correct type
-    assert isinstance(component.lookup_tables["favorite_team"], CategoricalTable)
-    assert isinstance(component.lookup_tables["favorite_color"], InterpolatedTable)
-    assert isinstance(component.lookup_tables["favorite_scalar"], ScalarTable)
-    assert isinstance(component.lookup_tables["favorite_list"], ScalarTable)
-    assert isinstance(component.lookup_tables["baking_time"], ScalarTable)
-    assert isinstance(component.lookup_tables["cooling_time"], CategoricalTable)
+    assert isinstance(component.favorite_team, CategoricalTable)
+    assert isinstance(component.favorite_color, InterpolatedTable)
+    assert isinstance(component.favorite_number, InterpolatedTable)
+    assert isinstance(component.favorite_scalar, ScalarTable)
+    assert isinstance(component.favorite_list, ScalarTable)
+    assert isinstance(component.baking_time, ScalarTable)
+    assert isinstance(component.cooling_time, CategoricalTable)
 
     # Check for correct columns in lookup tables
-    assert component.lookup_tables["favorite_team"].key_columns == ["test_column_1"]
-    assert not component.lookup_tables["favorite_team"].parameter_columns
-    assert component.lookup_tables["favorite_color"].key_columns == ["test_column_2"]
-    assert component.lookup_tables["favorite_color"].parameter_columns == ["test_column_3"]
-    assert component.lookup_tables["favorite_list"].value_columns == ["column_1", "column_2"]
-    assert component.lookup_tables["cooling_time"].key_columns == ["test_column_1"]
-    assert not component.lookup_tables["cooling_time"].parameter_columns
+    assert component.favorite_team.key_columns == ["test_column_1"]
+    assert not component.favorite_team.parameter_columns
+    assert component.favorite_color.key_columns == ["test_column_2"]
+    assert component.favorite_color.parameter_columns == ["test_column_3"]
+    assert component.favorite_number.key_columns == []
+    assert component.favorite_number.parameter_columns == ["test_column_3"]
+    assert component.favorite_scalar.value_columns == ["scalar"]
+    assert component.favorite_list.value_columns == ["column_1", "column_2"]
+    assert component.cooling_time.key_columns == ["test_column_1"]
+    assert not component.cooling_time.parameter_columns
 
     # Check for correct data in lookup tables
-    assert component.lookup_tables["favorite_team"].data.equals(favorite_team.reset_index())
-    assert component.lookup_tables["favorite_color"].data.equals(favorite_color.reset_index())
-    assert component.lookup_tables["favorite_scalar"].data == 0.4
-    assert component.lookup_tables["favorite_list"].data == [9, 4]
-    assert component.lookup_tables["baking_time"].data == 0.5
-    assert component.lookup_tables["cooling_time"].data.equals(cooling_time.reset_index())
+    assert component.favorite_team.data.equals(favorite_team.reset_index())
+    assert component.favorite_color.data.equals(favorite_color.reset_index())
+    assert component.favorite_number.data.equals(favorite_number.reset_index())
+    assert component.favorite_scalar.data == 0.4
+    assert component.favorite_list.data == [9, 4]
+    assert component.baking_time.data == 0.5
+    assert component.cooling_time.data.equals(cooling_time.reset_index())
 
 
 @pytest.mark.parametrize(
@@ -382,7 +388,7 @@ def test_value_column_order_is_maintained(table: str) -> None:
     """
     component = OrderedColumnsLookupCreator()
     sim = InteractiveContext(components=[component])
-    lookup_table = component.lookup_tables[table]
+    lookup_table = component._lookup_tables[table]
     assert isinstance(
         lookup_table, CategoricalTable if "categorical" in table else InterpolatedTable
     )

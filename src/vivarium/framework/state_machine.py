@@ -205,6 +205,8 @@ class State(Component):
         return {
             f"{self.name}": {
                 "data_sources": {
+                    # TODO: need to resolve a name collision between lookup table
+                    #  and existing attribute
                     "initialization_weights": self.initialization_weights,
                 },
             },
@@ -594,7 +596,7 @@ class Machine(Component):
         state_ids = [s.state_id for s in self.states]
         state_weights = pd.concat(
             [
-                state.lookup_tables["initialization_weights"](pop_data.index)
+                state._lookup_tables["initialization_weights"](pop_data.index)
                 for state in self.states
             ],
             axis=1,

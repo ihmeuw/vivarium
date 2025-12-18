@@ -86,12 +86,12 @@ class LookupTableDescriptor(Generic[T]):
         if obj is None:
             return self  # Accessed from class
         # Accessed from instance - return the actual lookup table
-        if self.name not in obj.lookup_tables:
+        if self.name not in obj._lookup_tables:
             raise AttributeError(
                 f"Lookup table '{self.name}' has not been initialized. "
                 f"Make sure the component has been set up."
             )
-        return obj.lookup_tables[self.name]  # type: ignore[return-value]
+        return obj._lookup_tables[self.name]  # type: ignore[return-value]
 
     def __set__(self, obj: Component, value: LookupTable[T]) -> None:
         """Store the lookup table in the instance.
@@ -103,13 +103,18 @@ class LookupTableDescriptor(Generic[T]):
         value
             The LookupTable to store.
         """
-        obj.lookup_tables[self.name] = value  # type: ignore[index]
+        obj._lookup_tables[self.name] = value  # type: ignore[index]
 
 
-def series_lookup() -> LookupTableDescriptor[pd.Series[Any]]:
+def series_lookup(value_column: str | None = None) -> LookupTableDescriptor[pd.Series[Any]]:
     """Create a lookup table descriptor for a single-column table.
 
     The value_columns will be determined from the component's configuration.
+
+    Parameters
+    ----------
+    value_column
+        The name of the column that will be returned by this lookup table.
 
     Returns
     -------
@@ -121,7 +126,7 @@ def series_lookup() -> LookupTableDescriptor[pd.Series[Any]]:
     >>> class MyComponent(Component):
     ...     mortality_rate = series_lookup()
     """
-    return LookupTableDescriptor[pd.Series[Any]](value_columns=None)
+    return LookupTableDescriptor(value_columns=value_column)
 
 
 def dataframe_lookup(
@@ -144,4 +149,4 @@ def dataframe_lookup(
     >>> class MyComponent(Component):
     ...     population = dataframe_lookup(["age", "sex", "location"])
     """
-    return LookupTableDescriptor[pd.DataFrame](value_columns=value_columns)
+    return LookupTableDescriptor(value_columns=value_columns)
