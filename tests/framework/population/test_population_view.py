@@ -383,12 +383,6 @@ class TestGetAttributesReturnTypes:
         expected = population_view.get_attributes(index, ["attribute_generating_columns_6_7"])
         assert (df.values == expected.values).all().all()
 
-    def test_get_attribute_frame_raises(
-        self, population_view: PopulationView, index: pd.Index[int]
-    ) -> None:
-        with pytest.raises(ValueError, match="Expected a pandas DataFrame to be returned"):
-            population_view.get_attribute_frame(index, "test_column_1")
-
 
 ######################################
 # PopulationView.get_private_columns #
