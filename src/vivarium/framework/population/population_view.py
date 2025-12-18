@@ -185,24 +185,31 @@ class PopulationView:
         exclude_untracked
             Whether to exclude untracked simulants.
 
+        Notes
+        -----
+        The difference between this method and ``get_attributes`` is subtle. This
+        method always returns a dataframe even if the requested attribute contains
+        only a single column. Further, in the event the value has a multi-index
+        column, it will be squeezed to only the inner columns.
+
+        Calling ``get_attributes`` to request a list of a single attribute seems
+        identical to this, but in that case the underlying value
+        would not be squeezed at all, i.e. a dataframe with multi-index columns
+        would also return the outer column.
+
         Returns
         -------
             The attribute requested subset to the ``index`` and ``query``. Will always
             return a DataFrame.
 
         """
-        population = self._manager.get_population(
-            index=index,
-            attributes=[attribute],
-            query=self._build_query(query, include_default_query, exclude_untracked),
-        )
-        if not isinstance(population, pd.DataFrame):
-            raise ValueError(
-                "Expected a pandas DataFrame to be returned when requesting an "
-                "attribute frame, but got a Series instead. If you expect this "
-                "attribute to be a Series, you should call `get_attributes()` instead."
+        return pd.DataFrame(
+            self._manager.get_population(
+                index=index,
+                attributes=[attribute],
+                query=self._build_query(query, include_default_query, exclude_untracked),
             )
-        return population
+        )
 
     @overload
     def get_private_columns(
