@@ -599,7 +599,7 @@ class PopulationManager(Manager):
         Notes
         -----
         If ``skip_post_processor`` is True, the returned data will not be squeezed
-        regarless of the ``squeeze`` argument passed.
+        regardless of the ``squeeze`` argument passed.
 
         Returns
         -------
@@ -739,9 +739,10 @@ class PopulationManager(Manager):
         """Gets the population for a given index and requested attributes."""
 
         if skip_post_processor:
-            if len(requested_attributes) > 1:
+            if len(requested_attributes) != 1:
                 raise ValueError(
-                    "Cannot request multiple attributes when skip_post_processor is True."
+                    "When skip_post_processor is True, a single attribute must "
+                    f"be requested. You requested {requested_attributes}."
                 )
             return self._attribute_pipelines[requested_attributes[0]](
                 idx, skip_post_processor=skip_post_processor

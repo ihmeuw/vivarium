@@ -201,7 +201,7 @@ def test_get_attributes_skip_post_processor_raises(
 
     with pytest.raises(
         ValueError,
-        match="Cannot request multiple attributes when skip_post_processor is True.",
+        match="When skip_post_processor is True, a single attribute must be requested.",
     ):
         pv.get_attributes(full_idx, ["pie", "pi"], skip_post_processor=True)
 
