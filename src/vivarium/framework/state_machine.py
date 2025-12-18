@@ -17,6 +17,8 @@ import numpy as np
 import pandas as pd
 
 from vivarium import Component
+from vivarium.framework.lookup import series_lookup
+from vivarium.framework.lookup.table import ScalarTable
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
@@ -196,6 +198,8 @@ class State(Component):
 
     """
 
+    initialization_weights = series_lookup()
+
     ##############
     # Properties #
     ##############
@@ -205,9 +209,7 @@ class State(Component):
         return {
             f"{self.name}": {
                 "data_sources": {
-                    # TODO: need to resolve a name collision between lookup table
-                    #  and existing attribute
-                    "initialization_weights": self.initialization_weights,
+                    "initialization_weights": self._initialization_weights,
                 },
             },
         }
@@ -231,7 +233,7 @@ class State(Component):
         self.transition_set = TransitionSet(
             self.state_id, allow_self_transition=allow_self_transition
         )
-        self.initialization_weights = initialization_weights
+        self._initialization_weights = initialization_weights
         self._model: str | None = None
         self._sub_components = [self.transition_set]
 
@@ -242,8 +244,8 @@ class State(Component):
     def has_initialization_weights(self) -> bool:
         """Determines if state has explicitly defined initialization weights."""
         return (
-            not isinstance(self.initialization_weights, (float, int))
-            or self.initialization_weights != 0.0
+            not isinstance(self.initialization_weights, ScalarTable)
+            or self.initialization_weights.data != 0.0
         )
 
     def set_model(self, model_name: str) -> None:
@@ -557,12 +559,10 @@ class Machine(Component):
         super().__init__()
         self.states: list[State] = []
         self.state_column = state_column
+        self._initial_state = initial_state
+
         if states:
             self.add_states(states)
-
-        states_with_initialization_weights = [
-            state for state in self.states if state.has_initialization_weights()
-        ]
 
         if initial_state is not None:
             if initial_state not in self.states:
@@ -570,13 +570,23 @@ class Machine(Component):
                     f"Initial state '{initial_state}' must be one of the"
                     f" states: {self.states}."
                 )
-            if states_with_initialization_weights:
-                raise ValueError(
-                    "Cannot specify both an initial state and provide"
-                    " initialization weights to states."
-                )
 
-            initial_state.initialization_weights = 1.0
+            initial_state._initialization_weights = 1.0
+
+    def setup(self, builder: Builder) -> None:
+        self.randomness = builder.randomness.get_stream(self.name)
+
+    def on_post_setup(self, event: Event) -> None:
+        states_with_initialization_weights = [
+            state for state in self.states if state.has_initialization_weights()
+        ]
+        if self._initial_state is not None and states_with_initialization_weights != [
+            self._initial_state
+        ]:
+            raise ValueError(
+                "Cannot specify both an initial state and provide initialization"
+                " weights to states."
+            )
 
         # TODO: [MIC-5403] remove this on_initialize_simulants check once
         #  VPH's DiseaseModel has a compatible initialization strategy
@@ -589,16 +599,10 @@ class Machine(Component):
                 " initialization weights to states."
             )
 
-    def setup(self, builder: Builder) -> None:
-        self.randomness = builder.randomness.get_stream(self.name)
-
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         state_ids = [s.state_id for s in self.states]
         state_weights = pd.concat(
-            [
-                state._lookup_tables["initialization_weights"](pop_data.index)
-                for state in self.states
-            ],
+            [state.initialization_weights(pop_data.index) for state in self.states],
             axis=1,
         ).to_numpy()
 

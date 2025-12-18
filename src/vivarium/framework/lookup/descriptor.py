@@ -27,9 +27,11 @@ class LookupTableDescriptor(Generic[T]):
 
     Examples
     --------
-    >>> class MyComponent(Component):
-    ...     mortality_rate: LookupTable[pd.Series[Any]] = series_lookup()
-    ...     population_data: LookupTable[pd.DataFrame] = dataframe_lookup(["age", "sex"])
+    .. code-block:: python
+
+        class MyComponent(Component):
+            mortality_rate: LookupTable[pd.Series[Any]] = series_lookup()
+            population_data: LookupTable[pd.DataFrame] = dataframe_lookup(["age", "sex"])
     """
 
     def __init__(self, value_columns: str | list[str] | None = None):
