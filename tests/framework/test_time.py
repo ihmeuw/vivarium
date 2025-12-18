@@ -173,12 +173,12 @@ class StepModifierWithRatePipeline(StepModifier):
         modified_simulants: str = "all",
     ) -> None:
         super().__init__(name, step_modifier_even, step_modifier_odd, modified_simulants)
-        self.rate_pipeline_name = f"test_rate_{self.name}"
+        self.rate_pipeline = f"test_rate_{self.name}"
 
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
         builder.value.register_attribute_producer(
-            self.rate_pipeline_name,
+            self.rate_pipeline,
             source=lambda idx: pd.Series(1.75, index=idx),
             preferred_post_processor=rescale_post_processor,
             component=self,
@@ -186,7 +186,7 @@ class StepModifierWithRatePipeline(StepModifier):
 
     def on_time_step(self, event: Event) -> None:
         self.ts_pipeline_value = self.population_view.get_attributes(
-            event.index, self.rate_pipeline_name
+            event.index, self.rate_pipeline
         )
 
 

@@ -24,7 +24,7 @@ import pandas as pd
 from layered_config_tree import ConfigurationError, LayeredConfigTree
 
 from vivarium.framework.artifact import ArtifactException
-from vivarium.framework.lifecycle import lifecycle_states
+from vivarium.framework.lifecycle import LifeCycleError, lifecycle_states
 from vivarium.framework.population import PopulationError
 from vivarium.types import ScalarValue
 
@@ -104,11 +104,18 @@ class Component(ABC):
         self._repr: str = ""
         self._name: str = ""
         self._sub_components: Sequence["Component"] = []
-        self.logger: loguru.Logger | None = None
+        self._logger: loguru.Logger | None = None
+
+        def _raise_get_value_columns_error(_: Any) -> list[str]:
+            raise LifeCycleError(
+                f"get_value_columns for component '{self.name}' has not been initialized. "
+                "This is likely due to having called this prior to simulation setup."
+            )
+
         self.get_value_columns: Callable[
             [str | pd.DataFrame | dict[str, list[ScalarValue] | list[str]]], list[str]
-        ] | None = None
-        self.configuration: LayeredConfigTree | None = None
+        ] = _raise_get_value_columns_error
+        self.configuration: LayeredConfigTree = LayeredConfigTree()
         self._population_view: PopulationView | None = None
         self.lookup_tables: dict[str, LookupTable] = {}
 
@@ -184,6 +191,27 @@ class Component(ABC):
             self._name = ".".join([base_name] + args)
 
         return self._name
+
+    @property
+    def logger(self) -> loguru.Logger:
+        """Provides the logger for this component.
+
+        Returns
+        -------
+        Logger
+            The logger for this component.
+
+        Raises
+        ------
+        AttributeError
+            If the logger has not been initialized.
+        """
+        if self._logger is None:
+            raise LifeCycleError(
+                f"Logger for component '{self.name}' has not been initialized. "
+                "This is likely due to having called this prior to simulation setup."
+            )
+        return self._logger
 
     @property
     def population_view(self) -> PopulationView:
@@ -335,7 +363,7 @@ class Component(ABC):
         builder
             The builder object used to set up the component.
         """
-        self.logger = builder.logging.get_logger(self.name)
+        self._logger = builder.logging.get_logger(self.name)
         self.get_value_columns = builder.data.value_columns()
         self.configuration = self.get_configuration(builder)
         self.build_all_lookup_tables(builder)
@@ -499,7 +527,7 @@ class Component(ABC):
             if hasattr(self, parameter_name)
         }
 
-    def get_configuration(self, builder: Builder) -> LayeredConfigTree | None:
+    def get_configuration(self, builder: Builder) -> LayeredConfigTree:
         """Retrieves the configuration for this component from the builder.
 
         This method retrieves the configuration for this component from the
@@ -513,13 +541,12 @@ class Component(ABC):
 
         Returns
         -------
-            The configuration for this component, or `None` if the component has
-            no configuration.
+            The configuration for this component, or a default empty configuration.
         """
 
         if self.name in builder.configuration:
             return builder.configuration.get_tree(self.name)
-        return None
+        return LayeredConfigTree({"data_sources": {}})
 
     def build_all_lookup_tables(self, builder: Builder) -> None:
         """Builds all lookup tables for this component.
@@ -620,14 +647,7 @@ class Component(ABC):
         else:
             all_columns = list(data.keys())
         if value_columns is None:
-            # NOTE: self.get_value_columns cannot be None at this point of the call stack
-            value_column_getter = cast(
-                Callable[
-                    [str | pd.DataFrame | dict[str, list[ScalarValue] | list[str]]], list[str]
-                ],
-                self.get_value_columns,
-            )
-            value_columns = value_column_getter(data)
+            value_columns = self.get_value_columns(data)
 
         potential_parameter_columns = [
             str(col).removesuffix("_start")
