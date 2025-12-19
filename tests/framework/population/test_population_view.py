@@ -78,12 +78,7 @@ def population_update_new_cols(
 @pytest.fixture(
     params=[
         None,
-        "pi < 1000",
-        "pie != 'pumpkin'",
-        "pi > 1000 and (pie == 'apple' or pie == 'sweet_potato')",
-        # We can also filter by public columns
-        "1000 < cube < 10000",
-        "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato') and 500 < cube < 1000",
+        "pie != 'pecan' and pi > 1000 and cube > 100000",
     ]
 )
 def query(request: pytest.FixtureRequest) -> str | None:
@@ -94,14 +89,17 @@ def query(request: pytest.FixtureRequest) -> str | None:
 @pytest.fixture(
     params=[
         None,
-        "pi > 10",
-        "pie == 'chocolate'",
-        "cube > 20000",
-        "pi < 10000 and pie != 'apple' and cube < 40000",
+        "pie != 'chocolate' and pi > 100",
     ]
 )
 def pop_view_default_query(request: pytest.FixtureRequest) -> str | None:
     assert isinstance(request.param, (str, type(None)))
+    return request.param
+
+
+@pytest.fixture(params=["pie != 'apple'"])
+def tracked_query(request: pytest.FixtureRequest) -> str:
+    assert isinstance(request.param, str)
     return request.param
 
 
@@ -192,12 +190,13 @@ def test_get_attributes_combined_query(
     update_index: pd.Index[int],
     pop_view_default_query: str | None,
     query: str | None,
+    tracked_query: str,
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
     """Test that queries provided to the pop view and via get_attributes are combined correctly."""
 
     if register_tracked_query:
-        pies_and_cubes_pop_mgr.register_tracked_query("cube < 1000")
+        pies_and_cubes_pop_mgr.register_tracked_query(tracked_query)
     pv_kwargs, kwargs = _resolve_kwargs(
         include_default_query, exclude_untracked, pop_view_default_query, query
     )
@@ -218,6 +217,10 @@ def test_get_attributes_combined_query(
     assert isinstance(pop, pd.DataFrame)
 
     expected_pop = _get_expected(update_index, combined_query)
+    if expected_pop.empty and not update_index.empty:
+        raise RuntimeError("Bad test setup: expected population is empty.")
+    if not update_index.empty and combined_query and expected_pop.index.equals(update_index):
+        raise RuntimeError("Bad test setup: no filtering occurred.")
     assert pop.equals(expected_pop)
 
 
@@ -330,10 +333,11 @@ def test_get_private_columns(
     update_index: pd.Index[int],
     pop_view_default_query: str | None,
     query: str | None,
+    tracked_query: str,
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
     if register_tracked_query:
-        pies_and_cubes_pop_mgr.register_tracked_query("cube < 1000")
+        pies_and_cubes_pop_mgr.register_tracked_query(tracked_query)
     pv_kwargs, kwargs = _resolve_kwargs(
         include_default_query, exclude_untracked, pop_view_default_query, query
     )
@@ -356,6 +360,10 @@ def test_get_private_columns(
         expected_pop.drop("cube", axis=1, inplace=True)
     if private_columns:
         expected_pop = expected_pop[private_columns]
+    if expected_pop.empty and not update_index.empty:
+        raise RuntimeError("Bad test setup: expected population is empty.")
+    if not update_index.empty and combined_query and expected_pop.index.equals(update_index):
+        raise RuntimeError("Bad test setup: no filtering occurred.")
     assert pop.equals(expected_pop)
 
 
@@ -447,10 +455,11 @@ def test_get_filtered_index(
     update_index: pd.Index[int],
     pop_view_default_query: str | None,
     query: str | None,
+    tracked_query: str,
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
     if register_tracked_query:
-        pies_and_cubes_pop_mgr.register_tracked_query("cube < 1000")
+        pies_and_cubes_pop_mgr.register_tracked_query(tracked_query)
     pv_kwargs, kwargs = _resolve_kwargs(
         include_default_query, exclude_untracked, pop_view_default_query, query
     )
@@ -465,6 +474,10 @@ def test_get_filtered_index(
         query,
     )
     expected_pop = _get_expected(update_index, combined_query)
+    if expected_pop.empty and not update_index.empty:
+        raise RuntimeError("Bad test setup: expected population is empty.")
+    if not update_index.empty and combined_query and expected_pop.index.equals(update_index):
+        raise RuntimeError("Bad test setup: no filtering occurred.")
     assert pop_idx.equals(expected_pop.index)
 
 

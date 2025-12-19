@@ -73,6 +73,7 @@ class ResourceManager(Manager):
 
     def setup(self, builder: Builder) -> None:
         self.logger = builder.logging.get_logger(self.name)
+        self.get_attribute = builder.value.get_attribute
 
     def add_resources(
         self,
@@ -88,19 +89,17 @@ class ResourceManager(Manager):
         component
             The component or manager adding the resources.
         resources
-            The resources being added. A string represents a column resource.
+            The resources being added. A string represents a population attribute.
         dependencies
             A list of resources that the producer requires. A string represents
-            a column resource.
+            a population attribute.
 
         Raises
         ------
         ResourceError
-            If a component has multiple resource producers for the ``column``
-            resource type or there are multiple producers of the same resource.
+            If there are multiple producers of the same resource.
         """
         resource_group = self._get_resource_group(component, resources, dependencies)
-
         for resource_id, resource in resource_group.resources.items():
             if resource_id in self._resource_group_map:
                 other_resource = self._resource_group_map[resource_id]
@@ -128,8 +127,15 @@ class ResourceManager(Manager):
         --------
         :class:`ResourceGroup`
         """
-        resources_ = [Column(r, component) if isinstance(r, str) else r for r in resources]
-        dependencies_ = [Column(d, None) if isinstance(d, str) else d for d in dependencies]
+
+        # Convert string resources to their corresponding AttributePipeline
+        resources_ = [
+            self.get_attribute(res) if isinstance(res, str) else res for res in resources
+        ]
+
+        dependencies_ = [
+            self.get_attribute(dep) if isinstance(dep, str) else dep for dep in dependencies
+        ]
 
         if not resources_:
             # We have a "producer" that doesn't produce anything, but
@@ -140,7 +146,7 @@ class ResourceManager(Manager):
 
         # TODO [MIC-6433]: all resource groups should have a component
         if component and (
-            have_other_component := [r for r in resources_ if r.component != component]
+            have_other_component := [res for res in resources_ if res.component != component]
         ):
             raise ResourceError(
                 f"All initialized resources must have the component '{component.name}'."

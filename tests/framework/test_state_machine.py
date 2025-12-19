@@ -101,9 +101,7 @@ def test_initialize_with_array_initialization_weights(
             #  specified by the states or the configuration.
             return ["test_column_1"]
 
-    def initialization_weights(
-        key: str,
-    ) -> DataInput:
+    def initialization_weights(key: str) -> DataInput:
         weights = {
             "artifact": key,
             "callable": lambda _: state_weights[key],
@@ -135,13 +133,16 @@ def test_initialize_with_array_initialization_weights(
 def test_error_if_initialize_with_both_initial_state_and_initialization_weights() -> None:
     start_state = State("start")
     other_state = State("other", initialization_weights=lambda _: 0.8)
+    machine = Machine("state", states=[start_state, other_state], initial_state=start_state)
+
     with pytest.raises(ValueError, match="Cannot specify both"):
-        Machine("state", states=[start_state, other_state], initial_state=start_state)
+        InteractiveContext(components=[machine])
 
 
 def test_error_if_initialize_with_neither_initial_state_nor_initialization_weights() -> None:
+    machine = Machine("state", states=[State("a"), State("b")])
     with pytest.raises(ValueError, match="Must specify either"):
-        Machine("state", states=[State("a"), State("b")])
+        InteractiveContext(components=[machine])
 
 
 @pytest.mark.parametrize("population_size", [1, 100])

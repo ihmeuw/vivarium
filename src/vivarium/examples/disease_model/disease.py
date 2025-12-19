@@ -8,7 +8,7 @@ from vivarium.framework.lookup import LookupTable
 from vivarium.framework.state_machine import Machine, State, Transition, Trigger
 from vivarium.framework.utilities import rate_to_probability
 from vivarium.framework.values import list_combiner, union_post_processor
-
+from collections.abc import Iterable
 
 class DiseaseTransition(Transition):
     #####################
@@ -29,7 +29,7 @@ class DiseaseTransition(Transition):
         self.cause_key = cause_key
         self.measure = measure
         self.rate_name = rate_name
-        self.paf_column_name = f"{self.rate_name}.population_attributable_fraction"
+        self.joint_paf_pipeline = f"{self.rate_name}.population_attributable_fraction"
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
@@ -41,7 +41,7 @@ class DiseaseTransition(Transition):
                 f"Base rate for {self.cause_key}.{self.measure} must be a single numeric value."
             )
         builder.value.register_attribute_producer(
-            self.paf_column_name,
+            self.joint_paf_pipeline,
             source=lambda index: [pd.Series(0.0, index=index)],
             component=self,
             preferred_combiner=list_combiner,
@@ -51,16 +51,16 @@ class DiseaseTransition(Transition):
             self.rate_name,
             source=self._risk_deleted_rate,
             component=self,
-            required_resources=[f"{self.rate_name}.population_attributable_fraction"],
+            required_resources=[self.joint_paf_pipeline],
         )
 
     ##################################
     # Pipeline sources and modifiers #
     ##################################
 
-    def _risk_deleted_rate(self, index: pd.Index[int]) -> pd.Series[Any]:
-        joint_paf = self.population_view.get_attributes(index, self.paf_column_name)
-        return self.base_rate * (1 - joint_paf)
+    def _risk_deleted_rate(self, index: pd.Index) -> pd.Series:
+        joint_paf = self.population_view.get_attributes(index, self.joint_paf_pipeline)
+        return self.base_rate(index) * (1 - joint_paf)
 
     ##################
     # Helper methods #
@@ -90,8 +90,8 @@ class DiseaseState(State):
     def __init__(self, state_id: str, cause_key: str):
         super().__init__(state_id)
         self._cause_key = cause_key
-        self.excess_mortality_rate = f"{self.state_id}.excess_mortality_rate"
-        self.excess_mortality_rate_paf = f"{self.excess_mortality_rate}.population_attributable_fraction"
+        self.emr_paf_pipeline = f"{self.state_id}.excess_mortality_rate.population_attributable_fraction"
+        self.emr_pipeline = f"{self.state_id}.excess_mortality_rate"
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
@@ -106,7 +106,7 @@ class DiseaseState(State):
 
         self.clock = builder.time.clock()
         builder.value.register_attribute_producer(
-            self.excess_mortality_rate_paf,
+            self.emr_paf_pipeline,
             source=lambda index: [pd.Series(0.0, index=index)],
             component=self,
             preferred_combiner=list_combiner,
@@ -114,17 +114,17 @@ class DiseaseState(State):
         )
 
         builder.value.register_rate_producer(
-            self.excess_mortality_rate,
+            self.emr_pipeline,
             source=self.risk_deleted_excess_mortality_rate,
             component=self,
-            required_resources=[self.excess_mortality_rate_paf],
+            required_resources=[self.emr_paf_pipeline],
         )
 
         builder.value.register_attribute_modifier(
             "mortality_rate",
             modifier=self.add_in_excess_mortality,
             component=self,
-            required_resources=[self.excess_mortality_rate],
+            required_resources=[self.emr_pipeline]
         )
 
     ##################
@@ -141,20 +141,31 @@ class DiseaseState(State):
     ##################################
     # Pipeline sources and modifiers #
     ##################################
-
-    def risk_deleted_excess_mortality_rate(self, index: pd.Index[int]) -> pd.Series[float]:
+    
+    def risk_deleted_excess_mortality_rate(self, index: pd.Index) -> pd.Series:
         base_emr = self.lookup_tables["excess_mortality_rate"](index)
-        paf = self.population_view.get_attributes(index, self.excess_mortality_rate_paf)
-        return base_emr * (1 - paf)
+        emr_paf = self.population_view.get_attributes(index, self.emr_paf_pipeline)
+        return base_emr * (1 - emr_paf)
 
     def add_in_excess_mortality(
-        self, index: pd.Index[int], mortality_rates: pd.Series[float]
-    ) -> pd.Series[float]:
-        mortality_rates.loc[index] += self.population_view.get_attributes(index, self.excess_mortality_rate)
+        self, index: pd.Index, mortality_rates: pd.Series
+    ) -> pd.Series:
+        mortality_rates.loc[index] += self.population_view.get_attributes(
+            index, self.emr_pipeline
+        )
         return mortality_rates
 
 
 class DiseaseModel(Machine):
+
+    def __init__(
+        self,
+        state_column: str,
+        states: Iterable[State] = (),
+        initial_state: State | None = None,
+    ) -> None:
+        super().__init__(state_column, states, initial_state)
+        self.csmr_pipeline = f"{self.state_column}.cause_specific_mortality_rate"
 
     #####################
     # Lifecycle methods #
@@ -180,14 +191,14 @@ class DiseaseModel(Machine):
         cause_specific_mortality_rate = config.incidence_rate * case_fatality_rate
 
         builder.value.register_rate_producer(
-            self.cause_specific_mortality_rate,
+            self.csmr_pipeline,
             source=lambda index: pd.Series(cause_specific_mortality_rate, index=index),
             component=self,
         )
         builder.value.register_attribute_modifier(
             "mortality_rate",
             modifier=self.delete_cause_specific_mortality,
-            required_resources=[self.cause_specific_mortality_rate],
+            required_resources=[self.csmr_pipeline],
             component=self,
         )
 
@@ -196,7 +207,8 @@ class DiseaseModel(Machine):
     ##################################
 
     def delete_cause_specific_mortality(self, index: pd.Index[int], rates: pd.Series[float]) -> pd.Series[float]:
-        return rates - self.population_view.get_attributes(index, self.cause_specific_mortality_rate)
+        csmr = self.population_view.get_attributes(index, self.csmr_pipeline)
+        return rates - csmr
 
 
 class SISDiseaseModel(Component):

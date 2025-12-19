@@ -1,4 +1,6 @@
 # mypy: ignore-errors
+from __future__ import annotations
+
 from typing import Any
 
 import numpy as np
@@ -9,7 +11,9 @@ from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 
+
 class Mortality(Component):
+
     ##############
     # Properties #
     ##############
@@ -21,16 +25,11 @@ class Mortality(Component):
         These can be overwritten in the simulation model specification or by
         providing override values when constructing an interactive simulation.
         """
-        return {
-            "mortality": {
-                "mortality_rate": 0.01,
-            }
-        }
+        return {self.name: {"data_sources": {"mortality_rate": 0.01}}}
     
     @property
     def columns_created(self) -> list[str]:
         return ["alive"]
-    
 
     #####################
     # Lifecycle methods #
@@ -49,11 +48,9 @@ class Mortality(Component):
         builder
             Access to simulation tools and subsystems.
         """
-        self.config = builder.configuration.mortality
         self.randomness = builder.randomness.get_stream("mortality")
-
-        self.mortality_rate = builder.value.register_rate_producer(
-            "mortality_rate", source=self.base_mortality_rate, component=self
+        builder.value.register_rate_producer(
+            "mortality_rate", source=self.build_lookup_table(builder, "mortality_rate"), component=self
         )
 
     ########################
@@ -86,30 +83,10 @@ class Mortality(Component):
             representing the simulants affected by the event and timing
             information.
         """
-        effective_rate = self.mortality_rate(event.index)
+        effective_rate = self.population_view.get_attributes(event.index, "mortality_rate")
         effective_probability = 1 - np.exp(-effective_rate)
         draw = self.randomness.get_draw(event.index)
         affected_simulants = draw < effective_probability
         self.population_view.update(
             pd.Series("dead", index=event.index[affected_simulants], name="alive")
         )
-
-
-    ##################################
-    # Pipeline sources and modifiers #
-    ##################################
-
-    def base_mortality_rate(self, index: pd.Index) -> pd.Series:
-        """Computes the base mortality rate for every individual.
-
-        Parameters
-        ----------
-        index
-            A representation of the simulants to compute the base mortality
-            rate for.
-
-        Returns
-        -------
-            The base mortality rate for all simulants in the index.
-        """
-        return pd.Series(self.config.mortality_rate, index=index)

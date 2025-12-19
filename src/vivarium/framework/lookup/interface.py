@@ -7,8 +7,12 @@ This module provides an interface to the :class:`LookupTableManager <vivarium.fr
 
 """
 
+from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any, overload
+
+import pandas as pd
 
 from vivarium.framework.lookup.manager import LookupTableManager
 from vivarium.framework.lookup.table import LookupTable
@@ -30,13 +34,27 @@ class LookupTableInterface(Interface):
     def __init__(self, manager: LookupTableManager):
         self._manager = manager
 
+    @overload
     def build_table(
         self,
         data: LookupTableData,
-        key_columns: Sequence[str] = (),
-        parameter_columns: Sequence[str] = (),
-        value_columns: Sequence[str] = (),
-    ) -> LookupTable:
+        value_columns: str | None = None,
+    ) -> LookupTable[pd.Series[Any]]:
+        ...
+
+    @overload
+    def build_table(
+        self,
+        data: LookupTableData,
+        value_columns: list[str] | tuple[str, ...] = ...,
+    ) -> LookupTable[pd.DataFrame]:
+        ...
+
+    def build_table(
+        self,
+        data: LookupTableData,
+        value_columns: list[str] | tuple[str, ...] | str | None = None,
+    ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
         """Construct a LookupTable from input data.
 
         If data is a :class:`pandas.DataFrame`, an interpolation function of
@@ -56,14 +74,6 @@ class LookupTableInterface(Interface):
         data
             The source data which will be used to build the resulting
             :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`.
-        key_columns
-            Columns used to select between interpolation functions. These
-            should be the non-continuous variables in the data. For example
-            'sex' in data about a population.
-        parameter_columns
-            The columns which contain the parameters to the interpolation
-            functions. These should be the continuous variables. For example
-            'age' in data about a population.
         value_columns
             The data columns that will be in the resulting LookupTable. Columns
             to be interpolated over if interpolation or the names of the columns
@@ -73,4 +83,4 @@ class LookupTableInterface(Interface):
         -------
             LookupTable
         """
-        return self._manager.build_table(data, key_columns, parameter_columns, value_columns)
+        return self._manager.build_table(data, value_columns)

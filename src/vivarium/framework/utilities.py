@@ -18,7 +18,7 @@ from loguru import logger
 
 from vivarium.types import NumberLike, NumericArray, Timedelta
 
-TimeValue = TypeVar("T", bound=NumberLike)
+TimeValue = TypeVar("TimeValue", bound=NumberLike)
 
 
 def from_yearly(value: TimeValue, time_step: Timedelta) -> TimeValue:
