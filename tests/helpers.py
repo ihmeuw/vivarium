@@ -8,7 +8,6 @@ from vivarium import Component, Observer
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
-from vivarium.framework.lookup import dataframe_lookup, series_lookup
 from vivarium.framework.population import SimulantData
 from vivarium.framework.resource import Resource
 from vivarium.manager import Manager
@@ -245,13 +244,6 @@ class AttributePipelineCreator(Component):
 
 
 class LookupCreator(ColumnCreator):
-    favorite_team = series_lookup()
-    favorite_scalar = series_lookup(value_column="scalar")
-    favorite_color = series_lookup()
-    favorite_number = series_lookup()
-    favorite_list = dataframe_lookup(value_columns=["column_1", "column_2"])
-    baking_time = series_lookup()
-    cooling_time = series_lookup()
 
     CONFIGURATION_DEFAULTS = {
         "lookup_creator": {
@@ -267,13 +259,33 @@ class LookupCreator(ColumnCreator):
         }
     }
 
+    def setup(self, builder: Builder) -> None:
+        self.favorite_team_table = self.build_lookup_table(builder, "favorite_team")
+        self.favorite_scalar_table = self.build_lookup_table(
+            builder, "favorite_scalar", value_columns="scalar"
+        )
+        self.favorite_color_table = self.build_lookup_table(builder, "favorite_color")
+        self.favorite_number_table = self.build_lookup_table(builder, "favorite_number")
+        self.favorite_list_table = self.build_lookup_table(
+            builder, "favorite_list", value_columns=["column_1", "column_2"]
+        )
+        self.baking_time_table = self.build_lookup_table(builder, "baking_time")
+        self.cooling_time_table = self.build_lookup_table(builder, "cooling_time")
+
     @staticmethod
     def load_baking_time(_builder: Builder) -> float:
         return 0.5
 
 
 class SingleLookupCreator(ColumnCreator):
-    favorite_color = series_lookup()
+    CONFIGURATION_DEFAULTS = {
+        "single_lookup_creator": {
+            "data_sources": {"favorite_color": "simulants.favorite_color"}
+        }
+    }
+
+    def setup(self, builder: Builder) -> None:
+        self.favorite_color_table = self.build_lookup_table(builder, "favorite_color")
 
 
 class OrderedColumnsLookupCreator(Component):
@@ -282,16 +294,14 @@ class OrderedColumnsLookupCreator(Component):
         [[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14]],
         columns=VALUE_COLUMNS,
     )
-    ordered_columns_categorical = dataframe_lookup(value_columns=VALUE_COLUMNS)
-    ordered_columns_interpolated = dataframe_lookup(value_columns=VALUE_COLUMNS)
 
     @property
     def configuration_defaults(self) -> dict[str, Any]:
         return {
             self.name: {
                 "data_sources": {
-                    "ordered_columns_categorical": self._get_ordered_columns_categorical(),
-                    "ordered_columns_interpolated": self._get_ordered_columns_interpolated(),
+                    "categorical": self._get_ordered_columns_categorical(),
+                    "interpolated": self._get_ordered_columns_interpolated(),
                 },
             }
         }
@@ -299,6 +309,14 @@ class OrderedColumnsLookupCreator(Component):
     @property
     def columns_created(self) -> list[str]:
         return ["foo", "bar"]
+
+    def setup(self, builder: Builder) -> None:
+        self.categorical_table = self.build_lookup_table(
+            builder, "categorical", value_columns=self.VALUE_COLUMNS
+        )
+        self.interpolated_table = self.build_lookup_table(
+            builder, "interpolated", value_columns=self.VALUE_COLUMNS
+        )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         initialization_data = pd.DataFrame(

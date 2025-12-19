@@ -1,8 +1,8 @@
-from vivarium.framework.lookup.descriptor import (
-    LookupTableDescriptor,
-    dataframe_lookup,
-    series_lookup,
-)
+# from vivarium.framework.lookup.descriptor import (
+#     LookupTableDescriptor,
+#     dataframe_lookup,
+#     series_lookup,
+# )
 from vivarium.framework.lookup.interface import LookupTableInterface
 from vivarium.framework.lookup.manager import (
     LookupTableManager,

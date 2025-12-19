@@ -9,12 +9,10 @@ import pandas as pd
 from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
-from vivarium.framework.lookup import series_lookup
 from vivarium.framework.population import SimulantData
 
 
 class Mortality(Component):
-    mortality_rate = series_lookup()
 
     ##############
     # Properties #
@@ -52,7 +50,7 @@ class Mortality(Component):
         """
         self.randomness = builder.randomness.get_stream("mortality")
         builder.value.register_rate_producer(
-            "mortality_rate", source=self.mortality_rate, component=self
+            "mortality_rate", source=self.build_lookup_table(builder, "mortality_rate"), component=self
         )
 
     ########################

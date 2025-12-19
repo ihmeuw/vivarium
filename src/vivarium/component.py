@@ -18,7 +18,7 @@ from importlib import import_module
 from inspect import signature
 from typing import TYPE_CHECKING, Any
 from typing import SupportsFloat as Numeric
-from typing import cast
+from typing import cast, overload
 
 import pandas as pd
 from layered_config_tree import ConfigurationError, LayeredConfigTree
@@ -93,36 +93,6 @@ class Component(ABC):
     component. An empty dictionary indicates no managed configurations.
     """
 
-    _lookup_table_descriptors: dict[str, Any] = {}
-    """Dictionary of LookupTableDescriptor instances declared on the component class.
-    Populated automatically by __init_subclass__."""
-
-    def __init_subclass__(cls, **kwargs: Any) -> None:
-        """Automatically collect lookup table descriptors from the class.
-
-        This method is called when a subclass of Component is created. It scans
-        the class for LookupTableDescriptor instances and stores them for later
-        use when building lookup tables.
-
-        Parameters
-        ----------
-        **kwargs
-            Additional keyword arguments passed to the superclass.
-        """
-        super().__init_subclass__(**kwargs)
-
-        # Avoid circular import
-        from vivarium.framework.lookup.descriptor import LookupTableDescriptor
-
-        # Find all LookupTableDescriptor instances in the class and its bases
-        # Walk the MRO to collect descriptors, with subclass definitions taking precedence
-        cls._lookup_table_descriptors = {}
-        for base in cls.__mro__:
-            for name, descriptor in base.__dict__.items():
-                if isinstance(descriptor, LookupTableDescriptor):
-                    if name not in cls._lookup_table_descriptors:
-                        cls._lookup_table_descriptors[name] = descriptor
-
     def __init__(self) -> None:
         """Initializes a new instance of the Component class.
 
@@ -137,9 +107,6 @@ class Component(ABC):
         self._logger: loguru.Logger | None = None
         self.configuration: LayeredConfigTree = LayeredConfigTree()
         self._population_view: PopulationView | None = None
-        self._lookup_tables: dict[
-            str, LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]
-        ] = {}
 
     def __repr__(self) -> str:
         """Returns a string representation of the __init__ call made to create this
@@ -398,7 +365,6 @@ class Component(ABC):
         """
         self._logger = builder.logging.get_logger(self.name)
         self.configuration = self.get_configuration(builder)
-        self.build_all_lookup_tables(builder)
         self.setup(builder)
         self._register_attribute_private_columns(builder)
         self._set_population_view(builder)
@@ -580,70 +546,54 @@ class Component(ABC):
             return builder.configuration.get_tree(self.name)
         return LayeredConfigTree({"data_sources": {}})
 
-    def build_all_lookup_tables(self, builder: Builder) -> None:
-        """Builds all lookup tables for this component.
+    @overload
+    def build_lookup_table(
+        self,
+        builder: Builder,
+        name: str,
+        data_source: DataInput | None = None,
+        value_columns: str | None = None,
+    ) -> LookupTable[pd.Series[Any]]:
+        ...
 
-        This method builds lookup tables for this component based on:
-        1. LookupTableDescriptor instances declared as class attributes
-        2. Data sources specified in the configuration
-
-        The created lookup tables are stored in the lookup_tables dictionary and
-        can be accessed via the descriptors as attributes.
-
-        Parameters
-        ----------
-        builder
-            The builder object used to set up the component.
-        """
-        descriptors = self.__class__._lookup_table_descriptors
-        has_config = self.configuration and "data_sources" in self.configuration
-        configured_sources = (
-            set(self.configuration.data_sources.keys()) if has_config else set()
-        )
-        descriptor_names = set(descriptors.keys())
-
-        # Validate configuration matches descriptors
-        if descriptor_names != configured_sources:
-            if descriptor_names and not configured_sources:
-                raise ConfigurationError(
-                    f"Component has lookup table descriptors {descriptor_names} "
-                    f"but is missing data_sources configuration."
-                )
-            elif missing := descriptor_names - configured_sources:
-                raise ConfigurationError(
-                    f"Missing data sources in configuration for lookup tables: {missing}"
-                )
-
-        # Build all lookup tables
-        for table_name, descriptor in descriptors.items():
-            try:
-                self._lookup_tables[table_name] = self.build_lookup_table(
-                    builder=builder,
-                    data_source=self.configuration.data_sources[table_name],
-                    value_columns=descriptor.value_columns,
-                )
-            except ConfigurationError as e:
-                raise ConfigurationError(f"Error building lookup table '{table_name}': {e}")
+    @overload
+    def build_lookup_table(
+        self,
+        builder: Builder,
+        name: str,
+        data_source: DataInput | None = None,
+        value_columns: list[str] | tuple[str, ...] = ...,
+    ) -> LookupTable[pd.DataFrame]:
+        ...
 
     def build_lookup_table(
         self,
         builder: Builder,
-        data_source: DataInput,
-        value_columns: list[str] | tuple[str, ...] | str | None,
+        name: str,
+        data_source: DataInput | None = None,
+        value_columns: list[str] | tuple[str, ...] | str | None = None,
     ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
-        """Builds a LookupTable from a data source.
+        """Builds a LookupTable.
 
-        Uses `get_data` to parse the data source and retrieve the lookup table
-        data. The LookupTable is built from the data source, with the value
-        columns specified in the value_columns parameter. If value_columns is
-        None and the data is a DataFrame, the value column will be "value".
+        If a data_source is not provided, the method will look for a data source
+        in the component's configuration under the key "data_sources" with the
+        provided name.
+
+        If value_columns provided is a list or tuple, a LookupTable returning a
+        DataFrame will be built. If it is a string or None, a LookupTable
+        returning a Series will be built. If value_columns is None, the name of the
+        returned Series will be "value".
 
         Parameters
         ----------
         builder
             The builder object used to set up the component.
         data_source
-            The data source to build the LookupTable from.
+            The data source to build the LookupTable from. If None, the data source
+            will be retrieved from the component's configuration.
+        name
+            The name of the lookup table, used to retrieve the data source from
+            the configuration if data_source is None.
         value_columns
             The columns to include in the LookupTable.
 
@@ -656,8 +606,20 @@ class Component(ABC):
         layered_config_tree.exceptions.ConfigurationError
             If the data source is invalid.
         """
-        data = self.get_data(builder, data_source)
-        return builder.lookup.build_table(data=data, value_columns=value_columns)
+        if data_source is None:
+            data_source = self.configuration.get(["data_sources", name])
+
+        if data_source is None:
+            raise ConfigurationError(
+                f"No data source provided for lookup table '{name}', "
+                "and no data source found in configuration."
+            )
+
+        try:
+            data = self.get_data(builder, data_source)
+            return builder.lookup.build_table(data=data, value_columns=value_columns)
+        except ConfigurationError as e:
+            raise ConfigurationError(f"Error building lookup table '{name}': {e}")
 
     def get_data(self, builder: Builder, data_source: DataInput) -> LookupTableData:
         """Retrieves data from a data source.

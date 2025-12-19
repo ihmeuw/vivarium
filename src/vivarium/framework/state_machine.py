@@ -17,7 +17,6 @@ import numpy as np
 import pandas as pd
 
 from vivarium import Component
-from vivarium.framework.lookup import series_lookup
 from vivarium.framework.lookup.table import ScalarTable
 
 if TYPE_CHECKING:
@@ -198,8 +197,6 @@ class State(Component):
 
     """
 
-    initialization_weights = series_lookup()
-
     ##############
     # Properties #
     ##############
@@ -236,6 +233,11 @@ class State(Component):
         self._initialization_weights = initialization_weights
         self._model: str | None = None
         self._sub_components = [self.transition_set]
+
+    def setup(self, builder: Builder) -> None:
+        self.initialization_weights = self.build_lookup_table(
+            builder, "initialization_weights"
+        )
 
     ##################
     # Public methods #
