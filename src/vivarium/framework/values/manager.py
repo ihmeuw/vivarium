@@ -318,7 +318,7 @@ class ValuesManager(Manager):
             error_msg = ""
             if not isinstance(source, list):
                 error_msg = generic_error_msg + f"Got `source` type {type(source)} instead."
-            if isinstance(source, list) and len(source) != 1:
+            elif len(source) != 1:
                 error_msg = generic_error_msg + f"Got {len(source)} names instead."
             if error_msg:
                 raise ValueError(error_msg)
