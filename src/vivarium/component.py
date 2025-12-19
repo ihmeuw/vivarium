@@ -581,7 +581,6 @@ class Component(ABC):
         return LayeredConfigTree({"data_sources": {}})
 
     def build_all_lookup_tables(self, builder: Builder) -> None:
-        # TODO update this docstring to match method behavior
         """Builds all lookup tables for this component.
 
         This method builds lookup tables for this component based on:
@@ -637,8 +636,7 @@ class Component(ABC):
         Uses `get_data` to parse the data source and retrieve the lookup table
         data. The LookupTable is built from the data source, with the value
         columns specified in the value_columns parameter. If value_columns is
-        None and the data is a DataFrame, the ArtifactManager will determine
-        the value columns.
+        None and the data is a DataFrame, the value column will be "value".
 
         Parameters
         ----------
@@ -659,21 +657,6 @@ class Component(ABC):
             If the data source is invalid.
         """
         data = self.get_data(builder, data_source)
-
-        # TODO update this to use vivarium.types.LookupTableData once we drop
-        #  support for Python 3.9
-        if not isinstance(
-            data, (Numeric, timedelta, datetime, pd.DataFrame, list, tuple, dict)
-        ):
-            raise ConfigurationError(f"Data '{data}' must be a LookupTableData instance.")
-
-        if isinstance(data, pd.DataFrame):
-            duplicated_columns = set(data.columns[data.columns.duplicated()])
-            if duplicated_columns:
-                raise ConfigurationError(
-                    f"Dataframe contains duplicate columns {duplicated_columns}."
-                )
-
         return builder.lookup.build_table(data=data, value_columns=value_columns)
 
     def get_data(self, builder: Builder, data_source: DataInput) -> LookupTableData:
