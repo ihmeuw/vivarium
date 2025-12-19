@@ -206,7 +206,7 @@ class State(Component):
         return {
             f"{self.name}": {
                 "data_sources": {
-                    "initialization_weights": self._initialization_weights,
+                    "initialization_weights": self.initialization_weights,
                 },
             },
         }
@@ -230,12 +230,12 @@ class State(Component):
         self.transition_set = TransitionSet(
             self.state_id, allow_self_transition=allow_self_transition
         )
-        self._initialization_weights = initialization_weights
+        self.initialization_weights = initialization_weights
         self._model: str | None = None
         self._sub_components = [self.transition_set]
 
     def setup(self, builder: Builder) -> None:
-        self.initialization_weights = self.build_lookup_table(
+        self.initialization_weights_table = self.build_lookup_table(
             builder, "initialization_weights"
         )
 
@@ -245,9 +245,9 @@ class State(Component):
 
     def has_initialization_weights(self) -> bool:
         """Determines if state has explicitly defined initialization weights."""
-        return (
-            not isinstance(self.initialization_weights, ScalarTable)
-            or self.initialization_weights.data != 0.0
+        return not (
+            isinstance(self.initialization_weights_table, ScalarTable)
+            and self.initialization_weights_table.data == 0.0
         )
 
     def set_model(self, model_name: str) -> None:
@@ -573,7 +573,7 @@ class Machine(Component):
                     f" states: {self.states}."
                 )
 
-            initial_state._initialization_weights = 1.0
+            initial_state.initialization_weights = 1.0
 
     def setup(self, builder: Builder) -> None:
         self.randomness = builder.randomness.get_stream(self.name)
@@ -604,7 +604,7 @@ class Machine(Component):
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         state_ids = [s.state_id for s in self.states]
         state_weights = pd.concat(
-            [state.initialization_weights(pop_data.index) for state in self.states],
+            [state.initialization_weights_table(pop_data.index) for state in self.states],
             axis=1,
         ).to_numpy()
 
