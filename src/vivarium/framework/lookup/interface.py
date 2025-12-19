@@ -57,17 +57,24 @@ class LookupTableInterface(Interface):
     ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
         """Construct a LookupTable from input data.
 
-        If data is a :class:`pandas.DataFrame`, an interpolation function of
-        the order specified in the simulation
-        :term:`configuration <Configuration>` will be calculated for each
-        permutation of the set of key_columns. The columns in parameter_columns
-        will be used as parameters for the interpolation functions which will
-        estimate all remaining columns in the table.
+        If the data is a scalar value, this will return a table that when called
+        will return a :class:`pandas.Series` (or :class:`pandas.DataFrame` if the
+        scalar value is a list or tuple) with the scalar value for each index entry.
 
-        If data is a number, time, list, or tuple, a scalar table will be
-        constructed with the values in data as the values in each column of
-        the table, named according to value_columns.
+        If the data is a :class:`pandas.DateFrame` columns with names in value_columns
+        will be returned directly when the table is called with a population index.
+        The value to return for each index entry will be looked up based on the values
+        at those indices of other columns of the DataFrame in the simulation population.
+        Non-value columns which exist as a pair of the form "some_column_start" and
+        "some_column_end" will be treated as ranges, and the column "some_column"
+        will be interpolated using order 0 (step function) interpolation over that range.
+        Other non-value columns will be treated as exact matches for lookups.
 
+        If value_columns is a single string, the returned table will return a
+        :class:`pandas.Series` when called. If value_columns is a list or tuple
+        of strings, the returned table will return a :class:`pandas.DataFrame`
+        when called. If value_columns is None, it will return a :class:`pandas.Series`
+        with the name "value".
 
         Parameters
         ----------
@@ -75,9 +82,8 @@ class LookupTableInterface(Interface):
             The source data which will be used to build the resulting
             :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`.
         value_columns
-            The data columns that will be in the resulting LookupTable. Columns
-            to be interpolated over if interpolation or the names of the columns
-            in the scalar table.
+            The name(s) of the column(s) in the data to return when
+            the table is called.
 
         Returns
         -------
