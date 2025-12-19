@@ -28,6 +28,9 @@ from vivarium.types import ClockTime, ScalarValue
 T = TypeVar("T", pd.Series, pd.DataFrame)  # type: ignore [type-arg]
 
 
+DEFAULT_VALUE_COLUMN_NAME = "value"
+
+
 class LookupTable(ABC, Generic[T]):
     """A callable to produces values for a population index.
 

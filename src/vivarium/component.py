@@ -135,16 +135,6 @@ class Component(ABC):
         self._name: str = ""
         self._sub_components: Sequence["Component"] = []
         self._logger: loguru.Logger | None = None
-
-        def _raise_get_value_columns_error(_: Any) -> list[str]:
-            raise LifeCycleError(
-                f"get_value_columns for component '{self.name}' has not been initialized. "
-                "This is likely due to having called this prior to simulation setup."
-            )
-
-        self.get_value_columns: Callable[
-            [LookupTableData | str], list[str] | str
-        ] = _raise_get_value_columns_error
         self.configuration: LayeredConfigTree = LayeredConfigTree()
         self._population_view: PopulationView | None = None
         self._lookup_tables: dict[
@@ -407,7 +397,6 @@ class Component(ABC):
             The builder object used to set up the component.
         """
         self._logger = builder.logging.get_logger(self.name)
-        self.get_value_columns = builder.data.value_columns()
         self.configuration = self.get_configuration(builder)
         self.build_all_lookup_tables(builder)
         self.setup(builder)
@@ -670,9 +659,7 @@ class Component(ABC):
             If the data source is invalid.
         """
         data = self.get_data(builder, data_source)
-        value_columns_ = (
-            value_columns if value_columns is not None else self.get_value_columns(data)
-        )
+
         # TODO update this to use vivarium.types.LookupTableData once we drop
         #  support for Python 3.9
         if not isinstance(
@@ -686,49 +673,8 @@ class Component(ABC):
                 raise ConfigurationError(
                     f"Dataframe contains duplicate columns {duplicated_columns}."
                 )
-            parameter_columns, key_columns = self._get_columns(value_columns_, data)
 
-            return builder.lookup.build_table(
-                data=data,
-                key_columns=key_columns,
-                parameter_columns=parameter_columns,
-                value_columns=value_columns_,
-            )
-
-        return builder.lookup.build_table(data=data, value_columns=value_columns_)
-
-    # TODO can push this logic inside build_table in LookupTableManager
-    def _get_columns(
-        self,
-        value_columns: list[str] | tuple[str, ...] | str,
-        data: pd.DataFrame | dict[str, list[ScalarValue] | list[str]],
-    ) -> tuple[list[str], list[str]]:
-        if isinstance(value_columns, str):
-            value_columns = [value_columns]
-        if isinstance(data, pd.DataFrame):
-            all_columns = list(data.columns)
-        else:
-            all_columns = list(data.keys())
-
-        potential_parameter_columns = [
-            str(col).removesuffix("_start")
-            for col in all_columns
-            if str(col).endswith("_start")
-        ]
-        parameter_columns = []
-        bin_edge_columns = []
-        for column in potential_parameter_columns:
-            if f"{column}_end" in all_columns:
-                parameter_columns.append(column)
-                bin_edge_columns += [f"{column}_start", f"{column}_end"]
-
-        key_columns = [
-            col
-            for col in all_columns
-            if col not in value_columns and col not in bin_edge_columns
-        ]
-
-        return parameter_columns, key_columns
+        return builder.lookup.build_table(data=data, value_columns=value_columns)
 
     def get_data(self, builder: Builder, data_source: DataInput) -> LookupTableData:
         """Retrieves data from a data source.

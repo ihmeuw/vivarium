@@ -113,23 +113,6 @@ class ArtifactManager(Manager):
 
         return data
 
-    def value_columns(
-        self,
-    ) -> Callable[[LookupTableData | str], list[str] | str]:
-        """Returns a function that returns the value columns for the given input.
-
-        The function can be called with either a string or a pandas DataFrame.
-        If a string is provided, it is interpreted as an artifact key, and the
-        value columns for the data stored at that key are returned.
-
-        Currently, the returned function will always return ["value"].
-
-        Returns
-        -------
-            A function that returns the value columns for the given input.
-        """
-        return lambda _: self._default_value_column
-
     def __repr__(self) -> str:
         return "ArtifactManager()"
 
