@@ -329,6 +329,8 @@ class ValuesManager(Manager):
             source = lambda index: self._population_mgr.get_population(
                 attributes=attributes, index=index
             )
+        # FIXME [MIC-6703]: convert the source if it's a list if they are private columns
+        # as well. Move the callable from ValueSource._call to here.
         pipeline.set_attributes(
             component,
             source,
