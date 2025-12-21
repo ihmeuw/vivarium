@@ -24,7 +24,7 @@ import pandas as pd
 
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.lookup.table import (
-    DEFAULT_VALUE_COLUMN_NAME,
+    DEFAULT_VALUE_COLUMN,
     CategoricalTable,
     InterpolatedTable,
     LookupTable,
@@ -113,7 +113,7 @@ class LookupTableManager(Manager):
         if isinstance(data, Mapping):
             data = pd.DataFrame(data)
 
-        value_columns_ = value_columns if value_columns else DEFAULT_VALUE_COLUMN_NAME
+        value_columns_ = value_columns if value_columns else DEFAULT_VALUE_COLUMN
         validate_build_table_parameters(data, value_columns_)
 
         table: LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]
