@@ -48,9 +48,6 @@ class ValuesInterface(Interface):
         source: Callable[..., Any],
         # TODO [MIC-6433]: all calls should have a component
         component: Component | Manager | None = None,
-        requires_columns: Iterable[str] = (),
-        requires_values: Iterable[str] = (),
-        requires_streams: Iterable[str] = (),
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | None = None,
@@ -65,16 +62,6 @@ class ValuesInterface(Interface):
             A callable source for the dynamic value pipeline.
         component
             The component that is registering the value producer.
-        requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the pipeline source
-            is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline source is called.
-        requires_streams
-            A list of the randomness streams that need to be properly sourced
-            before the pipeline source is called.
         required_resources
             A list of resources that need to be properly sourced before the
             pipeline source is called. This is a list of strings, pipelines,
@@ -100,9 +87,6 @@ class ValuesInterface(Interface):
             value_name,
             source,
             component,
-            requires_columns,
-            requires_values,
-            requires_streams,
             required_resources,
             preferred_combiner,
             preferred_post_processor,
@@ -207,9 +191,6 @@ class ValuesInterface(Interface):
         modifier: Callable[..., Any],
         # TODO [MIC-6433]: all calls should have a component
         component: Component | Manager | None = None,
-        requires_columns: Iterable[str] = (),
-        requires_values: Iterable[str] = (),
-        requires_streams: Iterable[str] = (),
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Marks a ``Callable`` as the modifier of a named value.
@@ -228,29 +209,13 @@ class ValuesInterface(Interface):
             source.
         component
             The component that is registering the value modifier.
-        requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the pipeline modifier
-            is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline modifier is called.
-        requires_streams
-            A list of the randomness streams that need to be properly sourced
-            before the pipeline modifier is called.
         required_resources
             A list of resources that need to be properly sourced before the
             pipeline modifier is called. This is a list of strings, pipelines,
             or randomness streams.
         """
         self._manager.register_value_modifier(
-            value_name,
-            modifier,
-            component,
-            requires_columns,
-            requires_values,
-            requires_streams,
-            required_resources,
+            value_name, modifier, component, required_resources
         )
 
     def register_attribute_modifier(
