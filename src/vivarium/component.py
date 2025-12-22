@@ -706,6 +706,7 @@ class Component(ABC):
                 column,
                 source=[column],
                 component=self,
+                source_is_private_column=True,
             )
 
     def _register_post_setup_listener(self, builder: Builder) -> None:
