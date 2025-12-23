@@ -21,8 +21,10 @@ from typing import Any, Generic, TypeVar
 import numpy as np
 import pandas as pd
 
+from vivarium.component import Component
 from vivarium.framework.lookup.interpolation import Interpolation
 from vivarium.framework.population.population_view import PopulationView
+from vivarium.framework.resource import Resource
 from vivarium.types import ClockTime, ScalarValue
 
 T = TypeVar("T", pd.Series, pd.DataFrame)  # type: ignore [type-arg]
@@ -31,7 +33,7 @@ T = TypeVar("T", pd.Series, pd.DataFrame)  # type: ignore [type-arg]
 DEFAULT_VALUE_COLUMN = "value"
 
 
-class LookupTable(ABC, Generic[T]):
+class LookupTable(ABC, Resource, Generic[T]):
     """A callable to produces values for a population index.
 
     In :mod:`vivarium` simulations, the index is synonymous with the simulated
@@ -49,15 +51,15 @@ class LookupTable(ABC, Generic[T]):
 
     def __init__(
         self,
-        table_number: int,
+        name: str,
+        component: Component,
         return_type: type[T],
         key_columns: Sequence[str] = (),
         parameter_columns: Sequence[str] = (),
         value_columns: list[str] | tuple[str, ...] | str = (),
         validate: bool = True,
     ):
-        self.table_number = table_number
-        """Unique identifier of the table."""
+        super().__init__("lookup_table", f"{component.name}.{name}", component)
         self.return_type: type[T] = return_type
         """The type of data returned by the lookup table (pd.Series or pd.DataFrame)."""
         self.key_columns = key_columns
@@ -73,9 +75,8 @@ class LookupTable(ABC, Generic[T]):
         """Whether to validate the data before building the LookupTable."""
 
     @property
-    def name(self) -> str:
-        """Tables are generically named after the order they were created."""
-        return f"lookup_table_{self.table_number}"
+    def required_resources(self) -> list[str]:
+        return list(self.key_columns) + list(self.parameter_columns)
 
     def __call__(self, index: pd.Index[int]) -> T:
         """Get the mapped values for the given index.
@@ -120,7 +121,8 @@ class InterpolatedTable(LookupTable[T]):
 
     def __init__(
         self,
-        table_number: int,
+        name: str,
+        component: Component,
         data: pd.DataFrame,
         population_view_builder: Callable[[], PopulationView],
         key_columns: Sequence[str],
@@ -132,7 +134,8 @@ class InterpolatedTable(LookupTable[T]):
         validate: bool,
     ):
         super().__init__(
-            table_number=table_number,
+            name=name,
+            component=component,
             return_type=pd.Series if isinstance(value_columns, str) else pd.DataFrame,
             key_columns=key_columns,
             parameter_columns=parameter_columns,
@@ -229,14 +232,16 @@ class CategoricalTable(LookupTable[T]):
 
     def __init__(
         self,
-        table_number: int,
+        name: str,
+        component: Component,
         data: pd.DataFrame,
         population_view_builder: Callable[[], PopulationView],
         key_columns: Sequence[str],
         value_columns: list[str] | tuple[str, ...] | str,
     ):
         super().__init__(
-            table_number=table_number,
+            name=name,
+            component=component,
             return_type=pd.Series if isinstance(value_columns, str) else pd.DataFrame,
             key_columns=key_columns,
             value_columns=value_columns,
@@ -310,12 +315,14 @@ class ScalarTable(LookupTable[T]):
 
     def __init__(
         self,
-        table_number: int,
+        component: Component,
+        name: str,
         data: ScalarValue | list[ScalarValue] | tuple[ScalarValue, ...],
         value_columns: list[str] | tuple[str, ...] | str,
     ):
         super().__init__(
-            table_number=table_number,
+            component=component,
+            name=name,
             value_columns=value_columns,
             return_type=pd.Series if isinstance(value_columns, str) else pd.DataFrame,
         )

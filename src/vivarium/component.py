@@ -617,7 +617,9 @@ class Component(ABC):
 
         try:
             data = self.get_data(builder, data_source)
-            return builder.lookup.build_table(data=data, value_columns=value_columns)
+            return builder.lookup.build_table(
+                component=self, data=data, name=name, value_columns=value_columns
+            )
         except ConfigurationError as e:
             raise ConfigurationError(f"Error building lookup table '{name}': {e}")
 
