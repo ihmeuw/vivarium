@@ -76,7 +76,8 @@ class LookupTable(ABC, Resource, Generic[T]):
 
     @property
     def required_resources(self) -> list[str]:
-        return list(self.key_columns) + list(self.parameter_columns)
+        lookup_columns = list(self.key_columns) + list(self.parameter_columns)
+        return [col for col in lookup_columns if col != "year"]
 
     def __call__(self, index: pd.Index[int]) -> T:
         """Get the mapped values for the given index.

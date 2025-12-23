@@ -278,6 +278,8 @@ class TestLookupTableResource:
                 "foo": [1, 2, 3],
                 "bar_start": [0, 1, 2],
                 "bar_end": [1, 2, 3],
+                "year_start": [2000, 2001, 2002],
+                "year_end": [2001, 2002, 2003],
                 "baz": [7, 8, 9],
             }
         )
