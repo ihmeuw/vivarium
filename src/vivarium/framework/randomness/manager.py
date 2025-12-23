@@ -97,7 +97,7 @@ class RandomnessManager(Manager):
     def get_randomness_stream(
         self,
         decision_point: str,
-        component: Component | None,
+        component: Component,
         initializes_crn_attributes: bool = False,
         rate_conversion_type: Literal["linear", "exponential"] = "linear",
     ) -> RandomnessStream:
@@ -183,7 +183,7 @@ class RandomnessManager(Manager):
     def _get_randomness_stream(
         self,
         decision_point: str,
-        component: Component | None,
+        component: Component,
         initializes_crn_attributes: bool = False,
         rate_conversion_type: Literal["linear", "exponential"] = "linear",
     ) -> RandomnessStream:

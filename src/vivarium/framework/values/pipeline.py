@@ -89,7 +89,7 @@ class ValueModifier(Resource):
         self,
         pipeline: Pipeline,
         modifier: Callable[..., Any],
-        component: Component | Manager | None,
+        component: Component | Manager,
     ) -> None:
         mutator_name = self._get_modifier_name(modifier)
         mutator_index = len(pipeline.mutators) + 1
@@ -231,7 +231,7 @@ class Pipeline(Resource):
         return hash(self.name)
 
     def get_value_modifier(
-        self, modifier: Callable[..., Any], component: Component | Manager | None
+        self, modifier: Callable[..., Any], component: Component | Manager
     ) -> ValueModifier:
         """Add a value modifier to the pipeline and return it.
 
@@ -248,7 +248,7 @@ class Pipeline(Resource):
 
     def set_attributes(
         self,
-        component: Component | Manager | None,
+        component: Component | Manager,
         source: Callable[..., Any] | list[str],
         combiner: ValueCombiner,
         post_processor: PostProcessor | None,
@@ -275,7 +275,7 @@ class Pipeline(Resource):
         manager
             The simulation values manager.
         """
-        self.component = component
+        self._component = component
         self.source = ValueSource(self, source, component)
         self._combiner = combiner
         self.post_processor = post_processor

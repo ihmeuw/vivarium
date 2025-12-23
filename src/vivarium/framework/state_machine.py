@@ -406,7 +406,7 @@ class TransitionSet(Component):
             Interface to several simulation tools including access to common random
             number generation, in particular.
         """
-        self.random = builder.randomness.get_stream(self.name)
+        self.random = builder.randomness.get_stream(self.name, self)
 
     ##################
     # Public methods #
@@ -576,7 +576,7 @@ class Machine(Component):
             initial_state.initialization_weights = 1.0
 
     def setup(self, builder: Builder) -> None:
-        self.randomness = builder.randomness.get_stream(self.name)
+        self.randomness = builder.randomness.get_stream(self.name, self)
 
     def on_post_setup(self, event: Event) -> None:
         states_with_initialization_weights = [

@@ -42,7 +42,7 @@ class Movement(Component):
         builder.value.register_attribute_producer(
             "acceleration", source=self.base_acceleration, component=self
         )
-        self.randomness = builder.randomness.get_stream(self.name)
+        self.randomness = builder.randomness.get_stream(self.name, self)
 
     ##################################
     # Pipeline sources and modifiers #

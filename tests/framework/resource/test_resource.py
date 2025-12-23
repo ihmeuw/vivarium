@@ -31,7 +31,10 @@ def test_resource_id() -> None:
         ),
         (ValueModifier(AttributePipeline("baz"), lambda: 1, ColumnCreator()), False),
         (Column("foo", ColumnCreator()), True),
-        (RandomnessStream("bar", lambda: datetime.now(), 1, IndexMap()), False),
+        (
+            RandomnessStream("bar", lambda: datetime.now(), 1, IndexMap(), ColumnCreator()),
+            False,
+        ),
         (NullResource(0, ColumnCreator()), True),
     ],
 )

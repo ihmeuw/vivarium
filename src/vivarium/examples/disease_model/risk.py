@@ -66,7 +66,7 @@ class Risk(Component):
             required_resources=[self.propensity_column, self.exposure_threshold_pipeline],
             component=self,
         )
-        self.randomness = builder.randomness.get_stream(self.risk)
+        self.randomness = builder.randomness.get_stream(self.risk, self)
 
     ########################
     # Event-driven methods #
