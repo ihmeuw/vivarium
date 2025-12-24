@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 from collections.abc import Iterable
-from typing import Any, TypedDict
+from typing import Any
 import pandas as pd
 
 from vivarium import Component
 from vivarium.framework.engine import Builder
-from vivarium.framework.lookup import LookupTable
 from vivarium.framework.state_machine import Machine, State, Transition, Trigger
 from vivarium.framework.utilities import rate_to_probability
 from vivarium.framework.values import list_combiner, union_post_processor
