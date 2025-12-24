@@ -7,7 +7,6 @@ Values System Manager
 
 from __future__ import annotations
 
-import warnings
 from collections.abc import Callable, Iterable, Sequence
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -66,19 +65,21 @@ class ValuesManager(Manager):
 
     def on_post_setup(self, _event: Event) -> None:
         """Finalizes dependency structure for the pipelines."""
-        # Unsourced pipelines might occur when generic components register
-        # modifiers to values that aren't required in a simulation.
-        unsourced_pipelines = [p for p, v in self.items() if not v.source]
-        if unsourced_pipelines:
-            self.logger.warning(f"Unsourced pipelines: {unsourced_pipelines}")
+        for pipeline in self._all_pipelines.values():
+            # Unsourced pipelines might occur when generic components register
+            # modifiers to values that aren't required in a simulation.
+            if not pipeline.source:
+                self.logger.warning(
+                    f"Pipeline {pipeline.name} has no source. It will not be usable."
+                )
+                continue
 
-        # register_value_producer and register_value_modifier record the
-        # dependency structure for the pipeline source and pipeline modifiers,
-        # respectively. We don't have enough information to record the
-        # dependency structure for the pipeline itself until now, where
-        # we say the pipeline value depends on its source and all its
-        # modifiers.
-        for pipeline in self.values():
+            # register_value_producer and register_value_modifier record the
+            # dependency structure for the pipeline source and pipeline modifiers,
+            # respectively. We don't have enough information to record the
+            # dependency structure for the pipeline itself until now, where
+            # we say the pipeline value depends on its source and all its
+            # modifiers.
             self.resources.add_resources(
                 component=pipeline.component,
                 resources=[pipeline],
@@ -89,11 +90,7 @@ class ValuesManager(Manager):
         self,
         value_name: str,
         source: Callable[..., Any],
-        # TODO [MIC-6433]: all calls should have a component
-        component: Component | Manager | None = None,
-        requires_columns: Iterable[str] = (),
-        requires_values: Iterable[str] = (),
-        requires_streams: Iterable[str] = (),
+        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | None = None,
@@ -110,9 +107,6 @@ class ValuesManager(Manager):
             pipeline,
             source,
             component,
-            requires_columns,
-            requires_values,
-            requires_streams,
             required_resources,
             preferred_combiner,
             preferred_post_processor,
@@ -127,6 +121,7 @@ class ValuesManager(Manager):
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: AttributePostProcessor | None = None,
+        source_is_private_column: bool = False,
     ) -> None:
         """Marks a ``Callable`` as the producer of a named attribute.
 
@@ -143,17 +138,14 @@ class ValuesManager(Manager):
             required_resources=required_resources,
             preferred_combiner=preferred_combiner,
             preferred_post_processor=preferred_post_processor,
+            source_is_private_column=source_is_private_column,
         )
 
     def register_value_modifier(
         self,
         value_name: str,
         modifier: Callable[..., Any],
-        # TODO [MIC-6433]: all calls should have a component
-        component: Component | Manager | None = None,
-        requires_columns: Iterable[str] = (),
-        requires_values: Iterable[str] = (),
-        requires_streams: Iterable[str] = (),
+        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Marks a ``Callable`` as the modifier of a named value.
@@ -172,16 +164,6 @@ class ValuesManager(Manager):
             source.
         component
             The component that is registering the value modifier.
-        requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the pipeline modifier
-            is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline modifier is called.
-        requires_streams
-            A list of the randomness streams that need to be properly sourced
-            before the pipeline modifier is called.
         required_resources
             A list of resources that need to be properly sourced before the
             pipeline modifier is called. This is a list of strings, pipelines,
@@ -191,16 +173,13 @@ class ValuesManager(Manager):
             self.get_value(value_name),
             modifier,
             component,
-            requires_columns,
-            requires_values,
-            requires_streams,
             required_resources,
         )
 
     def register_attribute_modifier(
         self,
         value_name: str,
-        modifier: Callable[..., Any],
+        modifier: Callable[..., Any] | str,
         component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
@@ -212,8 +191,10 @@ class ValuesManager(Manager):
             The name of the dynamic attribute pipeline to be modified.
         modifier :
             A function that modifies the source of the dynamic attribute pipeline
-            when called. If the pipeline has a ``replace_combiner``, the
-            modifier must have the same arguments as the pipeline source
+            when called; if a string is passed, it refers to the name of an
+            :class:`~vivarium.framework.values.pipeline.AttributePipeline`.
+            If the pipeline has a ``replace_combiner``, the
+            modifier should accept the same arguments as the pipeline source
             with an additional last positional argument for the results of the
             previous stage in the pipeline. For the ``list_combiner`` strategy,
             the pipeline modifiers should have the same signature as the pipeline
@@ -225,6 +206,7 @@ class ValuesManager(Manager):
             pipeline modifier is called. This is a list of strings, pipelines,
             or randomness streams.
         """
+        modifier = self.get_attribute(modifier) if isinstance(modifier, str) else modifier
         self._configure_modifier(
             self.get_attribute(value_name),
             modifier,
@@ -289,14 +271,40 @@ class ValuesManager(Manager):
         self,
         pipeline: Pipeline | AttributePipeline,
         source: Callable[..., Any] | list[str],
-        component: Component | Manager | None,
-        requires_columns: Iterable[str] = (),
-        requires_values: Iterable[str] = (),
-        requires_streams: Iterable[str] = (),
+        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | AttributePostProcessor | None = None,
+        source_is_private_column: bool = False,
     ) -> None:
+        if isinstance(source, (list, Resource)) and required_resources:
+            self.logger.warning(
+                f"Conflicting information for {pipeline.name}. Ignoring 'required_resources' "
+                f"since the `source` is of type {type(source)} and we can infer "
+                "the required resources directly."
+            )
+            required_resources = source
+        if source_is_private_column:
+            generic_error_msg = (
+                f"Invalid source for {pipeline.name}. When 'source_is_private_column' "
+                "is True, 'source' must be list containinig a single private column name."
+            )
+            error_msg = ""
+            if not isinstance(source, list):
+                error_msg = generic_error_msg + f"Got `source` type {type(source)} instead."
+            elif len(source) != 1:
+                error_msg = generic_error_msg + f"Got {len(source)} names instead."
+            if error_msg:
+                raise ValueError(error_msg)
+
+        if isinstance(source, list) and not source_is_private_column:
+            # convert the list of attribute names to a callable
+            attributes = source
+            source = lambda index: self._population_mgr.get_population(
+                attributes=attributes, index=index
+            )
+        # FIXME [MIC-6703]: convert the source if it's a list if they are private columns
+        # as well. Move the callable from ValueSource._call to here.
         pipeline.set_attributes(
             component,
             source,
@@ -309,14 +317,7 @@ class ValuesManager(Manager):
         # The value will depend on the source and its modifiers, and we'll
         # declare that resource at post-setup once all sources and modifiers
         # are registered.
-        dependencies = self._convert_dependencies(
-            source,
-            component,
-            requires_columns,
-            requires_values,
-            requires_streams,
-            required_resources,
-        )
+        dependencies = self._convert_dependencies(source, component, required_resources)
         self.resources.add_resources(
             component=pipeline.component,
             resources=[pipeline.source],
@@ -336,22 +337,12 @@ class ValuesManager(Manager):
         self,
         pipeline: Pipeline | AttributePipeline,
         modifier: Callable[..., Any],
-        component: Component | Manager | None = None,
-        requires_columns: Iterable[str] = (),
-        requires_values: Iterable[str] = (),
-        requires_streams: Iterable[str] = (),
+        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
         value_modifier = pipeline.get_value_modifier(modifier, component)
         self.logger.debug(f"Registering {value_modifier.name} as modifier to {pipeline.name}")
-        dependencies = self._convert_dependencies(
-            modifier,
-            component,
-            requires_columns,
-            requires_values,
-            requires_streams,
-            required_resources,
-        )
+        dependencies = self._convert_dependencies(modifier, component, required_resources)
         self.resources.add_resources(
             component=component, resources=[value_modifier], dependencies=dependencies
         )
@@ -359,10 +350,7 @@ class ValuesManager(Manager):
     @staticmethod
     def _convert_dependencies(
         source: Callable[..., Any] | list[str],
-        component: Component | Manager | None,
-        requires_columns: Iterable[str],
-        requires_values: Iterable[str],
-        requires_streams: Iterable[str],
+        component: Component | Manager,
         required_resources: Iterable[str | Resource],
     ) -> Iterable[str | Resource]:
         if isinstance(source, Pipeline):
@@ -374,38 +362,7 @@ class ValuesManager(Manager):
             # Attribute pipelines specify their source as a list of columns.
             return [Column(col, component) for col in source]
 
-        if requires_columns or requires_values or requires_streams:
-            warnings.warn(
-                "Specifying requirements individually is deprecated. You should "
-                "specify them using the 'required_resources' argument instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            if required_resources:
-                raise ValueError(
-                    "If requires_columns, requires_values, or requires_streams"
-                    " are provided, requirements must be empty."
-                )
-
-            return (
-                list(requires_columns)
-                + [Resource("value", name, None) for name in requires_values]
-                + [Resource("stream", name, None) for name in requires_streams]
-            )
-        else:
-            return required_resources
-
-    def keys(self) -> Iterable[str]:
-        """Get an iterable of pipeline names."""
-        return self._all_pipelines.keys()
-
-    def items(self) -> Iterable[tuple[str, Pipeline]]:
-        """Get an iterable of name, pipeline tuples."""
-        return self._all_pipelines.items()
-
-    def values(self) -> Iterable[Pipeline]:
-        """Get an iterable of all pipelines."""
-        return self._all_pipelines.values()
+        return required_resources
 
     def __contains__(self, item: str) -> bool:
         return item in self._all_pipelines

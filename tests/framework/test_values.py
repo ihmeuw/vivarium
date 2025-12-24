@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture, MockFixture
 
+from tests.helpers import ColumnCreator
 from vivarium import Component
 from vivarium.framework.engine import SimulationContext
 from vivarium.framework.resource.resource import Column, Resource
@@ -19,6 +20,7 @@ from vivarium.framework.values import (
     Pipeline,
     ValuesManager,
     list_combiner,
+    replace_combiner,
     rescale_post_processor,
     union_post_processor,
 )
@@ -67,40 +69,38 @@ def manager_with_step_size(
 
 
 @pytest.mark.parametrize(
-    "resource_source, expected_dependencies",
+    "source, expected_dependencies",
     [
         (lambda: None, ["foo", "bar"]),
-        (Pipeline("some_pipeline"), [Pipeline("some_pipeline")]),
-        (AttributePipeline("some_attribute"), [AttributePipeline("some_attribute")]),
-        (["qux", "quux"], [Column("qux", None), Column("quux", None)]),
+        (Pipeline("some_pipeline", ColumnCreator()), None),
+        (AttributePipeline("some_attribute", ColumnCreator()), None),
+        (["qux", "quux"], [Column("qux", ColumnCreator()), Column("quux", ColumnCreator())]),
     ],
 )
 def test__convert_dependencies(
-    resource_source: Callable[..., Any] | list[str],
-    expected_dependencies: Iterable[str | Resource],
+    source: Callable[..., Any] | list[str],
+    expected_dependencies: list[str] | list[Resource] | None,
 ) -> None:
     manager = ValuesManager()
     required_resources = ["foo", "bar"]
+    component = source.component if isinstance(source, Component) else ColumnCreator()
     deps = manager._convert_dependencies(
-        source=resource_source,
-        component=None,
-        requires_columns=[],
-        requires_values=[],
-        requires_streams=[],
-        required_resources=required_resources,
+        source=source, component=component, required_resources=required_resources
     )
+    if isinstance(source, Resource):
+        expected_dependencies = [source]
     assert deps == expected_dependencies
 
 
-def test_replace_combiner(manager: ValuesManager) -> None:
-    value = manager.register_value_producer("test", source=lambda: 1)
+def test_replace_combiner(manager: ValuesManager, mocker: MockFixture) -> None:
+    value = manager.register_value_producer("test", source=lambda: 1, component=mocker.Mock())
 
     assert value() == 1
 
-    manager.register_value_modifier("test", modifier=lambda v: 42)
+    manager.register_value_modifier("test", modifier=lambda v: 42, component=mocker.Mock())
     assert value() == 42
 
-    manager.register_value_modifier("test", lambda v: 84)
+    manager.register_value_modifier("test", lambda v: 84, component=mocker.Mock())
     assert value() == 84
 
 
@@ -128,22 +128,23 @@ def test_joint_value(manager: ValuesManager, mocker: MockFixture) -> None:
     assert np.all(value(INDEX) == 0.75)
 
 
-def test_contains(manager: ValuesManager) -> None:
+def test_contains(manager: ValuesManager, mocker: MockFixture) -> None:
     value = "test_value"
     rate = "test_rate"
 
     assert value not in manager
     assert rate not in manager
 
-    manager.register_value_producer("test_value", source=lambda: 1)
+    manager.register_value_producer("test_value", source=lambda: 1, component=mocker.Mock())
     assert value in manager
     assert rate not in manager
 
 
-def test_returned_series_name(manager: ValuesManager) -> None:
+def test_returned_series_name(manager: ValuesManager, mocker: MockFixture) -> None:
     value = manager.register_value_producer(
         "test",
         source=lambda idx: pd.Series(0.0, index=idx),
+        component=mocker.Mock(),
     )
     assert value(INDEX).name == "test"
 
@@ -701,7 +702,7 @@ def test_get_attribute(manager: ValuesManager) -> None:
 def test_duplicate_names_raise(manager: ValuesManager, mocker: MockFixture) -> None:
     """Tests that we raise if we try to register a value and attribute producer with the same name."""
     name = "test1"
-    manager.register_value_producer(name, source=lambda: 1)
+    manager.register_value_producer(name, source=lambda: 1, component=mocker.Mock())
     with pytest.raises(
         DynamicValueError,
         match=re.escape(f"'{name}' is already registered as a value pipeline."),
@@ -719,7 +720,7 @@ def test_duplicate_names_raise(manager: ValuesManager, mocker: MockFixture) -> N
         DynamicValueError,
         match=re.escape(f"'{name}' is already registered as an attribute pipeline."),
     ):
-        manager.register_value_producer(name, source=lambda: 1)
+        manager.register_value_producer(name, source=lambda: 1, component=mocker.Mock())
 
 
 @pytest.mark.parametrize(
@@ -804,6 +805,7 @@ def test_attribute_pipeline_is_simple(
         source=source,
         component=component,
         preferred_post_processor=post_processor,
+        source_is_private_column=isinstance(source, list),
     )
     pipeline = manager.get_attribute_pipelines()["test_attribute"]
     if modifier:
@@ -813,3 +815,99 @@ def test_attribute_pipeline_is_simple(
             "test_attribute", modifier=modifier, component=component
         )
     assert pipeline.is_simple == expected_is_simple
+
+
+def callable_source(idx: pd.Index[int]) -> pd.Series[float]:
+    return pd.Series(1.0, index=idx)
+
+
+@pytest.mark.parametrize(
+    "source, source_is_private_column",
+    [(callable_source, False), (["col1"], True), (["col1", "col2"], False)],
+)
+def test__configure_pipeline_source_types(
+    source: Callable[[pd.Index[int]], pd.Series[float]] | list[str],
+    source_is_private_column: bool,
+    mocker: MockerFixture,
+) -> None:
+    """Test that _configure_pipeline handles different source types correctly."""
+    manager = ValuesManager()
+    manager.resources = mocker.Mock()
+    manager.add_constraint = mocker.Mock()
+    pipeline = AttributePipeline("test_callable")
+    manager._configure_pipeline(
+        pipeline=pipeline,
+        source=source,
+        component=ColumnCreator(),
+        source_is_private_column=source_is_private_column,
+    )
+    # Check that pipeline.set_attributes was called correctly
+    if not source_is_private_column and isinstance(source, list):
+        # lambda functions are hard to compare so let's just check if it got converted
+        # to a callable
+        assert callable(pipeline.source._source)
+    else:
+        assert pipeline.source._source == source
+
+
+@pytest.mark.parametrize(
+    "requested_source, overwrite_resources_required",
+    [
+        (callable_source, False),
+        (["col1", "col2"], True),
+        (Pipeline("some_pipeline"), True),
+    ],
+)
+def test__configure_pipeline_handles_resources(
+    requested_source: Callable[[pd.Index[int]], pd.Series[float]] | list[str] | Pipeline,
+    overwrite_resources_required: bool,
+    mocker: MockerFixture,
+) -> None:
+    """Test that _configure_pipeline overwrites required_resources if necessary."""
+    manager = ValuesManager()
+    manager.resources = mocker.Mock()
+    manager.add_constraint = mocker.Mock()
+    manager.logger = mocker.Mock()
+    pipeline = AttributePipeline("test_callable")
+    required_resources = [Resource("test", "resource_1", None)]
+    manager._configure_pipeline(
+        pipeline=pipeline,
+        source=requested_source,
+        component=mocker.Mock(),
+        required_resources=required_resources,
+    )
+    # extract the "resources" arguemnt from manager.resources.add_resources
+    _, kwargs = manager.resources.add_resources.call_args  # type: ignore[attr-defined]
+    dependencies = kwargs["dependencies"]
+    if overwrite_resources_required:
+        # the required_resources are not used and the source is instead
+        assert (
+            dependencies == [requested_source]
+            if not isinstance(requested_source, list)
+            else requested_source
+        )
+    else:
+        assert dependencies == required_resources
+
+
+@pytest.mark.parametrize(
+    "source, error_msg",
+    [
+        (callable_source, "Got `source` type"),
+        (["col1", "col2"], "Got 2 names instead."),
+    ],
+)
+def test__configure_pipeline_raises(
+    source: Callable[[pd.Index[int]], pd.Series[float]] | list[str],
+    error_msg: str,
+    mocker: MockFixture,
+) -> None:
+    manager = ValuesManager()
+    pipeline = AttributePipeline("test_callable")
+    with pytest.raises(ValueError, match=error_msg):
+        manager._configure_pipeline(
+            pipeline=pipeline,
+            source=source,
+            component=mocker.Mock(),
+            source_is_private_column=True,
+        )

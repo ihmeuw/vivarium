@@ -12,6 +12,7 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 
+from tests.helpers import ColumnCreator
 from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
@@ -34,6 +35,7 @@ def test_basic_repeatability(initializes_crn_attributes: bool) -> None:
             "clock": Callable[[], pd.Timestamp],
             "seed": str,
             "index_map": IndexMap,
+            "component": Component,
             "initializes_crn_attributes": bool,
         },
         total=False,
@@ -44,6 +46,7 @@ def test_basic_repeatability(initializes_crn_attributes: bool) -> None:
         "clock": lambda: pd.Timestamp("2020-01-01"),
         "seed": "abc",
         "index_map": index_map,
+        "component": ColumnCreator(),
         "initializes_crn_attributes": initializes_crn_attributes,
     }
 
@@ -102,9 +105,10 @@ class BasePopulation(Component):
         self.register = builder.randomness.register_simulants
         self.randomness_init = builder.randomness.get_stream(
             "crn_init",
+            self,
             initializes_crn_attributes=self.with_crn,
         )
-        self.randomness_other = builder.randomness.get_stream("other")
+        self.randomness_other = builder.randomness.get_stream("other", self)
         self.simulant_creator = builder.population.get_simulant_creator()
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:

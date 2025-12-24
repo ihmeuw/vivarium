@@ -42,7 +42,7 @@ class NonCRNTestPopulation(Component):
     def setup(self, builder: Builder) -> None:
         self.config = builder.configuration
         self.randomness = builder.randomness.get_stream(
-            "population_age_fuzz", initializes_crn_attributes=True
+            "population_age_fuzz", self, initializes_crn_attributes=True
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
@@ -79,7 +79,7 @@ class TestPopulation(NonCRNTestPopulation):
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
         self.age_randomness = builder.randomness.get_stream(
-            "age_initialization", initializes_crn_attributes=True
+            "age_initialization", self, initializes_crn_attributes=True
         )
         self.register = builder.randomness.register_simulants
 
@@ -255,12 +255,22 @@ def get_randomness(
     clock: Callable[[], pd.Timestamp | datetime | int] = lambda: pd.Timestamp(1990, 7, 2),
     seed: int = 12345,
     initializes_crn_attributes: bool = False,
+    component: Component | None = None,
 ) -> RandomnessStream:
+    if component is None:
+        # Create a simple mock component for testing
+        class _MockComponent(Component):
+            @property
+            def name(self) -> str:
+                return "mock_component"
+
+        component = _MockComponent()
     return RandomnessStream(
         key,
         clock,
         seed=seed,
         index_map=IndexMap(),
+        component=component,
         initializes_crn_attributes=initializes_crn_attributes,
     )
 

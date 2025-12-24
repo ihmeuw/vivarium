@@ -90,9 +90,6 @@ class PopulationInterface(Interface):
         self,
         component: Component | Manager,
         creates_columns: str | Sequence[str] = (),
-        requires_columns: str | Sequence[str] = (),
-        requires_values: str | Sequence[str] = (),
-        requires_streams: str | Sequence[str] = (),
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Marks a source of initial state information for new simulants.
@@ -105,16 +102,6 @@ class PopulationInterface(Interface):
         creates_columns
             The state table columns that the given initializer
             provides the initial state information for.
-        requires_columns
-            The state table columns that already need to be present
-            and populated in the state table before the provided initializer
-            is called.
-        requires_values
-            The value pipelines that need to be properly sourced
-            before the provided initializer is called.
-        requires_streams
-            The randomness streams necessary to initialize the
-            simulant attributes.
         required_resources
             The resources that the initializer requires to run. Strings are
             interpreted as column names, and Pipelines and RandomnessStreams
@@ -123,9 +110,6 @@ class PopulationInterface(Interface):
         self._manager.register_simulant_initializer(
             component,
             creates_columns,
-            requires_columns,
-            requires_values,
-            requires_streams,
             required_resources,
         )
 

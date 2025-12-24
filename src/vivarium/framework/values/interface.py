@@ -46,11 +46,7 @@ class ValuesInterface(Interface):
         self,
         value_name: str,
         source: Callable[..., Any],
-        # TODO [MIC-6433]: all calls should have a component
-        component: Component | Manager | None = None,
-        requires_columns: Iterable[str] = (),
-        requires_values: Iterable[str] = (),
-        requires_streams: Iterable[str] = (),
+        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | None = None,
@@ -65,16 +61,6 @@ class ValuesInterface(Interface):
             A callable source for the dynamic value pipeline.
         component
             The component that is registering the value producer.
-        requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the pipeline source
-            is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline source is called.
-        requires_streams
-            A list of the randomness streams that need to be properly sourced
-            before the pipeline source is called.
         required_resources
             A list of resources that need to be properly sourced before the
             pipeline source is called. This is a list of strings, pipelines,
@@ -100,9 +86,6 @@ class ValuesInterface(Interface):
             value_name,
             source,
             component,
-            requires_columns,
-            requires_values,
-            requires_streams,
             required_resources,
             preferred_combiner,
             preferred_post_processor,
@@ -116,6 +99,7 @@ class ValuesInterface(Interface):
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: AttributePostProcessor | None = None,
+        source_is_private_column: bool = False,
     ) -> None:
         """Marks a ``Callable`` as the producer of a named attribute.
 
@@ -124,8 +108,10 @@ class ValuesInterface(Interface):
         value_name
             The name of the new dynamic attribute pipeline.
         source
-            The source for the dynamic attribute pipeline. This can be a callable
-            or a list of private column names created by this component.
+            The source for the dynamic attribute pipeline. This can be a callable,
+            a list containing a single name of a private column created by this
+            component, or a list of population attributes. If a private column name
+            is passed, `source_is_private_column` must also be set to True.
         component
             The component that is registering the attribute producer.
         required_resources
@@ -144,6 +130,9 @@ class ValuesInterface(Interface):
             and ``union_post_processor`` which are importable from
             ``vivarium.framework.values``. Client code may define additional
             strategies as necessary.
+        source_is_private_column
+            Whether or not the source is the name of a private column created by
+            this component.
         """
         self._manager.register_attribute_producer(
             value_name,
@@ -152,6 +141,7 @@ class ValuesInterface(Interface):
             required_resources,
             preferred_combiner,
             preferred_post_processor,
+            source_is_private_column,
         )
 
     def register_rate_producer(
@@ -198,20 +188,16 @@ class ValuesInterface(Interface):
         self,
         value_name: str,
         modifier: Callable[..., Any],
-        # TODO [MIC-6433]: all calls should have a component
-        component: Component | Manager | None = None,
-        requires_columns: Iterable[str] = (),
-        requires_values: Iterable[str] = (),
-        requires_streams: Iterable[str] = (),
+        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Marks a ``Callable`` as the modifier of a named value.
 
         Parameters
         ----------
-        value_name :
+        value_name
             The name of the dynamic value pipeline to be modified.
-        modifier :
+        modifier
             A function that modifies the source of the dynamic value pipeline
             when called. If the pipeline has a ``replace_combiner``, the
             modifier must have the same arguments as the pipeline source
@@ -221,35 +207,19 @@ class ValuesInterface(Interface):
             source.
         component
             The component that is registering the value modifier.
-        requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the pipeline modifier
-            is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline modifier is called.
-        requires_streams
-            A list of the randomness streams that need to be properly sourced
-            before the pipeline modifier is called.
         required_resources
             A list of resources that need to be properly sourced before the
             pipeline modifier is called. This is a list of strings, pipelines,
             or randomness streams.
         """
         self._manager.register_value_modifier(
-            value_name,
-            modifier,
-            component,
-            requires_columns,
-            requires_values,
-            requires_streams,
-            required_resources,
+            value_name, modifier, component, required_resources
         )
 
     def register_attribute_modifier(
         self,
         value_name: str,
-        modifier: Callable[..., Any],
+        modifier: Callable[..., Any] | str,
         component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
@@ -257,11 +227,13 @@ class ValuesInterface(Interface):
 
         Parameters
         ----------
-        value_name :
+        value_name
             The name of the dynamic attribute pipeline to be modified.
-        modifier :
+        modifier
             A function that modifies the source of the dynamic attribute pipeline
-            when called. If the pipeline has a ``replace_combiner``, the
+            when called; if a string is passed, it refers to the name of an
+            :class:`~vivarium.framework.values.pipeline.AttributePipeline`.
+            If the pipeline has a ``replace_combiner``, the
             modifier should accept the same arguments as the pipeline source
             with an additional last positional argument for the results of the
             previous stage in the pipeline. For the ``list_combiner`` strategy,
