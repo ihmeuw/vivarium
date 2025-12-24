@@ -30,7 +30,6 @@ exclude = [
     'build',
     # Files below here should have their errors fixed and then be removed from this list
     # You will need to remove the mypy: ignore-errors comment from the file heading as well
-    'setup.py',
 ]
 
 disable_error_code = []
