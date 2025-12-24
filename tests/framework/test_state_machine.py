@@ -93,14 +93,6 @@ def test_initialize_with_array_initialization_weights(
         {"population": {"population_size": 10000}, "randomness ": {"key_columns": []}}
     )
 
-    class TestMachine(Machine):
-        @property
-        def initialization_requirements(self) -> list[str | Resource]:
-            # FIXME - MIC-5408: We shouldn't need to specify the columns in the
-            #  lookup tables here, since the component can't know what will be
-            #  specified by the states or the configuration.
-            return ["test_column_1"]
-
     def initialization_weights(key: str) -> DataInput:
         weights = {
             "artifact": key,
@@ -112,7 +104,7 @@ def test_initialize_with_array_initialization_weights(
 
     state_a = State("a", initialization_weights=initialization_weights("state_a.weights"))
     state_b = State("b", initialization_weights=initialization_weights("state_b.weights"))
-    machine = TestMachine("state", states=[state_a, state_b])
+    machine = Machine("state", states=[state_a, state_b])
     simulation = InteractiveContext(
         components=[machine, ColumnCreator()], configuration=config, setup=False
     )
