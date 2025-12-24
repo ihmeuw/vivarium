@@ -31,12 +31,6 @@ exclude = [
     # Files below here should have their errors fixed and then be removed from this list
     # You will need to remove the mypy: ignore-errors comment from the file heading as well
     'setup.py',
-    #'src/vivarium/examples/disease_model/disease.py',
-    #'src/vivarium/examples/disease_model/intervention.py',
-    #'src/vivarium/examples/disease_model/mortality.py',
-    #'src/vivarium/examples/disease_model/observer.py',
-    #'src/vivarium/examples/disease_model/population.py',
-    #'src/vivarium/examples/disease_model/risk.py',
 ]
 
 disable_error_code = []
