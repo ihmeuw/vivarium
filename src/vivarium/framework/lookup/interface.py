@@ -14,6 +14,7 @@ from typing import Any, overload
 
 import pandas as pd
 
+from vivarium.component import Component
 from vivarium.framework.lookup.manager import LookupTableManager
 from vivarium.framework.lookup.table import LookupTable
 from vivarium.manager import Interface
@@ -37,7 +38,9 @@ class LookupTableInterface(Interface):
     @overload
     def build_table(
         self,
+        component: Component,
         data: LookupTableData,
+        name: str = "",
         value_columns: str | None = None,
     ) -> LookupTable[pd.Series[Any]]:
         ...
@@ -45,14 +48,18 @@ class LookupTableInterface(Interface):
     @overload
     def build_table(
         self,
+        component: Component,
         data: LookupTableData,
+        name: str = "",
         value_columns: list[str] | tuple[str, ...] = ...,
     ) -> LookupTable[pd.DataFrame]:
         ...
 
     def build_table(
         self,
+        component: Component,
         data: LookupTableData,
+        name: str = "",
         value_columns: list[str] | tuple[str, ...] | str | None = None,
     ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
         """Construct a LookupTable from input data.
@@ -78,9 +85,13 @@ class LookupTableInterface(Interface):
 
         Parameters
         ----------
+        component
+            The component that is building the LookupTable.
         data
             The source data which will be used to build the resulting
             :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`.
+        name
+            The name of the table. If not provided, a generic name will be assigned.
         value_columns
             The name(s) of the column(s) in the data to return when
             the table is called.
@@ -89,4 +100,4 @@ class LookupTableInterface(Interface):
         -------
             LookupTable
         """
-        return self._manager.build_table(data, value_columns)
+        return self._manager.build_table(component, data, name, value_columns)
