@@ -12,9 +12,16 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
-from vivarium.framework.resource.resource import Column, Resource
+from vivarium.framework.resource import Resource
 from vivarium.framework.values.combiners import ValueCombiner, replace_combiner
-from vivarium.framework.values.pipeline import AttributePipeline, DynamicValueError, Pipeline
+from vivarium.framework.values.pipeline import (
+    AttributePipeline,
+    AttributesValueSource,
+    DynamicValueError,
+    Pipeline,
+    PrivateColumnValueSource,
+    ValueSource,
+)
 from vivarium.framework.values.post_processors import AttributePostProcessor, PostProcessor
 from vivarium.manager import Manager
 
@@ -50,8 +57,8 @@ class ValuesManager(Manager):
         self.simulant_step_sizes = builder.time.simulant_step_sizes()
         builder.event.register_listener("post_setup", self.on_post_setup)
 
-        self.resources = builder.resources
-        self.add_constraint = builder.lifecycle.add_constraint
+        self._add_resources = builder.resources.add_resources
+        self._add_constraint = builder.lifecycle.add_constraint
 
         builder.lifecycle.add_constraint(
             self.register_value_producer, allow_during=[lifecycle_states.SETUP]
@@ -80,7 +87,7 @@ class ValuesManager(Manager):
             # dependency structure for the pipeline itself until now, where
             # we say the pipeline value depends on its source and all its
             # modifiers.
-            self.resources.add_resources(
+            self._add_resources(
                 component=pipeline.component,
                 resources=[pipeline],
                 dependencies=[pipeline.source] + list(pipeline.mutators),
@@ -277,54 +284,34 @@ class ValuesManager(Manager):
         preferred_post_processor: PostProcessor | AttributePostProcessor | None = None,
         source_is_private_column: bool = False,
     ) -> None:
-        if isinstance(source, (list, Resource)) and required_resources:
-            self.logger.warning(
-                f"Conflicting information for {pipeline.name}. Ignoring 'required_resources' "
-                f"since the `source` is of type {type(source)} and we can infer "
-                "the required resources directly."
-            )
-            required_resources = source
+        value_source: ValueSource
         if source_is_private_column:
-            generic_error_msg = (
-                f"Invalid source for {pipeline.name}. When 'source_is_private_column' "
-                "is True, 'source' must be list containinig a single private column name."
+            value_source = PrivateColumnValueSource(
+                pipeline, source, component, required_resources
             )
-            error_msg = ""
-            if not isinstance(source, list):
-                error_msg = generic_error_msg + f"Got `source` type {type(source)} instead."
-            elif len(source) != 1:
-                error_msg = generic_error_msg + f"Got {len(source)} names instead."
-            if error_msg:
-                raise ValueError(error_msg)
+        elif isinstance(source, list):
+            value_source = AttributesValueSource(
+                pipeline, source, component, required_resources
+            )
+        else:
+            value_source = ValueSource(pipeline, source, component, required_resources)
 
-        if isinstance(source, list) and not source_is_private_column:
-            # convert the list of attribute names to a callable
-            attributes = source
-            source = lambda index: self._population_mgr.get_population(
-                attributes=attributes, index=index
-            )
-        # FIXME [MIC-6703]: convert the source if it's a list if they are private columns
-        # as well. Move the callable from ValueSource._call to here.
         pipeline.set_attributes(
-            component,
-            source,
-            preferred_combiner,
-            preferred_post_processor,  # type: ignore[arg-type]
-            self,
+            component=component,
+            source=value_source,
+            combiner=preferred_combiner,
+            post_processor=preferred_post_processor,  # type: ignore[arg-type]
+            manager=self,
         )
 
         # The resource we add here is just the pipeline source.
-        # The value will depend on the source and its modifiers, and we'll
-        # declare that resource at post-setup once all sources and modifiers
-        # are registered.
-        dependencies = self._convert_dependencies(source, component, required_resources)
-        self.resources.add_resources(
+        self._add_resources(
             component=pipeline.component,
             resources=[pipeline.source],
-            dependencies=dependencies,
+            dependencies=pipeline.source.required_resources,
         )
 
-        self.add_constraint(
+        self._add_constraint(
             pipeline._call,
             restrict_during=[
                 lifecycle_states.INITIALIZATION,
@@ -342,27 +329,16 @@ class ValuesManager(Manager):
     ) -> None:
         value_modifier = pipeline.get_value_modifier(modifier, component)
         self.logger.debug(f"Registering {value_modifier.name} as modifier to {pipeline.name}")
-        dependencies = self._convert_dependencies(modifier, component, required_resources)
-        self.resources.add_resources(
-            component=component, resources=[value_modifier], dependencies=dependencies
+        if isinstance(modifier, Resource) and required_resources:
+            self.logger.warning(
+                f"Conflicting information for {pipeline.name}. Ignoring 'required_resources' "
+                f"since the `modifier` is of type {type(modifier)} and we can infer "
+                "the required resources directly."
+            )
+            required_resources = [modifier]
+        self._add_resources(
+            component=component, resources=[value_modifier], dependencies=required_resources
         )
-
-    @staticmethod
-    def _convert_dependencies(
-        source: Callable[..., Any] | list[str],
-        component: Component | Manager,
-        required_resources: Iterable[str | Resource],
-    ) -> Iterable[str | Resource]:
-        if isinstance(source, Pipeline):
-            # The dependencies of the pipeline itself will have been declared
-            # when the pipeline was registered.
-            return [source]
-
-        if isinstance(source, list):
-            # Attribute pipelines specify their source as a list of columns.
-            return [Column(col, component) for col in source]
-
-        return required_resources
 
     def __contains__(self, item: str) -> bool:
         return item in self._all_pipelines

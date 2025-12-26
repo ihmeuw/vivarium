@@ -399,7 +399,7 @@ def test_attribute_pipelines_from_columns_created() -> None:
     for column in component.columns_created:
         pipeline = sim._builder.value.get_attribute(column)
         assert pipeline.name == column
-        assert pipeline.source._source == [column]
         assert pipeline.mutators == []
         attributes = pipeline(idx)
         assert attributes.equals(pd.Series([i % 3 for i in idx], index=idx))
+        assert attributes.name == column
