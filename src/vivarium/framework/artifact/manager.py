@@ -21,6 +21,7 @@ from vivarium.framework.artifact import ArtifactException
 from vivarium.framework.artifact.artifact import Artifact
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.manager import Interface, Manager
+from vivarium.types import LookupTableData
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
@@ -114,7 +115,7 @@ class ArtifactManager(Manager):
 
     def value_columns(
         self,
-    ) -> Callable[[str | pd.DataFrame | dict[str, list[ScalarValue] | list[str]]], list[str]]:
+    ) -> Callable[[LookupTableData | str], list[str] | str]:
         """Returns a function that returns the value columns for the given input.
 
         The function can be called with either a string or a pandas DataFrame.
@@ -127,7 +128,7 @@ class ArtifactManager(Manager):
         -------
             A function that returns the value columns for the given input.
         """
-        return lambda _: [self._default_value_column]
+        return lambda _: self._default_value_column
 
     def __repr__(self) -> str:
         return "ArtifactManager()"
