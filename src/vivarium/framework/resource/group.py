@@ -66,9 +66,6 @@ class ResourceGroup:
     @property
     def initializer(self) -> Callable[[SimulantData], None]:
         """The method that initializes this group of resources."""
-        # TODO [MIC-6433]: all resource groups should have a component
-        if not self.component:
-            raise ResourceError(f"Resource group {self} does not have an initializer.")
         return self.component.on_initialize_simulants
 
     @property

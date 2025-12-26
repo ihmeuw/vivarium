@@ -31,7 +31,7 @@ class Population(Component):
 
     def setup(self, builder: Builder) -> None:
         self.colors = builder.configuration.population.colors
-        self.randomness = builder.randomness.get_stream(self.name)
+        self.randomness = builder.randomness.get_stream(self.name, self)
 
     ########################
     # Event-driven methods #
