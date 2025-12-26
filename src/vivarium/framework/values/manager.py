@@ -7,7 +7,6 @@ Values System Manager
 
 from __future__ import annotations
 
-import warnings
 from collections.abc import Callable, Iterable, Sequence
 from typing import TYPE_CHECKING, Any, TypeVar
 
@@ -66,19 +65,21 @@ class ValuesManager(Manager):
 
     def on_post_setup(self, _event: Event) -> None:
         """Finalizes dependency structure for the pipelines."""
-        # Unsourced pipelines might occur when generic components register
-        # modifiers to values that aren't required in a simulation.
-        unsourced_pipelines = [p for p, v in self.items() if not v.source]
-        if unsourced_pipelines:
-            self.logger.warning(f"Unsourced pipelines: {unsourced_pipelines}")
+        for pipeline in self._all_pipelines.values():
+            # Unsourced pipelines might occur when generic components register
+            # modifiers to values that aren't required in a simulation.
+            if not pipeline.source:
+                self.logger.warning(
+                    f"Pipeline {pipeline.name} has no source. It will not be usable."
+                )
+                continue
 
-        # register_value_producer and register_value_modifier record the
-        # dependency structure for the pipeline source and pipeline modifiers,
-        # respectively. We don't have enough information to record the
-        # dependency structure for the pipeline itself until now, where
-        # we say the pipeline value depends on its source and all its
-        # modifiers.
-        for pipeline in self.values():
+            # register_value_producer and register_value_modifier record the
+            # dependency structure for the pipeline source and pipeline modifiers,
+            # respectively. We don't have enough information to record the
+            # dependency structure for the pipeline itself until now, where
+            # we say the pipeline value depends on its source and all its
+            # modifiers.
             self.resources.add_resources(
                 component=pipeline.component,
                 resources=[pipeline],
@@ -89,8 +90,7 @@ class ValuesManager(Manager):
         self,
         value_name: str,
         source: Callable[..., Any],
-        # TODO [MIC-6433]: all calls should have a component
-        component: Component | Manager | None = None,
+        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | None = None,
@@ -145,8 +145,7 @@ class ValuesManager(Manager):
         self,
         value_name: str,
         modifier: Callable[..., Any],
-        # TODO [MIC-6433]: all calls should have a component
-        component: Component | Manager | None = None,
+        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Marks a ``Callable`` as the modifier of a named value.
@@ -272,7 +271,7 @@ class ValuesManager(Manager):
         self,
         pipeline: Pipeline | AttributePipeline,
         source: Callable[..., Any] | list[str],
-        component: Component | Manager | None,
+        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | AttributePostProcessor | None = None,
@@ -338,7 +337,7 @@ class ValuesManager(Manager):
         self,
         pipeline: Pipeline | AttributePipeline,
         modifier: Callable[..., Any],
-        component: Component | Manager | None = None,
+        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
         value_modifier = pipeline.get_value_modifier(modifier, component)
@@ -351,7 +350,7 @@ class ValuesManager(Manager):
     @staticmethod
     def _convert_dependencies(
         source: Callable[..., Any] | list[str],
-        component: Component | Manager | None,
+        component: Component | Manager,
         required_resources: Iterable[str | Resource],
     ) -> Iterable[str | Resource]:
         if isinstance(source, Pipeline):
@@ -364,18 +363,6 @@ class ValuesManager(Manager):
             return [Column(col, component) for col in source]
 
         return required_resources
-
-    def keys(self) -> Iterable[str]:
-        """Get an iterable of pipeline names."""
-        return self._all_pipelines.keys()
-
-    def items(self) -> Iterable[tuple[str, Pipeline]]:
-        """Get an iterable of name, pipeline tuples."""
-        return self._all_pipelines.items()
-
-    def values(self) -> Iterable[Pipeline]:
-        """Get an iterable of all pipelines."""
-        return self._all_pipelines.values()
 
     def __contains__(self, item: str) -> bool:
         return item in self._all_pipelines

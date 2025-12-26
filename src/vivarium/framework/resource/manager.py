@@ -77,8 +77,7 @@ class ResourceManager(Manager):
 
     def add_resources(
         self,
-        # TODO [MIC-6433]: all resource groups should have a component
-        component: Component | Manager | None,
+        component: Component | Manager,
         resources: Iterable[str | Resource],
         dependencies: Iterable[str | Resource],
     ) -> None:
@@ -103,21 +102,16 @@ class ResourceManager(Manager):
         for resource_id, resource in resource_group.resources.items():
             if resource_id in self._resource_group_map:
                 other_resource = self._resource_group_map[resource_id]
-                # TODO [MIC-6433]: all resource groups should have a component
-                resource_component = resource.component.name if resource.component else None
-                other_resource_component = (
-                    other_resource.component.name if other_resource.component else None
-                )
                 raise ResourceError(
-                    f"Component '{resource_component}' is attempting to register"
+                    f"Component '{resource.component.name}' is attempting to register"
                     f" resource '{resource_id}' but it is already registered by"
-                    f" '{other_resource_component}'."
+                    f" '{other_resource.component.name}'."
                 )
             self._resource_group_map[resource_id] = resource_group
 
     def _get_resource_group(
         self,
-        component: Component | Manager | None,
+        component: Component | Manager,
         resources: Iterable[str | Resource],
         dependencies: Iterable[str | Resource],
     ) -> ResourceGroup:
@@ -144,13 +138,11 @@ class ResourceManager(Manager):
             resources_ = [NullResource(self._null_producer_count, component)]
             self._null_producer_count += 1
 
-        # TODO [MIC-6433]: all resource groups should have a component
-        if component and (
-            have_other_component := [res for res in resources_ if res.component != component]
-        ):
+        if have_other_component := [res for res in resources_ if res.component != component]:
             raise ResourceError(
-                f"All initialized resources must have the component '{component.name}'."
-                f" The following resources have a different component: {have_other_component}"
+                "All initialized resources in this resource group must have the"
+                f" component '{component.name}'. The following resources have a different"
+                f" component: {have_other_component}"
             )
 
         return ResourceGroup(resources_, dependencies_)
