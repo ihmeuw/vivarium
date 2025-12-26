@@ -145,6 +145,9 @@ configuration by simply printing it.
             model_override: 0.0114
         life_expectancy:
             model_override: 88.9
+        data_sources:
+            mortality_rate:
+                component_configs: 0.01
     lower_respiratory_infections:
         incidence_rate:
             model_override: 0.871
