@@ -43,8 +43,7 @@ class ResourceInterface(Interface):
 
     def add_resources(
         self,
-        # TODO [MIC-5452]: all resource groups should have a component
-        component: Component | Manager | None,
+        component: Component | Manager,
         resources: Iterable[str | Resource],
         dependencies: Iterable[str | Resource],
     ) -> None:

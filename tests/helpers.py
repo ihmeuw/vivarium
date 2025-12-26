@@ -352,7 +352,7 @@ class ColumnCreatorAndRequirer(Component):
 
     def setup(self, builder: Builder) -> None:
         self.pipeline = builder.value.get_value("pipeline_1")
-        self.randomness = builder.randomness.get_stream("stream_1")
+        self.randomness = builder.randomness.get_stream("stream_1", self)
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         initialization_data = pd.DataFrame({"test_column_4": 8}, index=pop_data.index)

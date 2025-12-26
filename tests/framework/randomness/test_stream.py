@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from layered_config_tree import LayeredConfigTree
+from pytest_mock import MockerFixture
 from scipy import stats
 from vivarium_testing_utils import FuzzyChecker
 
@@ -21,7 +22,7 @@ from vivarium.framework.randomness.stream import (
 
 
 @pytest.fixture
-def randomness_stream() -> RandomnessStream:
+def randomness_stream(mocker: MockerFixture) -> RandomnessStream:
     # Provide different dates to each fixture to ensure independence
     dates = [
         pd.Timestamp(1991, 1, 1),
@@ -30,7 +31,7 @@ def randomness_stream() -> RandomnessStream:
         pd.Timestamp(1988, 1, 1),
         pd.Timestamp(1987, 1, 1),
     ]
-    randomness = RandomnessStream("test", dates.pop, 1, IndexMap())
+    randomness = RandomnessStream("test", dates.pop, 1, IndexMap(), mocker.Mock())
     return randomness
 
 
@@ -267,10 +268,13 @@ def test_sample_from_distribution_bad_args(
     ],
 )
 def test_sample_from_distribution_using_scipy(
-    index: pd.Index[int], distribution: stats.rv_continuous, params: dict[str, int]
+    mocker: MockerFixture,
+    index: pd.Index[int],
+    distribution: stats.rv_continuous,
+    params: dict[str, int],
 ) -> None:
     randomness_stream = RandomnessStream(
-        "test", lambda: pd.Timestamp(2020, 1, 1), 1, IndexMap()
+        "test", lambda: pd.Timestamp(2020, 1, 1), 1, IndexMap(), mocker.Mock()
     )
     draws = randomness_stream.get_draw(index, "some_key")
     expected = distribution.ppf(draws, **params)
@@ -284,7 +288,9 @@ def test_sample_from_distribution_using_scipy(
     assert np.allclose(sample, expected)
 
 
-def test_sample_from_distribution_using_ppf(index: pd.Index[int]) -> None:
+def test_sample_from_distribution_using_ppf(
+    mocker: MockerFixture, index: pd.Index[int]
+) -> None:
     def silly_ppf(x: pd.Series[Any], **kwargs: Any) -> pd.Series[Any]:
         add = kwargs["add"]
         mult = kwargs["mult"]
@@ -293,7 +299,7 @@ def test_sample_from_distribution_using_ppf(index: pd.Index[int]) -> None:
         return output
 
     randomness_stream = RandomnessStream(
-        "test", lambda: pd.Timestamp(2020, 1, 1), 1, IndexMap()
+        "test", lambda: pd.Timestamp(2020, 1, 1), 1, IndexMap(), mocker.Mock()
     )
     draws = randomness_stream.get_draw(index, "some_key")
     expected = 2 * (draws**2) + 1
