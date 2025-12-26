@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from vivarium.framework.lifecycle import LifeCycleError
@@ -16,17 +15,7 @@ class Resource:
     def __init__(
         self, resource_type: str, name: str, component: Component | Manager | None
     ) -> None:
-        """Create a new resource.
-
-        Parameters
-        ----------
-        resource_type
-            The type of the resource.
-        name
-            The name of the resource.
-        component
-            The component or manager that produces this resource.
-        """
+        """Create a new resource."""
         self.resource_type = resource_type
         """The type of the resource."""
         self.name = name
@@ -57,7 +46,7 @@ class Resource:
 class NullResource(Resource):
     """A node in the dependency graph that does not produce any resources."""
 
-    def __init__(self, index: int, component: Component | Manager):
+    def __init__(self, index: int, component: Component | Manager) -> None:
         super().__init__("null", f"{index}", component)
 
     @property
