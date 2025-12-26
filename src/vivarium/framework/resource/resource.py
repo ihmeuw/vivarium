@@ -17,15 +17,6 @@ class Resource:
         self, resource_type: str, name: str, component: Component | Manager | None
     ) -> None:
         """Create a new resource.
-
-        Parameters
-        ----------
-        resource_type
-            The type of the resource.
-        name
-            The name of the resource.
-        component
-            The component or manager that produces this resource.
         """
         self.resource_type = resource_type
         """The type of the resource."""
