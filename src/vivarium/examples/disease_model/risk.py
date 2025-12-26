@@ -149,7 +149,7 @@ class RiskEffect(Component):
         return exposure * (relative_risk - 1) / (exposure * (relative_risk - 1) + 1)
 
     def rate_adjustment(self, index: pd.Index[int], rates: pd.Series[float]) -> pd.Series[float]:
-        exposed = self.population_view.get_attributes(index, self.exposure_pipeline))
+        exposed = self.population_view.get_attributes(index, self.exposure_pipeline)
         rr = self.population_view.get_attributes(index, self.relative_risk_pipeline)
         rates[exposed] *= rr[exposed]
         return rates
