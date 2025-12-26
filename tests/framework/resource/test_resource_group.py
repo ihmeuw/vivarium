@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pytest
+from pytest_mock import MockerFixture
 
 from tests.helpers import ColumnCreator
 from vivarium.framework.randomness import RandomnessStream
@@ -11,13 +12,13 @@ from vivarium.framework.resource.resource import Column, NullResource, Resource
 from vivarium.framework.values import AttributePipeline, Pipeline, ValueModifier, ValueSource
 
 
-def test_resource_group() -> None:
+def test_resource_group(mocker: MockerFixture) -> None:
     component = ColumnCreator()
     resources = [Resource("test", f"resource_{i}", component) for i in range(5)]
     r_dependencies = [
         AttributePipeline("an_interesting_attribute", None),
         Pipeline("baz"),
-        RandomnessStream("bar", lambda: datetime.now(), 1, IndexMap()),
+        RandomnessStream("bar", lambda: datetime.now(), 1, IndexMap(), mocker.Mock()),
         ValueSource(Pipeline("foo"), lambda: 1, None),
     ]
 
@@ -39,12 +40,15 @@ def test_resource_group() -> None:
 @pytest.mark.parametrize(
     "resource, has_initializer",
     [
-        (Pipeline("foo"), False),
-        (AttributePipeline("foo"), False),
-        (ValueSource(Pipeline("bar"), lambda: 1, ColumnCreator()), False),
-        (ValueModifier(Pipeline("baz"), lambda: 1, ColumnCreator()), False),
+        (Pipeline("foo", ColumnCreator()), False),
+        (AttributePipeline("foo", ColumnCreator()), False),
+        (ValueSource(Pipeline("bar", ColumnCreator()), lambda: 1, ColumnCreator()), False),
+        (ValueModifier(Pipeline("baz", ColumnCreator()), lambda: 1, ColumnCreator()), False),
         (Column("foo", ColumnCreator()), True),
-        (RandomnessStream("bar", lambda: datetime.now(), 1, IndexMap()), False),
+        (
+            RandomnessStream("bar", lambda: datetime.now(), 1, IndexMap(), ColumnCreator()),
+            False,
+        ),
         (NullResource(0, ColumnCreator()), True),
     ],
 )
