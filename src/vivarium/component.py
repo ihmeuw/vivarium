@@ -742,22 +742,11 @@ class Component(ABC):
         builder
             The builder with which to register the initializer.
         """
-        if isinstance(self.initialization_requirements, list):
-            initialization_requirements = {
-                "required_resources": self.initialization_requirements
-            }
-        else:
-            initialization_requirements = self.initialization_requirements
-            warnings.warn(
-                "The dict format for initialization_requirements is deprecated."
-                " You should use provide a list of the required resources.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
         if type(self).on_initialize_simulants != Component.on_initialize_simulants:
             builder.population.initializes_simulants(
-                self, creates_columns=self.columns_created, **initialization_requirements  # type: ignore[arg-type]
+                self,
+                creates_columns=self.columns_created,
+                required_resources=self.initialization_requirements,
             )
 
     def _register_time_step_prepare_listener(self, builder: Builder) -> None:

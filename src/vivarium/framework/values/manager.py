@@ -91,9 +91,6 @@ class ValuesManager(Manager):
         source: Callable[..., Any],
         # TODO [MIC-6433]: all calls should have a component
         component: Component | Manager | None = None,
-        requires_columns: Iterable[str] = (),
-        requires_values: Iterable[str] = (),
-        requires_streams: Iterable[str] = (),
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | None = None,
@@ -110,9 +107,6 @@ class ValuesManager(Manager):
             pipeline,
             source,
             component,
-            requires_columns,
-            requires_values,
-            requires_streams,
             required_resources,
             preferred_combiner,
             preferred_post_processor,
@@ -153,9 +147,6 @@ class ValuesManager(Manager):
         modifier: Callable[..., Any],
         # TODO [MIC-6433]: all calls should have a component
         component: Component | Manager | None = None,
-        requires_columns: Iterable[str] = (),
-        requires_values: Iterable[str] = (),
-        requires_streams: Iterable[str] = (),
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Marks a ``Callable`` as the modifier of a named value.
@@ -174,16 +165,6 @@ class ValuesManager(Manager):
             source.
         component
             The component that is registering the value modifier.
-        requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the pipeline modifier
-            is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline modifier is called.
-        requires_streams
-            A list of the randomness streams that need to be properly sourced
-            before the pipeline modifier is called.
         required_resources
             A list of resources that need to be properly sourced before the
             pipeline modifier is called. This is a list of strings, pipelines,
@@ -193,9 +174,6 @@ class ValuesManager(Manager):
             self.get_value(value_name),
             modifier,
             component,
-            requires_columns,
-            requires_values,
-            requires_streams,
             required_resources,
         )
 
@@ -295,9 +273,6 @@ class ValuesManager(Manager):
         pipeline: Pipeline | AttributePipeline,
         source: Callable[..., Any] | list[str],
         component: Component | Manager | None,
-        requires_columns: Iterable[str] = (),
-        requires_values: Iterable[str] = (),
-        requires_streams: Iterable[str] = (),
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | AttributePostProcessor | None = None,
@@ -343,14 +318,7 @@ class ValuesManager(Manager):
         # The value will depend on the source and its modifiers, and we'll
         # declare that resource at post-setup once all sources and modifiers
         # are registered.
-        dependencies = self._convert_dependencies(
-            source,
-            component,
-            requires_columns,
-            requires_values,
-            requires_streams,
-            required_resources,
-        )
+        dependencies = self._convert_dependencies(source, component, required_resources)
         self.resources.add_resources(
             component=pipeline.component,
             resources=[pipeline.source],
@@ -371,21 +339,11 @@ class ValuesManager(Manager):
         pipeline: Pipeline | AttributePipeline,
         modifier: Callable[..., Any],
         component: Component | Manager | None = None,
-        requires_columns: Iterable[str] = (),
-        requires_values: Iterable[str] = (),
-        requires_streams: Iterable[str] = (),
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
         value_modifier = pipeline.get_value_modifier(modifier, component)
         self.logger.debug(f"Registering {value_modifier.name} as modifier to {pipeline.name}")
-        dependencies = self._convert_dependencies(
-            modifier,
-            component,
-            requires_columns,
-            requires_values,
-            requires_streams,
-            required_resources,
-        )
+        dependencies = self._convert_dependencies(modifier, component, required_resources)
         self.resources.add_resources(
             component=component, resources=[value_modifier], dependencies=dependencies
         )
@@ -394,9 +352,6 @@ class ValuesManager(Manager):
     def _convert_dependencies(
         source: Callable[..., Any] | list[str],
         component: Component | Manager | None,
-        requires_columns: Iterable[str],
-        requires_values: Iterable[str],
-        requires_streams: Iterable[str],
         required_resources: Iterable[str | Resource],
     ) -> Iterable[str | Resource]:
         if isinstance(source, Pipeline):
@@ -408,26 +363,7 @@ class ValuesManager(Manager):
             # Attribute pipelines specify their source as a list of columns.
             return [Column(col, component) for col in source]
 
-        if requires_columns or requires_values or requires_streams:
-            warnings.warn(
-                "Specifying requirements individually is deprecated. You should "
-                "specify them using the 'required_resources' argument instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            if required_resources:
-                raise ValueError(
-                    "If requires_columns, requires_values, or requires_streams"
-                    " are provided, requirements must be empty."
-                )
-
-            return (
-                list(requires_columns)
-                + [Resource("value", name, None) for name in requires_values]
-                + [Resource("stream", name, None) for name in requires_streams]
-            )
-        else:
-            return required_resources
+        return required_resources
 
     def keys(self) -> Iterable[str]:
         """Get an iterable of pipeline names."""
