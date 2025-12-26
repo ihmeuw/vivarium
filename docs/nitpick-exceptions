@@ -47,7 +47,8 @@ py:exc ResultsConfigurationError
 py:exc vivarium.framework.results.exceptions.ResultsConfigurationError
 py:class vivarium.framework.plugins.M
 py:class vivarium.framework.plugins.I
-py:class vivarium.framework.utilities.T
+py:class vivarium.framework.utilities.TimeValue
+py:class T
 
 # layered_config_tree
 py:class layered_config_tree.main.LayeredConfigTree
