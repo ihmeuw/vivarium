@@ -69,7 +69,7 @@ class NullResource(Resource):
 class Column(Resource):
     """A resource representing a column in the population private data."""
 
-    def __init__(self, name: str, component: Component | Manager):
+    def __init__(self, name: str, component: Component | Manager) -> None:
         super().__init__("column", name, component)
 
     @property
