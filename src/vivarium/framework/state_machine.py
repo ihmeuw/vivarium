@@ -245,6 +245,11 @@ class State(Component):
             self,
         )
 
+    def setup(self, builder: Builder) -> None:
+        self.initialization_weights_table = self.build_lookup_table(
+            builder, "initialization_weights"
+        )
+
     ##################
     # Public methods #
     ##################
