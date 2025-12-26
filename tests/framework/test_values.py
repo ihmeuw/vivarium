@@ -83,12 +83,7 @@ def test__convert_dependencies(
     manager = ValuesManager()
     required_resources = ["foo", "bar"]
     deps = manager._convert_dependencies(
-        source=resource_source,
-        component=None,
-        requires_columns=[],
-        requires_values=[],
-        requires_streams=[],
-        required_resources=required_resources,
+        source=resource_source, component=None, required_resources=required_resources
     )
     assert deps == expected_dependencies
 
