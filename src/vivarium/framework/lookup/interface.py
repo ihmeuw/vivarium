@@ -85,11 +85,13 @@ class LookupTableInterface(Interface):
 
         Parameters
         ----------
+        component
+            The component that is building the LookupTable.
         data
             The source data which will be used to build the resulting
             :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`.
-        component
-            The component that is building the LookupTable.
+        name
+            The name of the table. If not provided, a generic name will be assigned.
         value_columns
             The name(s) of the column(s) in the data to return when
             the table is called.
