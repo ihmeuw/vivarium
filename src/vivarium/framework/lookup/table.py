@@ -316,8 +316,8 @@ class ScalarTable(LookupTable[T]):
 
     def __init__(
         self,
-        component: Component,
         name: str,
+        component: Component,
         data: ScalarValue | list[ScalarValue] | tuple[ScalarValue, ...],
         value_columns: list[str] | tuple[str, ...] | str,
     ):

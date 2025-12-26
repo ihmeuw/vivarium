@@ -122,9 +122,8 @@ class LookupTableManager(Manager):
     ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
         # We don't want to require explicit names for tables, but giving them
         # generic names is useful for introspection.
-        table_number = len(self.tables)
         if not name:
-            name = f"lookup_table_{table_number}"
+            name = f"lookup_table_{len(self.tables)}"
 
         if isinstance(data, Mapping):
             data = pd.DataFrame(data)
@@ -160,7 +159,7 @@ class LookupTableManager(Manager):
                 )
         else:
             table = ScalarTable(
-                component=component, name=name, data=data, value_columns=value_columns_
+                name=name, component=component, data=data, value_columns=value_columns_
             )
 
         self.tables[table.name] = table
