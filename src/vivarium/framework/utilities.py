@@ -17,6 +17,7 @@ from loguru import logger
 
 from vivarium.types import NumberLike, NumericArray, Timedelta
 
+TimeValue = TypeVar("TimeValue", bound=NumberLike)
 
 def from_yearly(value: NumberLike, time_step: Timedelta) -> NumberLike:
     """Rescale a yearly rate to the size of a time step."""

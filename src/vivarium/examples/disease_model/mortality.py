@@ -1,4 +1,6 @@
 # mypy: ignore-errors
+from __future__ import annotations
+
 from typing import Any
 
 import numpy as np
@@ -21,16 +23,11 @@ class Mortality(Component):
         These can be overwritten in the simulation model specification or by
         providing override values when constructing an interactive simulation.
         """
-        return {
-            "mortality": {
-                "mortality_rate": 0.01,
-            }
-        }
+        return {self.name: {"data_sources": {"mortality_rate": 0.01}}}
     
     @property
     def columns_created(self) -> list[str]:
         return ["alive"]
-    
 
     #####################
     # Lifecycle methods #
@@ -49,11 +46,9 @@ class Mortality(Component):
         builder
             Access to simulation tools and subsystems.
         """
-        self.config = builder.configuration.mortality
         self.randomness = builder.randomness.get_stream("mortality")
-
-        builder.value.register_rate_producer(
-            "mortality_rate", source=self.base_mortality_rate, component=self
+        self.mortality_rate = builder.value.register_rate_producer(
+            "mortality_rate", source=self.lookup_tables["mortality_rate"], component=self
         )
 
     ########################
@@ -93,23 +88,3 @@ class Mortality(Component):
         self.population_view.update(
             pd.Series("dead", index=event.index[affected_simulants], name="alive")
         )
-
-
-    ##################################
-    # Pipeline sources and modifiers #
-    ##################################
-
-    def base_mortality_rate(self, index: pd.Index) -> pd.Series:
-        """Computes the base mortality rate for every individual.
-
-        Parameters
-        ----------
-        index
-            A representation of the simulants to compute the base mortality
-            rate for.
-
-        Returns
-        -------
-            The base mortality rate for all simulants in the index.
-        """
-        return pd.Series(self.config.mortality_rate, index=index)
