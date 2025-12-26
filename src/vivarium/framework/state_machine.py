@@ -233,10 +233,16 @@ class State(Component):
         self.initialization_weights = initialization_weights
         self._model: str | None = None
         self._sub_components = [self.transition_set]
+        self.initialization_weights_pipeline = f"{self.state_id}.initialization_weights"
 
     def setup(self, builder: Builder) -> None:
         self.initialization_weights_table = self.build_lookup_table(
             builder, "initialization_weights"
+        )
+        builder.value.register_attribute_producer(
+            self.initialization_weights_pipeline,
+            self.initialization_weights_table,
+            self,
         )
 
     ##################
@@ -546,7 +552,7 @@ class Machine(Component):
 
     @property
     def initialization_requirements(self) -> list[str | Resource]:
-        return [self.randomness]
+        return [self.randomness, *self.initialization_weights_pipelines]
 
     #####################
     # Lifecycle methods #
@@ -562,6 +568,7 @@ class Machine(Component):
         self.states: list[State] = []
         self.state_column = state_column
         self._initial_state = initial_state
+        self.initialization_weights_pipelines: list[str] = []
 
         if states:
             self.add_states(states)
@@ -603,13 +610,12 @@ class Machine(Component):
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         state_ids = [s.state_id for s in self.states]
-        state_weights = pd.concat(
-            [state.initialization_weights_table(pop_data.index) for state in self.states],
-            axis=1,
-        ).to_numpy()
+        state_weights = self.population_view.get_attributes(
+            pop_data.index, self.initialization_weights_pipelines
+        )
 
         initial_states = self.randomness.choice(
-            pop_data.index, state_ids, state_weights, "initialization"
+            pop_data.index, state_ids, state_weights.to_numpy(), "initialization"
         ).rename(self.state_column)
         self.population_view.update(initial_states)
 
@@ -626,6 +632,9 @@ class Machine(Component):
     def add_states(self, states: Iterable[State]) -> None:
         for state in states:
             self.states.append(state)
+            self.initialization_weights_pipelines.append(
+                state.initialization_weights_pipeline
+            )
             state.set_model(self.state_column)
 
     def transition(self, index: pd.Index[int], event_time: ClockTime) -> None:

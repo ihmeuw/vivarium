@@ -10,15 +10,11 @@ simulations.
 from __future__ import annotations
 
 import re
-import warnings
 from abc import ABC
-from collections.abc import Callable, Sequence
-from datetime import datetime, timedelta
+from collections.abc import Sequence
 from importlib import import_module
 from inspect import signature
-from typing import TYPE_CHECKING, Any
-from typing import SupportsFloat as Numeric
-from typing import cast, overload
+from typing import TYPE_CHECKING, Any, overload
 
 import pandas as pd
 from layered_config_tree import ConfigurationError, LayeredConfigTree
@@ -26,7 +22,7 @@ from layered_config_tree import ConfigurationError, LayeredConfigTree
 from vivarium.framework.artifact import ArtifactException
 from vivarium.framework.lifecycle import LifeCycleError, lifecycle_states
 from vivarium.framework.population import PopulationError
-from vivarium.types import LookupTableData, ScalarValue
+from vivarium.types import LookupTableData
 
 if TYPE_CHECKING:
     import loguru
@@ -617,7 +613,9 @@ class Component(ABC):
 
         try:
             data = self.get_data(builder, data_source)
-            return builder.lookup.build_table(data=data, value_columns=value_columns)
+            return builder.lookup.build_table(
+                component=self, data=data, name=name, value_columns=value_columns
+            )
         except ConfigurationError as e:
             raise ConfigurationError(f"Error building lookup table '{name}': {e}")
 

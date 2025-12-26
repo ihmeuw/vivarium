@@ -22,6 +22,7 @@ from typing import overload
 
 import pandas as pd
 
+from vivarium.component import Component
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.lookup.table import (
     DEFAULT_VALUE_COLUMN,
@@ -55,13 +56,17 @@ class LookupTableManager(Manager):
     def name(self) -> str:
         return "lookup_table_manager"
 
+    def __init__(self) -> None:
+        super().__init__()
+        self.tables: dict[str, LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]] = {}
+
     def setup(self, builder: "Builder") -> None:
-        self.tables: dict[int, LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]] = {}
         self._pop_view_builder = builder.population.get_view
         self.clock = builder.time.clock()
         self._interpolation_order = builder.configuration.interpolation.order
         self._extrapolate = builder.configuration.interpolation.extrapolate
         self._validate = builder.configuration.interpolation.validate
+        self._add_resources = builder.resources.add_resources
         self._add_constraint = builder.lifecycle.add_constraint
 
         builder.lifecycle.add_constraint(
@@ -71,7 +76,9 @@ class LookupTableManager(Manager):
     @overload
     def build_table(
         self,
+        component: Component,
         data: LookupTableData,
+        name: str,
         value_columns: str | None,
     ) -> LookupTable[pd.Series[Any]]:
         ...
@@ -79,18 +86,23 @@ class LookupTableManager(Manager):
     @overload
     def build_table(
         self,
+        component: Component,
         data: LookupTableData,
+        name: str,
         value_columns: list[str] | tuple[str, ...],
     ) -> LookupTable[pd.DataFrame]:
         ...
 
     def build_table(
         self,
+        component: Component,
         data: LookupTableData,
+        name: str,
         value_columns: list[str] | tuple[str, ...] | str | None,
     ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
         """Construct a lookup table from input data."""
-        table = self._build_table(data, value_columns)
+        table = self._build_table(component, data, name, value_columns)
+        self._add_resources(component, [table], table.required_resources)
         self._add_constraint(
             table.call,
             restrict_during=[
@@ -103,12 +115,15 @@ class LookupTableManager(Manager):
 
     def _build_table(
         self,
+        component: Component,
         data: LookupTableData,
+        name: str,
         value_columns: list[str] | tuple[str, ...] | str | None,
     ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
         # We don't want to require explicit names for tables, but giving them
         # generic names is useful for introspection.
-        table_number = len(self.tables)
+        if not name:
+            name = f"lookup_table_{len(self.tables)}"
 
         if isinstance(data, Mapping):
             data = pd.DataFrame(data)
@@ -121,7 +136,8 @@ class LookupTableManager(Manager):
             parameter_columns, key_columns = self._get_columns(value_columns_, data)
             if parameter_columns:
                 table = InterpolatedTable(
-                    table_number=table_number,
+                    name=name,
+                    component=component,
                     data=data,
                     population_view_builder=self._pop_view_builder,
                     key_columns=key_columns,
@@ -134,7 +150,8 @@ class LookupTableManager(Manager):
                 )
             else:
                 table = CategoricalTable(
-                    table_number=table_number,
+                    name=name,
+                    component=component,
                     data=data,
                     population_view_builder=self._pop_view_builder,
                     key_columns=key_columns,
@@ -142,10 +159,11 @@ class LookupTableManager(Manager):
                 )
         else:
             table = ScalarTable(
-                table_number=table_number, data=data, value_columns=value_columns_
+                name=name, component=component, data=data, value_columns=value_columns_
             )
 
-        self.tables[table_number] = table
+        self.tables[table.name] = table
+
         return table
 
     def __repr__(self) -> str:
