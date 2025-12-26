@@ -28,8 +28,7 @@ class RandomnessInterface(Interface):
     def get_stream(
         self,
         decision_point: str,
-        # TODO [MIC-5452]: all calls should have a component
-        component: Component | None = None,
+        component: Component,
         initializes_crn_attributes: bool = False,
     ) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
