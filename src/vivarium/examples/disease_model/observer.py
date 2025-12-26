@@ -1,7 +1,5 @@
-# mypy: ignore-errors
 from typing import Any
 
-from layered_config_tree.main import LayeredConfigTree
 import pandas as pd
 
 from vivarium.framework.engine import Builder
@@ -23,7 +21,7 @@ class DeathsObserver(Observer):
         return ["alive"]
     
     @property
-    def columns_created(self) -> list[str] | None:
+    def columns_created(self) -> list[str]:
         return ["previous_alive"]
 
     #################
@@ -61,29 +59,19 @@ class YllsObserver(Observer):
 
     @property
     def configuration_defaults(self) -> dict[str, Any]:
-        return {
-            "mortality": {
-                "life_expectancy": 80,
-            }
-        }
-
+        config = super().configuration_defaults
+        config["mortality"] = {"life_expectancy": 80.0}
+        return config
     #####################
     # Lifecycle methods #
     #####################
 
-    # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
-        self.life_expectancy = builder.configuration.mortality.life_expectancy
+        self.life_expectancy = float(builder.configuration.mortality.life_expectancy)
 
     #################
     # Setup methods #
     #################
-
-    def get_configuration(self, builder: "Builder") -> LayeredConfigTree | None:
-        # Use component configuration
-        if self.name in builder.configuration:
-            return builder.configuration.get_tree(self.name)
-        return None
 
     def register_observations(self, builder: Builder) -> None:
         builder.results.register_adding_observation(
@@ -94,4 +82,4 @@ class YllsObserver(Observer):
         )
 
     def calculate_ylls(self, df: pd.DataFrame) -> float:
-        return (self.life_expectancy - df.loc[df["alive"] == "dead", "age"]).sum()
+        return float((self.life_expectancy - df["age"]).sum())
