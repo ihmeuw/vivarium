@@ -61,20 +61,5 @@ class ArtifactInterface(Interface):
         """
         return self._manager.load(entity_key, **column_filters)
 
-    def value_columns(
-        self,
-    ) -> Callable[[LookupTableData | str], list[str] | str]:
-        """Returns a function that returns the value columns for the given input.
-
-        The function can be called with either a string or a pandas DataFrame.
-        If a string is provided, it is interpreted as an artifact key, and the
-        value columns for the data stored at that key are returned.
-
-        Returns
-        -------
-            A function that returns the value columns for the given input.
-        """
-        return self._manager.value_columns()
-
     def __repr__(self) -> str:
         return "ArtifactManagerInterface()"

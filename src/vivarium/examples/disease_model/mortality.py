@@ -11,7 +11,9 @@ from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 
+
 class Mortality(Component):
+
     ##############
     # Properties #
     ##############
@@ -47,8 +49,8 @@ class Mortality(Component):
             Access to simulation tools and subsystems.
         """
         self.randomness = builder.randomness.get_stream("mortality")
-        self.mortality_rate = builder.value.register_rate_producer(
-            "mortality_rate", source=self.lookup_tables["mortality_rate"], component=self
+        builder.value.register_rate_producer(
+            "mortality_rate", source=self.build_lookup_table(builder, "mortality_rate"), component=self
         )
 
     ########################
