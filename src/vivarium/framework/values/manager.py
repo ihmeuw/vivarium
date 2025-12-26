@@ -127,6 +127,7 @@ class ValuesManager(Manager):
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: AttributePostProcessor | None = None,
+        source_is_private_column: bool = False,
     ) -> None:
         """Marks a ``Callable`` as the producer of a named attribute.
 
@@ -143,6 +144,7 @@ class ValuesManager(Manager):
             required_resources=required_resources,
             preferred_combiner=preferred_combiner,
             preferred_post_processor=preferred_post_processor,
+            source_is_private_column=source_is_private_column,
         )
 
     def register_value_modifier(
@@ -200,7 +202,7 @@ class ValuesManager(Manager):
     def register_attribute_modifier(
         self,
         value_name: str,
-        modifier: Callable[..., Any],
+        modifier: Callable[..., Any] | str,
         component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
@@ -212,8 +214,10 @@ class ValuesManager(Manager):
             The name of the dynamic attribute pipeline to be modified.
         modifier :
             A function that modifies the source of the dynamic attribute pipeline
-            when called. If the pipeline has a ``replace_combiner``, the
-            modifier must have the same arguments as the pipeline source
+            when called; if a string is passed, it refers to the name of an
+            :class:`~vivarium.framework.values.pipeline.AttributePipeline`.
+            If the pipeline has a ``replace_combiner``, the
+            modifier should accept the same arguments as the pipeline source
             with an additional last positional argument for the results of the
             previous stage in the pipeline. For the ``list_combiner`` strategy,
             the pipeline modifiers should have the same signature as the pipeline
@@ -225,6 +229,7 @@ class ValuesManager(Manager):
             pipeline modifier is called. This is a list of strings, pipelines,
             or randomness streams.
         """
+        modifier = self.get_attribute(modifier) if isinstance(modifier, str) else modifier
         self._configure_modifier(
             self.get_attribute(value_name),
             modifier,
@@ -296,7 +301,36 @@ class ValuesManager(Manager):
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | AttributePostProcessor | None = None,
+        source_is_private_column: bool = False,
     ) -> None:
+        if isinstance(source, (list, Resource)) and required_resources:
+            self.logger.warning(
+                f"Conflicting information for {pipeline.name}. Ignoring 'required_resources' "
+                f"since the `source` is of type {type(source)} and we can infer "
+                "the required resources directly."
+            )
+            required_resources = source
+        if source_is_private_column:
+            generic_error_msg = (
+                f"Invalid source for {pipeline.name}. When 'source_is_private_column' "
+                "is True, 'source' must be list containinig a single private column name."
+            )
+            error_msg = ""
+            if not isinstance(source, list):
+                error_msg = generic_error_msg + f"Got `source` type {type(source)} instead."
+            elif len(source) != 1:
+                error_msg = generic_error_msg + f"Got {len(source)} names instead."
+            if error_msg:
+                raise ValueError(error_msg)
+
+        if isinstance(source, list) and not source_is_private_column:
+            # convert the list of attribute names to a callable
+            attributes = source
+            source = lambda index: self._population_mgr.get_population(
+                attributes=attributes, index=index
+            )
+        # FIXME [MIC-6703]: convert the source if it's a list if they are private columns
+        # as well. Move the callable from ValueSource._call to here.
         pipeline.set_attributes(
             component,
             source,
