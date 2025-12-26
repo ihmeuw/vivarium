@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from layered_config_tree import LayeredConfigTree
+from pytest_mock import MockerFixture
 
 from tests.helpers import LookupCreator
 from vivarium import InteractiveContext
