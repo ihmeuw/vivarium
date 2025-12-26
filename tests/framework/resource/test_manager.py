@@ -142,7 +142,7 @@ def test_resource_manager_get_resource_group_null(manager: ResourceManager) -> N
 
 def test_add_resource_wrong_component(manager: ResourceManager) -> None:
     resource = Pipeline("foo", ColumnCreatorAndRequirer())
-    error_message = "All initialized resources must have the component 'column_creator'."
+    error_message = "All initialized resources in this resource group must have the component 'column_creator'."
     with pytest.raises(ResourceError, match=error_message):
         manager.add_resources(ColumnCreator(), [resource], [])
 
