@@ -72,9 +72,9 @@ class BasePopulation(Component):
             )
 
         self.age_randomness = builder.randomness.get_stream(
-            "age_initialization", initializes_crn_attributes=self.with_common_random_numbers
+            "age_initialization", self, initializes_crn_attributes=self.with_common_random_numbers,
         )
-        self.sex_randomness = builder.randomness.get_stream("sex_initialization")
+        self.sex_randomness = builder.randomness.get_stream("sex_initialization", self)
 
     ########################
     # Event-driven methods #

@@ -46,8 +46,7 @@ class ValuesInterface(Interface):
         self,
         value_name: str,
         source: Callable[..., Any],
-        # TODO [MIC-6433]: all calls should have a component
-        component: Component | Manager | None = None,
+        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | None = None,
@@ -189,8 +188,7 @@ class ValuesInterface(Interface):
         self,
         value_name: str,
         modifier: Callable[..., Any],
-        # TODO [MIC-6433]: all calls should have a component
-        component: Component | Manager | None = None,
+        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Marks a ``Callable`` as the modifier of a named value.
