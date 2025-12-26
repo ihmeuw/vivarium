@@ -16,8 +16,7 @@ class Resource:
     def __init__(
         self, resource_type: str, name: str, component: Component | Manager | None
     ) -> None:
-        """Create a new resource.
-        """
+        """Create a new resource."""
         self.resource_type = resource_type
         """The type of the resource."""
         self.name = name
