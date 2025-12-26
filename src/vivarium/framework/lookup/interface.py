@@ -7,8 +7,12 @@ This module provides an interface to the :class:`LookupTableManager <vivarium.fr
 
 """
 
+from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any, overload
+
+import pandas as pd
 
 from vivarium.framework.lookup.manager import LookupTableManager
 from vivarium.framework.lookup.table import LookupTable
@@ -30,13 +34,33 @@ class LookupTableInterface(Interface):
     def __init__(self, manager: LookupTableManager):
         self._manager = manager
 
+    @overload
     def build_table(
         self,
         data: LookupTableData,
         key_columns: Sequence[str] = (),
         parameter_columns: Sequence[str] = (),
-        value_columns: Sequence[str] = (),
-    ) -> LookupTable:
+        value_columns: str = ...,
+    ) -> LookupTable[pd.Series[Any]]:
+        ...
+
+    @overload
+    def build_table(
+        self,
+        data: LookupTableData,
+        key_columns: Sequence[str] = (),
+        parameter_columns: Sequence[str] = (),
+        value_columns: list[str] | tuple[str, ...] = (),
+    ) -> LookupTable[pd.DataFrame]:
+        ...
+
+    def build_table(
+        self,
+        data: LookupTableData,
+        key_columns: Sequence[str] = (),
+        parameter_columns: Sequence[str] = (),
+        value_columns: list[str] | tuple[str, ...] | str = (),
+    ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
         """Construct a LookupTable from input data.
 
         If data is a :class:`pandas.DataFrame`, an interpolation function of
