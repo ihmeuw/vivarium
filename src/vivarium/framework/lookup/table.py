@@ -322,8 +322,8 @@ class ScalarTable(LookupTable[T]):
         value_columns: list[str] | tuple[str, ...] | str,
     ):
         super().__init__(
-            component=component,
             name=name,
+            component=component,
             value_columns=value_columns,
             return_type=pd.Series if isinstance(value_columns, str) else pd.DataFrame,
         )

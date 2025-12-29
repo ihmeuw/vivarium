@@ -22,4 +22,4 @@ For more information, see the Resource Management
 
 from vivarium.framework.resource.interface import ResourceInterface
 from vivarium.framework.resource.manager import ResourceManager
-from vivarium.framework.resource.resource import Resource
+from vivarium.framework.resource.resource import Column, Resource
