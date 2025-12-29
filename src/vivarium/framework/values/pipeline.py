@@ -73,8 +73,8 @@ class PrivateColumnValueSource(ValueSource):
         required_resources: Sequence[str | Resource],
     ) -> None:
         generic_error_msg = (
-            f"Invalid source for {pipeline.name}. When 'source_is_private_column' "
-            "is True, 'source' must be list containing a single private column name."
+            f"Invalid source for {pipeline.name}. `source` must be list containing a single"
+            " private column name."
         )
         if not isinstance(source, list):
             raise ValueError(generic_error_msg + f"Got `source` type {type(source)} instead.")
