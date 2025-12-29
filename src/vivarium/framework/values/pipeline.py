@@ -104,16 +104,10 @@ class AttributesValueSource(ValueSource):
     def __init__(
         self,
         pipeline: Pipeline,
-        source: Callable[..., Any] | list[str],
+        source: list[str],
         component: Component | Manager,
         required_resources: Sequence[str | Resource],
     ) -> None:
-        if not isinstance(source, list):
-            raise ValueError(
-                f"Invalid source for {pipeline.name}. When 'source' is a list, 'source' must be"
-                f"a list of attribute names. Got `source` type {type(source)} instead."
-            )
-
         self.attributes = source
         required_resources = [*self.attributes, *required_resources]
         super().__init__(
