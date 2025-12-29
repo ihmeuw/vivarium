@@ -46,7 +46,7 @@ class Resource:
 class NullResource(Resource):
     """A node in the dependency graph that does not produce any resources."""
 
-    def __init__(self, index: int, component: Component | Manager):
+    def __init__(self, index: int, component: Component | Manager) -> None:
         super().__init__("null", f"{index}", component)
 
     @property
@@ -58,7 +58,7 @@ class NullResource(Resource):
 class Column(Resource):
     """A resource representing a column in the population private data."""
 
-    def __init__(self, name: str, component: Component | Manager):
+    def __init__(self, name: str, component: Component | Manager) -> None:
         super().__init__("column", name, component)
 
     @property
