@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import pandas as pd
 
 from vivarium import Component
-from vivarium.framework.resource import Resource
+from vivarium.framework.resource import Column, Resource
 from vivarium.framework.values.exceptions import DynamicValueError
 from vivarium.manager import Manager
 
@@ -28,8 +28,9 @@ class ValueSource(Resource):
     def __init__(
         self,
         pipeline: Pipeline,
-        source: Callable[..., Any] | list[str] | None,
+        source: Callable[..., Any] | None,
         component: Component | Manager | None,
+        required_resources: Sequence[str | Resource] | None = None,
     ) -> None:
         self._pipeline_type = (
             "attribute" if isinstance(pipeline, AttributePipeline) else "value"
@@ -43,43 +44,83 @@ class ValueSource(Resource):
         )
         self._pipeline = pipeline
         self._source = source
+        self.required_resources = required_resources or []
+        if isinstance(source, Resource):
+            self.required_resources.append(source)
 
     def __bool__(self) -> bool:
         return self._source is not None
 
     def __call__(self, population_mgr: PopulationManager, *args: Any, **kwargs: Any) -> Any:
-        if not self._source:
+        if self._source is None:
             raise DynamicValueError(
                 f"The dynamic {self._pipeline_type} pipeline for {self.name} has no source."
                 " This likely means you are attempting to modify a value that"
                 " hasn't been created."
             )
 
-        if callable(self._source):
-            source_callable = self._source
-        elif isinstance(self._source, list):
-            component = self.component
-            if component is None:
-                raise DynamicValueError(
-                    "The source of an attribute pipeline defined as a list of column names "
-                    "must be registered by a component."
-                )
-            if not isinstance(component, Component):
-                raise DynamicValueError(
-                    "The source of an attribute pipeline defined as a list of column names "
-                    f"must be registered by a component, but '{component.name}' is of type {type(component)}."
-                )
-            columns = self._source[0] if len(self._source) == 1 else self._source
-            source_callable = lambda index: population_mgr.get_private_columns(
-                component, index, columns
-            )
-        else:
-            raise TypeError(
-                "The source of an attribute pipeline must be a callable or a list "
-                f"of private column names, but got {type(self._source)}."
-            )
+        return self._source(*args, **kwargs)
 
-        return source_callable(*args, **kwargs)
+
+class PrivateColumnValueSource(ValueSource):
+    """A resource representing the source of a value pipeline that is a private column."""
+
+    def __init__(
+        self,
+        pipeline: Pipeline,
+        source: Callable[..., Any] | list[str],
+        component: Component | Manager,
+        required_resources: Sequence[str | Resource],
+    ) -> None:
+        generic_error_msg = (
+            f"Invalid source for {pipeline.name}. `source` must be list containing a single"
+            " private column name."
+        )
+        if not isinstance(source, list):
+            raise ValueError(generic_error_msg + f"Got `source` type {type(source)} instead.")
+        if len(source) != 1:
+            raise ValueError(generic_error_msg + f"Got {len(source)} names instead.")
+
+        self.column = Column(source[0], component)
+        required_resources = [self.column, *required_resources]
+        super().__init__(
+            pipeline, source=None, component=component, required_resources=required_resources
+        )
+
+    def __bool__(self) -> bool:
+        return True
+
+    def __call__(
+        self, population_mgr: PopulationManager, index: pd.Index[int]
+    ) -> pd.Series[Any]:
+        return population_mgr.get_private_columns(
+            component=self.component, columns=self.column.name, index=index
+        )
+
+
+class AttributesValueSource(ValueSource):
+    """A resource representing the source of an attribute pipeline that is a list of attributes."""
+
+    def __init__(
+        self,
+        pipeline: Pipeline,
+        source: list[str],
+        component: Component | Manager,
+        required_resources: Sequence[str | Resource],
+    ) -> None:
+        self.attributes = source
+        required_resources = [*self.attributes, *required_resources]
+        super().__init__(
+            pipeline, source=None, component=component, required_resources=required_resources
+        )
+
+    def __bool__(self) -> bool:
+        return True
+
+    def __call__(
+        self, population_mgr: PopulationManager, index: pd.Index[int]
+    ) -> pd.Series[Any] | pd.DataFrame:
+        return population_mgr.get_population(attributes=self.attributes, index=index)
 
 
 class ValueModifier(Resource):
@@ -249,7 +290,7 @@ class Pipeline(Resource):
     def set_attributes(
         self,
         component: Component | Manager,
-        source: Callable[..., Any] | list[str],
+        source: ValueSource,
         combiner: ValueCombiner,
         post_processor: PostProcessor | None,
         manager: ValuesManager,
@@ -276,7 +317,7 @@ class Pipeline(Resource):
             The simulation values manager.
         """
         self._component = component
-        self.source = ValueSource(self, source, component)
+        self.source = source
         self._combiner = combiner
         self.post_processor = post_processor
         self._manager = manager
@@ -296,7 +337,7 @@ class AttributePipeline(Pipeline):
         """Whether or not this ``AttributePipeline`` is simple, i.e. it has a list
         of columns as its source and no modifiers or postprocessors."""
         return (
-            isinstance(self.source._source, list)
+            isinstance(self.source, PrivateColumnValueSource)
             and not self.mutators
             and not self.post_processor
         )
