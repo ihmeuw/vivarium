@@ -179,13 +179,22 @@ configuration by simply printing it.
                 component_configs: []
             include:
                 component_configs: []
+        ylls:
+            exclude:
+                component_configs: []
+            include:
+                component_configs: []
     disease_state.susceptible_to_lower_respiratory_infections:
         data_sources:
             initialization_weights:
                 component_configs: 1.0
+            excess_mortality_rate:
+                component_configs: 0.0
     disease_state.infected_with_lower_respiratory_infections:
         data_sources:
             initialization_weights:
+                component_configs: 0.0
+            excess_mortality_rate:
                 component_configs: 0.0
 
 
