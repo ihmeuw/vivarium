@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
@@ -9,6 +8,7 @@ from vivarium import Component
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
+    from vivarium.framework.population import SimulantData
     from vivarium.framework.resource import Resource
 
 
@@ -72,7 +72,7 @@ class Risk(Component):
     # Event-driven methods #
     ########################
 
-    def on_initialize_simulants(self, pop_data):
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         draw = self.randomness.get_draw(pop_data.index)
         self.population_view.update(pd.Series(draw, name=self.propensity_column))
 
@@ -80,7 +80,7 @@ class Risk(Component):
     # Pipeline sources and modifiers #
     ##################################
 
-    def _exposure(self, index):
+    def _exposure(self, index: pd.Index[int]) -> pd.Series[bool]:
         propensity = self.population_view.get_attributes(index, self.propensity_column)
         exposure_threshold = self.population_view.get_attributes(index, self.exposure_threshold_pipeline)
         return exposure_threshold > propensity
@@ -110,15 +110,12 @@ class RiskEffect(Component):
         self.risk_name = risk_name
         self.disease_rate = disease_rate
         self.risk = f"effect_of_{risk_name}_on_{disease_rate}"
+        self.base_exposure_pipeline = f"{self.risk_name}.base_proportion_exposed"
+        self.exposure_pipeline = f"{self.risk_name}.exposure"
         self.relative_risk_pipeline = f"{self.risk}.relative_risk"
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
-        self.base_risk_exposure = builder.value.get_attribute(
-            f"{self.risk_name}.base_proportion_exposed"
-        )
-        self.actual_risk_exposure = builder.value.get_attribute(f"{self.risk_name}.exposure")
-
         relative_risk = builder.configuration[self.risk].relative_risk
         builder.value.register_attribute_producer(
             self.relative_risk_pipeline,
@@ -130,26 +127,29 @@ class RiskEffect(Component):
             f"{self.disease_rate}.population_attributable_fraction",
             modifier=self.population_attributable_fraction,
             component=self,
-            required_resources=[self.base_risk_exposure, self.relative_risk_pipeline],
+            required_resources=[self.base_exposure_pipeline, self.relative_risk_pipeline],
         )
         builder.value.register_attribute_modifier(
             f"{self.disease_rate}",
             modifier=self.rate_adjustment,
             component=self,
-            required_resources=[self.actual_risk_exposure, self.relative_risk_pipeline],
+            required_resources=[self.exposure_pipeline, self.relative_risk_pipeline],
         )
 
     ##################################
     # Pipeline sources and modifiers #
     ##################################
 
-    def population_attributable_fraction(self, index):
-        exposure = self.base_risk_exposure(index)
-        relative_risk = self.population_view.get_attributes(index, self.relative_risk_pipeline)
+    def population_attributable_fraction(self, index: pd.Index[int]) -> pd.Series[float]:
+        pop = self.population_view.get_attributes(
+            index, [self.base_exposure_pipeline, self.relative_risk_pipeline]
+        )
+        exposure = pop[self.base_exposure_pipeline]
+        relative_risk = pop[self.relative_risk_pipeline]
         return exposure * (relative_risk - 1) / (exposure * (relative_risk - 1) + 1)
 
-    def rate_adjustment(self, index, rates):
-        exposed = self.actual_risk_exposure(index)
+    def rate_adjustment(self, index: pd.Index[int], rates: pd.Series[float]) -> pd.Series[float]:
+        exposed = self.population_view.get_attributes(index, self.exposure_pipeline)
         rr = self.population_view.get_attributes(index, self.relative_risk_pipeline)
         rates[exposed] *= rr[exposed]
         return rates

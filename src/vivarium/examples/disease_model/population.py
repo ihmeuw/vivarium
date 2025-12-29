@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 from typing import Any
 
 import pandas as pd
@@ -107,7 +106,7 @@ class BasePopulation(Component):
         age_end = pop_data.user_data.get("age_end", self.config.population.age_end)
 
         if age_start == age_end:
-            age_window = pop_data.creation_window / pd.Timedelta(days=365)
+            age_window = pop_data.creation_window / pd.Timedelta(days=365)  # type: ignore[operator]
         else:
             age_window = age_end - age_start
 
@@ -144,5 +143,5 @@ class BasePopulation(Component):
             information.
         """
         population = self.population_view.get_private_columns(event.index, "age", query="alive == 'alive'")
-        population += event.step_size / pd.Timedelta(days=365)
+        population += event.step_size / pd.Timedelta(days=365)  # type: ignore[operator]
         self.population_view.update(population)
