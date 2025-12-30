@@ -59,7 +59,7 @@ class LookupTable(ABC, Resource, Generic[T]):
         value_columns: list[str] | tuple[str, ...] | str = (),
         validate: bool = True,
     ):
-        super().__init__("lookup_table", f"{component.name}.{name}", component)
+        super().__init__("lookup_table", self.get_name(component.name, name), component)
         self.return_type: type[T] = return_type
         """The type of data returned by the lookup table (pd.Series or pd.DataFrame)."""
         self.key_columns = key_columns
@@ -108,6 +108,27 @@ class LookupTable(ABC, Resource, Generic[T]):
 
     def __repr__(self) -> str:
         return "LookupTable()"
+
+    @staticmethod
+    def get_name(
+        component_name: str,
+        table_name: str,
+    ) -> str:
+        """Get the fully qualified name for a lookup table.
+
+        Parameters
+        ----------
+        component_name
+            Name of the component the lookup table belongs to.
+        table_name
+            Name of the lookup table.
+
+        Returns
+        -------
+            Fully qualified name for the lookup table.
+
+        """
+        return f"{component_name}.{table_name}"
 
 
 class InterpolatedTable(LookupTable[T]):
