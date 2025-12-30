@@ -9,7 +9,7 @@ This module provides an interface to the :class:`ResourceManager <vivarium.frame
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from vivarium.framework.resource.manager import ResourceManager
