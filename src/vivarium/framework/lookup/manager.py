@@ -64,6 +64,7 @@ class LookupTableManager(Manager):
 
     def setup(self, builder: "Builder") -> None:
         self._logger = builder.logging.get_logger(self.name)
+        self._configuration = builder.configuration
         self._pop_view_builder = builder.population.get_view
         self.clock = builder.time.clock()
         self._interpolation_order = builder.configuration.interpolation.order
@@ -72,15 +73,20 @@ class LookupTableManager(Manager):
         self._add_resources = builder.resources.add_resources
         self._add_constraint = builder.lifecycle.add_constraint
 
-        self._lookup_table_names = self._get_lookup_table_names_from_config(builder)
-
         builder.lifecycle.add_constraint(
             self.build_table, allow_during=[lifecycle_states.SETUP]
         )
         builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
 
     def on_post_setup(self, event: Event) -> None:
-        for component_name, table_names in self._lookup_table_names.items():
+        configured_lookup_tables: dict[str, list[str]] = {}
+        for config_key, config in self._configuration.items():
+            if isinstance(config, LayeredConfigTree) and "data_sources" in config:
+                configured_lookup_tables[config_key] = list(
+                    config.get_tree("data_sources").keys()
+                )
+
+        for component_name, table_names in configured_lookup_tables.items():
             for table_name in table_names:
                 full_table_name = LookupTable.get_name(component_name, table_name)
                 if full_table_name not in self.tables:
@@ -213,16 +219,6 @@ class LookupTableManager(Manager):
         ]
 
         return parameter_columns, key_columns
-
-    @staticmethod
-    def _get_lookup_table_names_from_config(builder: Builder) -> dict[str, list[str]]:
-        lookup_table_configs: dict[str, list[str]] = {}
-        for config_key, config in builder.configuration.items():
-            if isinstance(config, LayeredConfigTree) and "data_sources" in config:
-                lookup_table_configs[config_key] = list(
-                    config.get_tree("data_sources").keys()
-                )
-        return lookup_table_configs
 
 
 def validate_build_table_parameters(
