@@ -12,41 +12,38 @@ from vivarium.framework.resource.resource import Column, NullResource, Resource
 from vivarium.framework.values import AttributePipeline, Pipeline, ValueModifier, ValueSource
 
 
-class TestResourceGroup:
-
+@pytest.mark.parametrize("resource_type", ["column", "resource"])
+def test_resource_group(resource_type: str, mocker: MockerFixture) -> None:
     component = ColumnCreator()
+    resources: list[Column] | Resource
+    if resource_type == "column":
+        resources = [Column(f"resource_{i}", component) for i in range(5)]
+    else:
+        resources = Resource("test", "some_resource", component)
+    r_dependencies = [
+        AttributePipeline("an_interesting_attribute", None),
+        Pipeline("baz"),
+        RandomnessStream("bar", lambda: datetime.now(), 1, IndexMap(), mocker.Mock()),
+        ValueSource(Pipeline("foo"), lambda: 1, None),
+    ]
 
-    @pytest.mark.parametrize("resource_type", ["column", "resource"])
-    def test_resource_group(self, resource_type: str, mocker: MockerFixture) -> None:
-        resources: list[Column] | Resource
-        if resource_type == "column":
-            resources = [Column(f"resource_{i}", self.component) for i in range(5)]
-        else:
-            resources = Resource("test", "some_resource", self.component)
-        r_dependencies = [
-            AttributePipeline("an_interesting_attribute", None),
-            Pipeline("baz"),
-            RandomnessStream("bar", lambda: datetime.now(), 1, IndexMap(), mocker.Mock()),
-            ValueSource(Pipeline("foo"), lambda: 1, None),
-        ]
+    rg = ResourceGroup(resources, r_dependencies)
 
-        rg = ResourceGroup(resources, r_dependencies)
-
-        assert rg.component == self.component
-        assert rg.type == "column" if resource_type == "column" else "test"
-        assert (
-            rg.names == [f"column.{res.name}" for res in resources]
-            if isinstance(resources, list)
-            else ["test.some_resource"]
-        )
-        assert rg.initializer == self.component.on_initialize_simulants
-        assert rg.dependencies == [
-            "attribute.an_interesting_attribute",
-            "value.baz",
-            "stream.bar",
-            "value_source.foo",
-        ]
-        assert list(rg) == rg.names
+    assert rg.component == component
+    assert rg.type == "column" if resource_type == "column" else "test"
+    assert (
+        rg.names == [f"column.{res.name}" for res in resources]
+        if isinstance(resources, list)
+        else ["test.some_resource"]
+    )
+    assert rg.initializer == component.on_initialize_simulants
+    assert rg.dependencies == [
+        "attribute.an_interesting_attribute",
+        "value.baz",
+        "stream.bar",
+        "value_source.foo",
+    ]
+    assert list(rg) == rg.names
 
 
 @pytest.mark.parametrize(
