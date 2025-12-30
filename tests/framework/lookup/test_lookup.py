@@ -294,7 +294,7 @@ class TestLookupTableResource:
         component = LookupCreator()
         table = manager.build_table(component, 5, "test_table", value_columns="value")
         manager._add_resources.assert_called_once_with(  # type: ignore[attr-defined]
-            component, [table], table.required_resources
+            component, table, table.required_resources
         )
 
 

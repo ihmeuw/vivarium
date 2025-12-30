@@ -4,10 +4,11 @@ from collections.abc import Callable, Iterator, Sequence
 from typing import TYPE_CHECKING
 
 from vivarium.framework.resource.exceptions import ResourceError
-from vivarium.framework.resource.resource import Resource
+from vivarium.framework.resource.resource import Column, Resource
 
 if TYPE_CHECKING:
     from vivarium.framework.population import SimulantData
+    from vivarium.framework.values import AttributePipeline
 
 
 class ResourceGroup:
@@ -23,7 +24,9 @@ class ResourceGroup:
     """
 
     def __init__(
-        self, initialized_resources: Sequence[Resource], dependencies: Sequence[Resource]
+        self,
+        initialized_resources: Sequence[Column] | Resource,
+        dependencies: Sequence[str | Resource],
     ):
         """Create a new resource group.
 
@@ -41,22 +44,31 @@ class ResourceGroup:
         """
         if not initialized_resources:
             raise ResourceError("Resource groups must have at least one resource.")
+        self._dependencies = dependencies
 
-        if len(set(r.component for r in initialized_resources)) != 1:
+        initialized_resources_ = (
+            [initialized_resources]
+            if isinstance(initialized_resources, Resource)
+            else initialized_resources
+        )
+
+        # These checks are redundant since initialized_resources is either a list
+        # of Columns created by a single Component or a single Resource. We keep them
+        # in the event that changes in the future.
+        if len(set(res.component for res in initialized_resources_)) != 1:
             raise ResourceError("All initialized resources must have the same component.")
-
-        if len(set(r.resource_type for r in initialized_resources)) != 1:
+        if len(set(res.resource_type for res in initialized_resources_)) != 1:
             raise ResourceError("All initialized resources must be of the same type.")
 
-        self.component = initialized_resources[0].component
+        self.component = initialized_resources_[0].component
         """The component or manager that produces the resources in this group."""
-        self.type = initialized_resources[0].resource_type
+        self.type = initialized_resources_[0].resource_type
         """The type of resource in this group."""
-        self.is_initialized = initialized_resources[0].is_initialized
+        self.is_initialized = initialized_resources_[0].is_initialized
         """Whether this resource group contains initialized resources."""
-        self._dependencies = dependencies
-        self.resources = {r.resource_id: r for r in initialized_resources}
-        """A dictionary of resources produced by this group, keyed by resource_id."""
+        self.resources = {
+            resource.resource_id: resource for resource in initialized_resources_
+        }
 
     @property
     def names(self) -> list[str]:
@@ -71,14 +83,26 @@ class ResourceGroup:
     @property
     def dependencies(self) -> list[str]:
         """The long names (including type) of dependencies for this group."""
-        return [dependency.resource_id for dependency in self._dependencies]
+        if not all(isinstance(dep, Resource) for dep in self._dependencies):
+            raise ResourceError(
+                "Resource group has not been finalized; dependencies are still strings."
+            )
+        return [dep.resource_id for dep in self._dependencies]  # type: ignore[union-attr]
+
+    def set_dependencies(self, attribute_pipelines: dict[str, AttributePipeline]) -> None:
+        """Finalize the resource group after all resources and dependencies have been added."""
+        # convert string resources and dependencies to their corresponding AttributePipelines
+        self._dependencies = [
+            attribute_pipelines[dep] if isinstance(dep, str) else dep
+            for dep in self._dependencies
+        ]
 
     def __iter__(self) -> Iterator[str]:
         return iter(self.names)
 
     def __repr__(self) -> str:
         resources = ", ".join(self)
-        return f"ResourceProducer({resources})"
+        return f"ResourceGroup({resources})"
 
     def __str__(self) -> str:
         resources = ", ".join(self)

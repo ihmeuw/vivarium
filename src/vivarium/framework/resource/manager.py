@@ -7,19 +7,22 @@ Resource Manager
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any
 
 import networkx as nx
+from tables import Column
 
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.resource.exceptions import ResourceError
 from vivarium.framework.resource.group import ResourceGroup
-from vivarium.framework.resource.resource import Column, NullResource, Resource
+from vivarium.framework.resource.resource import NullResource, Resource
 from vivarium.manager import Manager
 
 if TYPE_CHECKING:
     from vivarium import Component
     from vivarium.framework.engine import Builder
+    from vivarium.framework.event import Event
 
 
 class ResourceManager(Manager):
@@ -66,20 +69,27 @@ class ResourceManager(Manager):
                 self._sorted_nodes = list(nx.algorithms.topological_sort(self.graph))  # type: ignore[func-returns-value]
             except nx.NetworkXUnfeasible:
                 raise ResourceError(
-                    "The resource pool contains at least one cycle: "
+                    "The resource pool contains at least one cycle:\n"
                     f"{nx.find_cycle(self.graph)}."
                 )
         return self._sorted_nodes
 
     def setup(self, builder: Builder) -> None:
         self.logger = builder.logging.get_logger(self.name)
-        self.get_attribute = builder.value.get_attribute
+        self._get_attribute_pipelines = builder.value.get_attribute_pipelines()
+        builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
+
+    def on_post_setup(self, _: Event) -> None:
+        # Finalize the resource group dependencies
+        attribute_pipelines = self._get_attribute_pipelines()
+        for rg in self._resource_group_map.values():
+            rg.set_dependencies(attribute_pipelines)
 
     def add_resources(
         self,
         component: Component | Manager,
-        resources: Iterable[str | Resource],
-        dependencies: Iterable[str | Resource],
+        resources: Sequence[Column] | Resource,
+        dependencies: Sequence[str | Resource],
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -112,8 +122,8 @@ class ResourceManager(Manager):
     def _get_resource_group(
         self,
         component: Component | Manager,
-        resources: Iterable[str | Resource],
-        dependencies: Iterable[str | Resource],
+        resources: Sequence[Column] | Resource,
+        dependencies: Sequence[str | Resource],
     ) -> ResourceGroup:
         """Packages resource information into a resource group.
 
@@ -121,31 +131,21 @@ class ResourceManager(Manager):
         --------
         :class:`ResourceGroup`
         """
-
-        # Convert string resources to their corresponding AttributePipeline
-        resources_ = [
-            self.get_attribute(res) if isinstance(res, str) else res for res in resources
-        ]
-
-        dependencies_ = [
-            self.get_attribute(dep) if isinstance(dep, str) else dep for dep in dependencies
-        ]
-
-        if not resources_:
+        if not resources:
             # We have a "producer" that doesn't produce anything, but
             # does have dependencies. This is necessary for components that
             # want to track private state information.
-            resources_ = [NullResource(self._null_producer_count, component)]
+            resources = [NullResource(self._null_producer_count, component)]
             self._null_producer_count += 1
 
-        if have_other_component := [res for res in resources_ if res.component != component]:
+        if isinstance(resources, Resource) and resources.component != component:
             raise ResourceError(
                 "All initialized resources in this resource group must have the"
-                f" component '{component.name}'. The following resources have a different"
-                f" component: {have_other_component}"
+                f" component '{component.name}'. The following resource has a different"
+                f" component: {resources.name}"
             )
 
-        return ResourceGroup(resources_, dependencies_)
+        return ResourceGroup(resources, dependencies)
 
     def _to_graph(self) -> nx.DiGraph:
         """Constructs the full resource graph from information in the groups.

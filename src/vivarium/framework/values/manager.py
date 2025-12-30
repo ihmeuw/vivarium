@@ -89,7 +89,7 @@ class ValuesManager(Manager):
             # modifiers.
             self._add_resources(
                 component=pipeline.component,
-                resources=[pipeline],
+                resources=pipeline,
                 dependencies=[pipeline.source] + list(pipeline.mutators),
             )
 
@@ -307,7 +307,7 @@ class ValuesManager(Manager):
         # The resource we add here is just the pipeline source.
         self._add_resources(
             component=pipeline.component,
-            resources=[pipeline.source],
+            resources=pipeline.source,
             dependencies=pipeline.source.required_resources,
         )
 
@@ -337,7 +337,7 @@ class ValuesManager(Manager):
             )
             required_resources = [modifier]
         self._add_resources(
-            component=component, resources=[value_modifier], dependencies=required_resources
+            component=component, resources=value_modifier, dependencies=required_resources
         )
 
     def __contains__(self, item: str) -> bool:

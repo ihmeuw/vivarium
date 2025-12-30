@@ -9,7 +9,7 @@ This module provides an interface to the :class:`ResourceManager <vivarium.frame
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any
 
 from vivarium.framework.resource.manager import ResourceManager
@@ -44,8 +44,8 @@ class ResourceInterface(Interface):
     def add_resources(
         self,
         component: Component | Manager,
-        resources: Iterable[str | Resource],
-        dependencies: Iterable[str | Resource],
+        resources: Resource,
+        dependencies: Sequence[str | Resource],
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -64,13 +64,13 @@ class ResourceInterface(Interface):
         ResourceError
             If there are multiple producers of the same resource.
         """
-        self._manager.add_resources(component, resources, dependencies)
+        self._manager.add_resources(component, [resources], dependencies)
 
     def add_private_columns(
         self,
         component: Component | Manager,
-        resources: Iterable[str],
-        dependencies: Iterable[str | Resource],
+        resources: Sequence[str] | str,
+        dependencies: Sequence[str | Resource],
     ) -> None:
         """Adds private column resources to the resource pool.
 
@@ -84,6 +84,8 @@ class ResourceInterface(Interface):
             A list of resources that the producer requires. A string represents
             a population attribute.
         """
+        if isinstance(resources, str):
+            resources = [resources]
         columns = [Column(col, component) for col in resources]
         self._manager.add_resources(
             component=component,

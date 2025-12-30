@@ -389,7 +389,7 @@ class PopulationManager(Manager):
         self,
         component: Component | Manager,
         creates_columns: str | Sequence[str] = (),
-        required_resources: Iterable[str | Resource] = (),
+        required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Marks a source of initial state information for new simulants.
 
@@ -403,7 +403,7 @@ class PopulationManager(Manager):
             initial state information for.
         required_resources
             The resources that the initializer requires to run. Strings are
-            interpreted as column names.
+            interpreted as population attribute names.
         """
         if isinstance(creates_columns, str):
             creates_columns = [creates_columns]

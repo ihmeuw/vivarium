@@ -271,10 +271,19 @@ class ValuesInterface(Interface):
         """
         return self._manager.get_value(name)
 
-    # TODO: [MIC-6388] Remove this method (attributes should be obtained via population views)
-    def get_attribute(self, name: str) -> AttributePipeline:
-        """A temporary interface method to use while during population re-design."""
-        return self._manager.get_attribute(name)
-
     def get_attribute_pipelines(self) -> Callable[[], dict[str, AttributePipeline]]:
+        """Get all registered attribute pipelines.
+
+        Returns
+        -------
+            A callable that returns a dictionary mapping attribute names to
+            their corresponding :class:`~ <vivarium.framework.values.pipeline.AttributePipeline>`.
+
+        Notes
+        -----
+        This is not the preferred access method to getting population attributes
+        since it does not implement various features (e.g. querying, simulant
+        tracking, etc). Use :meth:`vivarium.framework.population.population_view.PopulationView.get_attributes` or
+        :meth:`vivarium.framework.population.population_view.PopulationView.get_attribute_frame` instead.
+        """
         return self._manager.get_attribute_pipelines

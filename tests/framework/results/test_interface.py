@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from collections import defaultdict
 from collections.abc import Callable
 from types import MethodType
 
@@ -13,7 +12,6 @@ from pytest_mock import MockerFixture
 
 from tests.framework.results.helpers import BASE_POPULATION, FAMILIARS
 from tests.framework.results.helpers import HOUSE_CATEGORIES as HOUSES
-from tests.framework.results.helpers import mock_get_attribute
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results import ResultsInterface, ResultsManager
@@ -41,7 +39,6 @@ def test_register_stratification(mocker: MockerFixture) -> None:
     builder = mocker.Mock()
     # Set up mock builder with mocked get_attribute call for Pipelines
     mocker.patch.object(builder, "value.get_attribute")
-    builder.value.get_attribute = MethodType(mock_get_attribute, builder)
     mgr = ResultsManager()
     mgr.setup(builder)
     interface = ResultsInterface(mgr)
@@ -78,7 +75,6 @@ def test_register_binned_stratification(mocker: MockerFixture) -> None:
     mgr.logger = logger
     builder = mocker.Mock()
     mocker.patch.object(builder, "value.get_attribute")
-    builder.value.get_attribute = MethodType(mock_get_attribute, builder)
     mgr.setup(builder)
 
     # Check pre-registration stratifications and manager required columns/values
@@ -458,7 +454,6 @@ def test_register_concatenating_observation(mocker: MockerFixture) -> None:
     builder.configuration.stratification.default = []
     # Set up mock builder with mocked get_attribute call for Pipelines
     mocker.patch.object(builder, "value.get_attribute")
-    builder.value.get_attribute = MethodType(mock_get_attribute, builder)
     mgr.setup(builder)
     assert len(interface._manager._results_context.grouped_observations) == 0
     interface.register_concatenating_observation(

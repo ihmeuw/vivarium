@@ -102,7 +102,7 @@ class LookupTableManager(Manager):
     ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
         """Construct a lookup table from input data."""
         table = self._build_table(component, data, name, value_columns)
-        self._add_resources(component, [table], table.required_resources)
+        self._add_resources(component, table, table.required_resources)
         self._add_constraint(
             table.call,
             restrict_during=[
