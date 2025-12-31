@@ -141,7 +141,7 @@ class RandomnessManager(Manager):
         # We need the key columns to be created before this stream can be called.
         self.resources.add_resources(
             component=component,
-            resources=[stream],
+            resources=stream,
             dependencies=self._key_columns if not initializes_crn_attributes else [],
         )
 
