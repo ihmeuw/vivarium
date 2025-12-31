@@ -9,16 +9,11 @@ This module provides an interface to the :class:`RandomnessManager <vivarium.fra
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import pandas as pd
 
 from vivarium.framework.randomness.manager import RandomnessManager
 from vivarium.framework.randomness.stream import RandomnessStream
 from vivarium.manager import Interface
-
-if TYPE_CHECKING:
-    from vivarium import Component
 
 
 class RandomnessInterface(Interface):
@@ -28,7 +23,6 @@ class RandomnessInterface(Interface):
     def get_stream(
         self,
         decision_point: str,
-        component: Component,
         initializes_crn_attributes: bool = False,
     ) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
@@ -45,8 +39,6 @@ class RandomnessInterface(Interface):
             A unique identifier for a stream of random numbers.  Typically, this
             represents a decision that needs to be made each time step like
             'moves_left' or 'gets_disease'.
-        component
-            The component that is requesting the randomness stream.
         initializes_crn_attributes
             A flag indicating whether this stream is used to generate key
             initialization information that will be used to identify simulants
@@ -60,9 +52,7 @@ class RandomnessInterface(Interface):
             The stream provides vectorized access to random numbers and a few
             other utilities.
         """
-        return self._manager.get_randomness_stream(
-            decision_point, component, initializes_crn_attributes
-        )
+        return self._manager.get_randomness_stream(decision_point, initializes_crn_attributes)
 
     def get_seed(self, decision_point: str) -> int:
         """Get a randomly generated seed for use with external randomness tools.

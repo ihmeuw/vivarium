@@ -18,22 +18,22 @@ def test_randomness_manager_get_randomness_stream() -> None:
     component = ColumnCreator()
 
     rm = RandomnessManager()
+    rm._get_current_component = lambda: component
     rm._add_constraint = lambda f, **kwargs: f
     rm._seed = seed
     rm._clock_ = mock_clock
     rm._key_columns = ["age", "sex"]
     rm._key_mapping_ = IndexMap(["age", "sex"])
     rm._rate_conversion_type = "linear"
-    stream = rm._get_randomness_stream("test", component)
+    stream = rm._get_randomness_stream("test")
 
     assert stream.key == "test"
     assert stream.seed == seed
     assert stream.clock is mock_clock
     assert set(rm._decision_points.keys()) == {"test"}
-    assert stream.component == component
 
     with pytest.raises(RandomnessError):
-        rm._get_randomness_stream("test", ColumnCreatorAndRequirer())
+        rm._get_randomness_stream("test")
 
 
 def test_randomness_manager_register_simulants() -> None:

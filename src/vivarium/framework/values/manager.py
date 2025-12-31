@@ -28,7 +28,6 @@ from vivarium.manager import Manager
 if TYPE_CHECKING:
     import pandas as pd
 
-    from vivarium import Component
     from vivarium.framework.engine import Builder
 
 T = TypeVar("T")
@@ -58,6 +57,7 @@ class ValuesManager(Manager):
         builder.event.register_listener("post_setup", self.on_post_setup)
 
         self._add_resources = builder.resources.add_resources
+        self._get_current_component = builder.components.get_current_component_or_manager
         self._add_constraint = builder.lifecycle.add_constraint
 
         builder.lifecycle.add_constraint(
@@ -97,7 +97,6 @@ class ValuesManager(Manager):
         self,
         value_name: str,
         source: Callable[..., Any],
-        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | None = None,
@@ -113,7 +112,6 @@ class ValuesManager(Manager):
         self._configure_pipeline(
             pipeline,
             source,
-            component,
             required_resources,
             preferred_combiner,
             preferred_post_processor,
@@ -124,7 +122,6 @@ class ValuesManager(Manager):
         self,
         value_name: str,
         source: Callable[[pd.Index[int]], Any] | list[str],
-        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: AttributePostProcessor | None = None,
@@ -141,7 +138,6 @@ class ValuesManager(Manager):
         self._configure_pipeline(
             pipeline,
             source,
-            component,
             required_resources=required_resources,
             preferred_combiner=preferred_combiner,
             preferred_post_processor=preferred_post_processor,
@@ -152,7 +148,6 @@ class ValuesManager(Manager):
         self,
         value_name: str,
         modifier: Callable[..., Any],
-        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Marks a ``Callable`` as the modifier of a named value.
@@ -169,8 +164,6 @@ class ValuesManager(Manager):
             previous stage in the pipeline. For the ``list_combiner`` strategy,
             the pipeline modifiers should have the same signature as the pipeline
             source.
-        component
-            The component that is registering the value modifier.
         required_resources
             A list of resources that need to be properly sourced before the
             pipeline modifier is called. This is a list of strings, pipelines,
@@ -179,7 +172,6 @@ class ValuesManager(Manager):
         self._configure_modifier(
             self.get_value(value_name),
             modifier,
-            component,
             required_resources,
         )
 
@@ -187,7 +179,6 @@ class ValuesManager(Manager):
         self,
         value_name: str,
         modifier: Callable[..., Any] | str,
-        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Marks a ``Callable`` as the modifier of a named attribute.
@@ -206,8 +197,6 @@ class ValuesManager(Manager):
             previous stage in the pipeline. For the ``list_combiner`` strategy,
             the pipeline modifiers should have the same signature as the pipeline
             source.
-        component
-            The component that is registering the attribute modifier.
         required_resources
             A list of resources that need to be properly sourced before the
             pipeline modifier is called. This is a list of strings, pipelines,
@@ -217,7 +206,6 @@ class ValuesManager(Manager):
         self._configure_modifier(
             self.get_attribute(value_name),
             modifier,
-            component,
             required_resources=required_resources,
         )
 
@@ -278,12 +266,12 @@ class ValuesManager(Manager):
         self,
         pipeline: Pipeline | AttributePipeline,
         source: Callable[..., Any] | list[str],
-        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | AttributePostProcessor | None = None,
         source_is_private_column: bool = False,
     ) -> None:
+        component = self._get_current_component()
         value_source: ValueSource
         if source_is_private_column:
             value_source = PrivateColumnValueSource(
@@ -324,9 +312,9 @@ class ValuesManager(Manager):
         self,
         pipeline: Pipeline | AttributePipeline,
         modifier: Callable[..., Any],
-        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
+        component = self._get_current_component()
         value_modifier = pipeline.get_value_modifier(modifier, component)
         self.logger.debug(f"Registering {value_modifier.name} as modifier to {pipeline.name}")
         if isinstance(modifier, Resource) and required_resources:

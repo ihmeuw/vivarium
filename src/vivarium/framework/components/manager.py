@@ -29,7 +29,7 @@ from layered_config_tree import (
 
 from vivarium import Component
 from vivarium.exceptions import VivariumError
-from vivarium.framework.lifecycle import LifeCycleManager, lifecycle_states
+from vivarium.framework.lifecycle import LifeCycleError, LifeCycleManager, lifecycle_states
 from vivarium.manager import Manager
 
 if TYPE_CHECKING:
@@ -129,6 +129,7 @@ class ComponentManager(Manager):
         self._managers = OrderedComponentSet()
         self._components = OrderedComponentSet()
         self._configuration: LayeredConfigTree | None = None
+        self._current_component: Component | Manager | None = None
 
     @property
     def configuration(self) -> LayeredConfigTree:
@@ -244,6 +245,38 @@ class ComponentManager(Manager):
         """
         return {c.name: c for c in self._components}
 
+    def get_current_component(self) -> Component:
+        """Get the component currently being set up, if any.
+
+        Returns
+        -------
+            The component currently being set up.
+
+        Raises
+        ------
+        LifeCycleError
+            No component is currently being set up.
+        """
+        if not isinstance(self._current_component, Component):
+            raise LifeCycleError("No component is currently being set up.")
+        return self._current_component
+
+    def get_current_component_or_manager(self) -> Component | Manager:
+        """Get the component or manager currently being set up, if any.
+
+        Returns
+        -------
+            The component or manager currently being set up.
+
+        Raises
+        ------
+        LifeCycleError
+            No component or manager is currently being set up.
+        """
+        if self._current_component is None:
+            raise LifeCycleError("No component or manager is currently being set up.")
+        return self._current_component
+
     def setup_components(self, builder: Builder) -> None:
         """Separately configure and set up the managers and components held by
         the component manager, in that order.
@@ -320,13 +353,17 @@ class ComponentManager(Manager):
                 )
         return out
 
-    @staticmethod
-    def _setup_components(builder: Builder, components: OrderedComponentSet) -> None:
+    # TODO rmudambi this doesn't need to be its own method
+    def _setup_components(self, builder: Builder, components: OrderedComponentSet) -> None:
         for component in components:
-            if isinstance(component, Component):
-                component.setup_component(builder)
-            elif isinstance(component, Manager):
-                component.setup(builder)
+            self._current_component = component
+            try:
+                if isinstance(component, Component):
+                    component.setup_component(builder)
+                elif isinstance(component, Manager):
+                    component.setup(builder)
+            finally:
+                self._current_component = None
 
     def __repr__(self) -> str:
         return "ComponentManager()"

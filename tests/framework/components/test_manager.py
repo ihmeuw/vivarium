@@ -194,7 +194,7 @@ def test_setup_components(mocker: MockerFixture) -> None:
     mock_a = MockComponentA("test_a")
     mock_b = MockComponentB("test_b")
     components = OrderedComponentSet(mock_a, mock_b)
-    ComponentManager._setup_components(builder, components)
+    ComponentManager()._setup_components(builder, components)
 
     assert mock_a.builder_used_for_setup is None  # class has no setup method
     assert mock_b.builder_used_for_setup is builder

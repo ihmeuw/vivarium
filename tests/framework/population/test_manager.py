@@ -364,7 +364,6 @@ def test__get_attributes_three_or_more_levels_not_implemented() -> None:
                     },
                     index=idx,
                 ),
-                component=self,
             )
 
     sim = InteractiveContext(components=[BadAttributeCreator()], setup=True)

@@ -45,9 +45,9 @@ def test_interpolated_tables(base_config: LayeredConfigTree) -> None:
     component = TestPopulation()
     simulation = InteractiveContext(components=[component], configuration=base_config)
     manager = simulation._tables
-    years = manager.build_table(component, years_df, "", value_columns=())
-    age_table = manager.build_table(component, ages_df, "", value_columns=())
-    one_d_age = manager.build_table(component, one_d_age_df, "", value_columns=())
+    years = manager.build_table(years_df, "", value_columns=())
+    age_table = manager.build_table(ages_df, "", value_columns=())
+    one_d_age = manager.build_table(one_d_age_df, "", value_columns=())
 
     ages = simulation.get_population("age")
     result_years = years(ages.index)
@@ -98,7 +98,7 @@ def test_interpolated_tables_without_uninterpolated_columns(
     component = TestPopulation()
     simulation = InteractiveContext(components=[component], configuration=base_config)
     manager = simulation._tables
-    years = manager.build_table(component, years_df, "", value_columns=())
+    years = manager.build_table(years_df, "", value_columns=())
 
     result_years = years(simulation.get_population_index())
 
@@ -245,6 +245,7 @@ class TestLookupTableResource:
         manager._pop_view_builder = mocker.Mock()
         manager._add_resources = mocker.Mock()
         manager._add_constraint = mocker.Mock()
+        manager._get_current_component = mocker.Mock()
         manager._interpolation_order = 0
         manager._extrapolate = True
         manager._validate = True
@@ -294,7 +295,8 @@ class TestLookupTableResource:
 
     def test_adding_resources(self, manager: LookupTableManager) -> None:
         component = LookupCreator()
-        table = manager.build_table(component, 5, "test_table", value_columns="value")
+        manager._get_current_component.return_value = component  # type: ignore [attr-defined]
+        table = manager.build_table(5, "test_table", value_columns="value")
         manager._add_resources.assert_called_once_with(  # type: ignore[attr-defined]
             component, table, table.required_resources
         )
