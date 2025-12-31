@@ -187,7 +187,6 @@ class RandomnessManager(Manager):
     def _get_randomness_stream(
         self,
         decision_point: str,
-        component: Component,
         initializes_crn_attributes: bool = False,
         rate_conversion_type: Literal["linear", "exponential"] = "linear",
     ) -> RandomnessStream:
@@ -201,7 +200,7 @@ class RandomnessManager(Manager):
             clock=self._clock,
             seed=self._seed,
             index_map=self._key_mapping,
-            component=component,
+            component=self._get_current_component(),
             initializes_crn_attributes=initializes_crn_attributes,
             rate_conversion_type=rate_conversion_type,
         )
