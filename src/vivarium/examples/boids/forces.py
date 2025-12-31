@@ -29,12 +29,10 @@ class Force(Component, ABC):
         self.config = builder.configuration[self.__class__.__name__.lower()]
         self.max_speed = builder.configuration.movement.max_speed
 
-        self.neighbors = builder.value.get_attribute("neighbors")
-
         builder.value.register_attribute_modifier(
             "acceleration",
             modifier=self.apply_force,
-            required_resources=["x", "y", "vx", "vy", self.neighbors],
+            required_resources=["x", "y", "vx", "vy", "neighbors"],
             component=self,
         )
 
@@ -43,7 +41,7 @@ class Force(Component, ABC):
     ##################################
 
     def apply_force(self, index: pd.Index[int], acceleration: pd.DataFrame) -> pd.DataFrame:
-        neighbors = self.neighbors(index)
+        neighbors = self.population_view.get_attributes(index, "neighbors")
         pop = self.population_view.get_attributes(index, ["x", "y", "vx", "vy"])
         if not (isinstance(neighbors, pd.Series) and isinstance(pop, pd.DataFrame)):
             raise ValueError("Neighbors must be a pd.Series of ints and population a pd.DataFrame")

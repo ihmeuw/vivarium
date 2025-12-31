@@ -86,8 +86,6 @@ class ResultsManager(Manager):
             lifecycle_states.COLLECT_METRICS, self.on_collect_metrics
         )
 
-        self.get_attribute = builder.value.get_attribute
-
         self.set_default_stratifications(builder)
 
     def on_post_setup(self, _: Event) -> None:
