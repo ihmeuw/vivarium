@@ -397,7 +397,7 @@ def test_attribute_pipelines_from_columns_created() -> None:
     component = ColumnCreator()
     sim = InteractiveContext(components=[component])
     for column in component.columns_created:
-        pipeline = sim._builder.value.get_attribute(column)
+        pipeline = sim._builder.value.get_attribute_pipelines()()[column]
         assert pipeline.name == column
         assert pipeline.mutators == []
         attributes = pipeline(idx)
