@@ -269,7 +269,7 @@ class Component(ABC):
 
     @property
     def initialization_requirements(self) -> list[str | Resource]:
-        """A list containing the columns, pipelines, and randomness streams
+        """A list containing the attributes, pipelines, and randomness streams
         required by this component's simulant initializer."""
         return []
 
