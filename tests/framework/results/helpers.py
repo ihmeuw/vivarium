@@ -362,10 +362,3 @@ def verify_stratification_added(
         and stratification.is_vectorized == is_vectorized
         and sorted(stratification.requires_attributes) == sorted(requires_attributes)
     )
-
-
-# Mock for get_attribute call for Pipelines, returns a str instead of a Pipeline
-def mock_get_attribute(self: Builder, name: str) -> AttributePipeline:
-    if not isinstance(name, str):
-        raise TypeError("Passed a non-string type to mock get_value(), check your pipelines.")
-    return AttributePipeline(name)

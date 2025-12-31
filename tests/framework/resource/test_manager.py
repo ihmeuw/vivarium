@@ -42,30 +42,33 @@ def manager_with_resources(
         component=resource_producers[1],
     )
     pipeline = Pipeline("C", resource_producers[2])
-
+    A_component = resource_producers[0]
+    attribute_A = AttributePipeline("A", A_component)
     D_component = resource_producers[3]
-    manager.get_attribute = lambda name: AttributePipeline(name, D_component)
-    manager.add_resources(D_component, ["D"], [stream, pipeline])
+    attribute_D = AttributePipeline("D", D_component)
+
+    manager.add_resources(D_component, attribute_D, [stream, pipeline])
     # Add the private column resource
     manager.add_resources(D_component, [Column("D", D_component)], [stream, pipeline])
 
     stream_component = stream.component
     assert isinstance(stream_component, Component)
-    manager.get_attribute = lambda name: AttributePipeline(name, stream_component)
-    manager.add_resources(stream_component, [stream], ["A"])
+    manager.add_resources(stream_component, stream, ["A"])
 
     pipeline_component = pipeline.component
     assert isinstance(pipeline_component, Component)
-    manager.get_attribute = lambda name: AttributePipeline(name, pipeline_component)
-    manager.add_resources(pipeline_component, [pipeline], ["A"])
+    manager.add_resources(pipeline_component, pipeline, ["A"])
 
-    A_component = resource_producers[0]
-    manager.get_attribute = lambda name: AttributePipeline(name, A_component)
-    manager.add_resources(A_component, ["A"], [])
+    manager.add_resources(A_component, attribute_A, [])
     # Add the private column resource
     manager.add_resources(A_component, [Column("A", A_component)], [])
 
     manager.add_resources(resource_producers[4], [], [stream])
+
+    # Call each resource group's on_post_setup to finalize dependencies
+    attribute_pipelines = {"A": attribute_A, "D": attribute_D}
+    for rg in manager._resource_group_map.values():
+        rg.set_dependencies(attribute_pipelines)
 
     return manager
 
@@ -144,7 +147,7 @@ def test_add_resource_wrong_component(manager: ResourceManager) -> None:
     resource = Pipeline("foo", ColumnCreatorAndRequirer())
     error_message = "All initialized resources in this resource group must have the component 'column_creator'."
     with pytest.raises(ResourceError, match=error_message):
-        manager.add_resources(ColumnCreator(), [resource], [])
+        manager.add_resources(ColumnCreator(), resource, [])
 
 
 @pytest.mark.parametrize(
@@ -164,24 +167,22 @@ def test_resource_manager_add_same_resource_twice(
     c2 = ColumnCreatorAndRequirer()
     r1 = [resource_creator(str(i), c1) for i in range(5)]
     r2 = [resource_creator(str(i), c2) for i in range(5, 10)] + [resource_creator("1", c2)]
-    manager.get_attribute = lambda name: AttributePipeline(name, c1)
     manager.add_resources(c1, r1, [])
     error_message = (
         f"Component '{c2.name}' is attempting to register resource"
         f" '{resource_type}.1' but it is already registered by '{c1.name}'."
     )
     with pytest.raises(ResourceError, match=error_message):
-        manager.get_attribute = lambda name: AttributePipeline(name, c2)
         manager.add_resources(c2, r2, [])
 
 
 def test_resource_manager_sorted_nodes_two_node_cycle(
-    manager: ResourceManager, randomness_stream: RandomnessStream
+    manager: ResourceManager, randomness_stream: RandomnessStream, mocker: MockerFixture
 ) -> None:
     component = ColumnCreatorAndRequirer()
-    manager.get_attribute = lambda name: AttributePipeline(name, component)
-    manager.add_resources(component, ["c_1"], [randomness_stream])
-    manager.add_resources(randomness_stream.component, [randomness_stream], ["c_1"])
+    column = Column("c_1", mocker.Mock())
+    manager.add_resources(component, [column], [randomness_stream])
+    manager.add_resources(randomness_stream.component, randomness_stream, [column])
 
     with pytest.raises(ResourceError, match="The resource pool contains at least one cycle"):
         _ = manager.sorted_nodes
@@ -193,12 +194,11 @@ def test_resource_manager_sorted_nodes_three_node_cycle(
     mocker: MockerFixture,
 ) -> None:
     pipeline = Pipeline("some_pipeline", mocker.Mock())
-
     component = ColumnCreatorAndRequirer()
-    manager.get_attribute = lambda name: AttributePipeline(name, component)
-    manager.add_resources(component, ["c_1"], [randomness_stream])
-    manager.add_resources(pipeline.component, [pipeline], ["c_1"])
-    manager.add_resources(randomness_stream.component, [randomness_stream], [pipeline])
+    column = Column("c_1", component)
+    manager.add_resources(component, [column], [randomness_stream])
+    manager.add_resources(pipeline.component, pipeline, [column])
+    manager.add_resources(randomness_stream.component, randomness_stream, [pipeline])
 
     with pytest.raises(ResourceError, match="The resource pool contains at least one cycle"):
         _ = manager.sorted_nodes
@@ -206,20 +206,24 @@ def test_resource_manager_sorted_nodes_three_node_cycle(
 
 def test_resource_manager_sorted_nodes_large_cycle(manager: ResourceManager) -> None:
     component = ColumnCreator()
-    manager.get_attribute = lambda name: AttributePipeline(name, component)
     for i in range(10):
-        manager.add_resources(component, [f"c_{i}"], [f"c_{i % 10}"])
+        resource = Resource("test", f"resource{i}", component)
+        dependency = Resource("test", f"resource{(i + 1) % 10}", component)
+        manager.add_resources(component, resource, [dependency])
 
-    with pytest.raises(ResourceError, match="cycle"):
+    with pytest.raises(ResourceError, match="The resource pool contains at least one cycle"):
         _ = manager.sorted_nodes
 
 
-def test_large_dependency_chain(manager: ResourceManager) -> None:
+def test_large_dependency_chain(manager: ResourceManager, mocker: MockerFixture) -> None:
     component = ColumnCreator()
-    manager.get_attribute = lambda name: AttributePipeline(name, component)
     for i in range(9, 0, -1):
-        manager.add_resources(component, [f"c_{i}"], [f"c_{i - 1}"])
-    manager.add_resources(component, ["c_0"], [])
+        manager.add_resources(
+            component,
+            AttributePipeline(f"c_{i}", component),
+            [AttributePipeline(f"c_{i-1}", mocker.Mock())],
+        )
+    manager.add_resources(component, AttributePipeline("c_0", component), [])
 
     for i, resource in enumerate(manager.sorted_nodes):
         assert str(resource) == f"(attribute.c_{i})"
