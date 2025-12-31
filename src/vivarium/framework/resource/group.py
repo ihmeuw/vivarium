@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator
 from typing import TYPE_CHECKING
 
 from vivarium.framework.resource.exceptions import ResourceError
@@ -25,8 +25,8 @@ class ResourceGroup:
 
     def __init__(
         self,
-        initialized_resources: Sequence[Column] | Resource,
-        dependencies: Sequence[str | Resource],
+        initialized_resources: Iterable[Column] | Resource,
+        dependencies: Iterable[str | Resource],
     ):
         """Create a new resource group.
 
@@ -44,17 +44,13 @@ class ResourceGroup:
         """
         if not initialized_resources:
             raise ResourceError("Resource groups must have at least one resource.")
-        self._dependencies = dependencies
 
         initialized_resources_ = (
             [initialized_resources]
             if isinstance(initialized_resources, Resource)
-            else initialized_resources
+            else list(initialized_resources)
         )
 
-        # These checks are redundant since initialized_resources is either a list
-        # of Columns created by a single Component or a single Resource. We keep them
-        # in the event that changes in the future.
         if len(set(res.component for res in initialized_resources_)) != 1:
             raise ResourceError("All initialized resources must have the same component.")
         if len(set(res.resource_type for res in initialized_resources_)) != 1:
@@ -66,9 +62,9 @@ class ResourceGroup:
         """The type of resource in this group."""
         self.is_initialized = initialized_resources_[0].is_initialized
         """Whether this resource group contains initialized resources."""
-        self.resources = {
-            resource.resource_id: resource for resource in initialized_resources_
-        }
+        self._dependencies = dependencies
+        self.resources = {res.resource_id: res for res in initialized_resources_}
+        """A dictionary of resources produced by this group, keyed by resource_id."""
 
     @property
     def names(self) -> list[str]:
@@ -83,9 +79,12 @@ class ResourceGroup:
     @property
     def dependencies(self) -> list[str]:
         """The long names (including type) of dependencies for this group."""
-        if not all(isinstance(dep, Resource) for dep in self._dependencies):
+        dependency_strings = [dep for dep in self._dependencies if isinstance(dep, str)]
+        if dependency_strings:
             raise ResourceError(
-                "Resource group has not been finalized; dependencies are still strings."
+                "Resource group has not been finalized; dependencies are still strings.\n"
+                f"Resource group: {self}\n"
+                f"String dependencies: {dependency_strings}"
             )
         return [dep.resource_id for dep in self._dependencies]  # type: ignore[union-attr]
 

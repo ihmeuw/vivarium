@@ -7,16 +7,15 @@ Resource Manager
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 import networkx as nx
-from tables import Column
 
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.resource.exceptions import ResourceError
 from vivarium.framework.resource.group import ResourceGroup
-from vivarium.framework.resource.resource import NullResource, Resource
+from vivarium.framework.resource.resource import Column, NullResource, Resource
 from vivarium.manager import Manager
 
 if TYPE_CHECKING:
@@ -82,14 +81,14 @@ class ResourceManager(Manager):
     def on_post_setup(self, _: Event) -> None:
         # Finalize the resource group dependencies
         attribute_pipelines = self._get_attribute_pipelines()
-        for rg in self._resource_group_map.values():
-            rg.set_dependencies(attribute_pipelines)
+        for group in self._resource_group_map.values():
+            group.set_dependencies(attribute_pipelines)
 
     def add_resources(
         self,
         component: Component | Manager,
-        resources: Sequence[Column] | Resource,
-        dependencies: Sequence[str | Resource],
+        resources: Iterable[Column] | Resource,
+        dependencies: Iterable[str | Resource],
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -122,8 +121,8 @@ class ResourceManager(Manager):
     def _get_resource_group(
         self,
         component: Component | Manager,
-        resources: Sequence[Column] | Resource,
-        dependencies: Sequence[str | Resource],
+        resources: Iterable[Column] | Resource,
+        dependencies: Iterable[str | Resource],
     ) -> ResourceGroup:
         """Packages resource information into a resource group.
 
@@ -135,7 +134,7 @@ class ResourceManager(Manager):
             # We have a "producer" that doesn't produce anything, but
             # does have dependencies. This is necessary for components that
             # want to track private state information.
-            resources = [NullResource(self._null_producer_count, component)]
+            resources = NullResource(self._null_producer_count, component)
             self._null_producer_count += 1
 
         if isinstance(resources, Resource) and resources.component != component:

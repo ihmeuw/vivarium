@@ -53,11 +53,11 @@ def manager_with_resources(
 
     stream_component = stream.component
     assert isinstance(stream_component, Component)
-    manager.add_resources(stream_component, [stream], ["A"])
+    manager.add_resources(stream_component, stream, ["A"])
 
     pipeline_component = pipeline.component
     assert isinstance(pipeline_component, Component)
-    manager.add_resources(pipeline_component, [pipeline], ["A"])
+    manager.add_resources(pipeline_component, pipeline, ["A"])
 
     manager.add_resources(A_component, attribute_A, [])
     # Add the private column resource
@@ -182,7 +182,7 @@ def test_resource_manager_sorted_nodes_two_node_cycle(
     component = ColumnCreatorAndRequirer()
     column = Column("c_1", mocker.Mock())
     manager.add_resources(component, [column], [randomness_stream])
-    manager.add_resources(randomness_stream.component, [randomness_stream], [column])
+    manager.add_resources(randomness_stream.component, randomness_stream, [column])
 
     with pytest.raises(ResourceError, match="The resource pool contains at least one cycle"):
         _ = manager.sorted_nodes
@@ -197,8 +197,8 @@ def test_resource_manager_sorted_nodes_three_node_cycle(
     component = ColumnCreatorAndRequirer()
     column = Column("c_1", component)
     manager.add_resources(component, [column], [randomness_stream])
-    manager.add_resources(pipeline.component, [pipeline], [column])
-    manager.add_resources(randomness_stream.component, [randomness_stream], [pipeline])
+    manager.add_resources(pipeline.component, pipeline, [column])
+    manager.add_resources(randomness_stream.component, randomness_stream, [pipeline])
 
     with pytest.raises(ResourceError, match="The resource pool contains at least one cycle"):
         _ = manager.sorted_nodes
