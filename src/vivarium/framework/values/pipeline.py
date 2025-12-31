@@ -389,3 +389,6 @@ class AttributePipeline(Pipeline):
                 f"\nExpected index: {index}"
             )
         return attribute
+
+    def __repr__(self) -> str:
+        return f"_AttributePipeline({self.name})"
