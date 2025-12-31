@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -9,7 +10,8 @@ from layered_config_tree import LayeredConfigTree
 from pytest_mock import MockerFixture
 
 from tests.helpers import LookupCreator
-from vivarium import InteractiveContext
+from vivarium import Component, InteractiveContext
+from vivarium.framework.engine import Builder
 from vivarium.framework.lookup import validate_build_table_parameters
 from vivarium.framework.lookup.manager import LookupTableManager
 from vivarium.framework.lookup.table import InterpolatedTable
@@ -353,3 +355,32 @@ def test__build_table_from_dict(base_config: LayeredConfigTree) -> None:
     assert table.key_columns == ["b"]
     assert table.parameter_columns == ["a"]
     assert table.value_columns == ["c"]
+
+
+def test_uncreated_lookup_table_warning(
+    base_config: LayeredConfigTree, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Test that a warning is logged when a lookup table is configured but not created."""
+
+    class ComponentWithUnusedLookupTable(Component):
+        @property
+        def configuration_defaults(self) -> dict[str, Any]:
+            return {
+                "component_with_unused_lookup_table": {
+                    "data_sources": {
+                        "unused_table": 42,
+                    }
+                }
+            }
+
+    InteractiveContext(
+        components=[ComponentWithUnusedLookupTable()], configuration=base_config
+    )
+
+    # Check that the warning was logged at WARNING level
+    warning_records = [record for record in caplog.records if record.levelname == "WARNING"]
+    assert len(warning_records) == 1
+    assert (
+        "Component 'component_with_unused_lookup_table' configured, but didn't build "
+        "lookup table 'unused_table' during setup." in warning_records[0].message
+    )

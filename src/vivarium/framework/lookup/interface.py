@@ -65,8 +65,7 @@ class LookupTableInterface(Interface):
         """Construct a LookupTable from input data.
 
         If the data is a scalar value, this will return a table that when called
-        will return a :class:`pandas.Series` (or pandas DataFrame if the
-        scalar value is a list or tuple) with the scalar value for each index entry.
+        will return that scalar value for each index entry.
 
         If the data is a pandas DataFrame columns with names in value_columns
         will be returned directly when the table is called with a population index.
