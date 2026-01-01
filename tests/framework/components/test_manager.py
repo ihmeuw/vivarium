@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-import pandas as pd
 import pytest
+from layered_config_tree import LayeredConfigTree
 
 from tests.helpers import MockComponentA, MockComponentB, MockGenericComponent, MockManager
+from vivarium import Component
 from vivarium.exceptions import VivariumError
 from vivarium.framework.components.manager import (
     ComponentConfigError,
@@ -13,13 +14,12 @@ from vivarium.framework.components.manager import (
     OrderedComponentSet,
 )
 from vivarium.framework.configuration import build_simulation_configuration
-from vivarium.framework.engine import SimulationContext
+from vivarium.framework.engine import Builder
+from vivarium.interface import InteractiveContext
 from vivarium.manager import Manager
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
-
-    from vivarium import Component
 
 
 def test_component_set_add() -> None:
@@ -327,3 +327,27 @@ def test_component_manager_add_components_duplicated(components: list[Component]
         match="is attempting to set the configuration value mock_component_a, but it has already been set by mock_component_a",
     ):
         cm.add_components(components)
+
+
+def test_get_current_component_outside_setup() -> None:
+    cm = ComponentManager()
+    with pytest.raises(VivariumError, match="No component is currently being set up"):
+        _ = cm.get_current_component()
+
+
+def test_setting_current_component() -> None:
+    class TestComponent(Component):
+        def __init__(self, some_name: str) -> None:
+            super().__init__()
+            self.some_name = some_name
+
+        def setup(self, builder: Builder) -> None:
+            self.component = builder.components.get_current_component()
+
+    component1 = TestComponent("component1")
+    component2 = TestComponent("component2")
+
+    InteractiveContext(components=[component1, component2])
+
+    assert component1.component == component1
+    assert component2.component == component2

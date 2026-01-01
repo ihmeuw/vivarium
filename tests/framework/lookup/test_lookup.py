@@ -11,12 +11,59 @@ from pytest_mock import MockerFixture
 
 from tests.helpers import LookupCreator
 from vivarium import Component, InteractiveContext
-from vivarium.framework.engine import Builder
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.lookup import validate_build_table_parameters
 from vivarium.framework.lookup.manager import LookupTableManager
 from vivarium.framework.lookup.table import InterpolatedTable
 from vivarium.testing_utilities import TestPopulation, build_table
 from vivarium.types import LookupTableData, ScalarValue
+
+
+def test_build_table_calls_methods_correctly(mocker: MockerFixture) -> None:
+    """Test that build_table orchestrates calls to helper methods correctly."""
+    # Setup
+    manager = LookupTableManager()
+    test_component = Component()
+    test_data = pd.DataFrame({"a": [1, 2, 3], "value": [10, 20, 30]})
+    test_name = "test_table"
+    test_value_columns = "value"
+
+    # Set up a mock LookupTable
+    mock_table = mocker.Mock()
+    mock_table.required_resources = ["resource1", "resource2"]
+    mock_table.call = mocker.Mock()
+
+    # Inject mocks into the manager
+    manager._get_current_component = mocker.Mock(return_value=test_component)
+    manager._build_table = mocker.Mock(return_value=mock_table)  # type: ignore[method-assign]
+    manager._add_resources = mocker.Mock()
+    manager._add_constraint = mocker.Mock()
+
+    # Execute
+    result = manager.build_table(test_data, test_name, test_value_columns)
+
+    # Assert _build_table was called with correct arguments
+    manager._build_table.assert_called_once_with(  # type: ignore[attr-defined]
+        test_component, test_data, test_name, test_value_columns
+    )
+
+    # Assert _add_resources was called with correct arguments
+    manager._add_resources.assert_called_once_with(  # type: ignore[attr-defined]
+        test_component, mock_table, ["resource1", "resource2"]
+    )
+
+    # Assert correct constraint have been set on table.call
+    manager._add_constraint.assert_called_once()  # type: ignore[attr-defined]
+    call_args = manager._add_constraint.call_args  # type: ignore[attr-defined]
+    assert call_args[0][0] == mock_table.call
+    assert call_args[1]["restrict_during"] == [
+        lifecycle_states.INITIALIZATION,
+        lifecycle_states.SETUP,
+        lifecycle_states.POST_SETUP,
+    ]
+
+    # Assert the table is returned
+    assert result == mock_table
 
 
 @pytest.mark.skip(reason="only order 0 interpolation currently supported")

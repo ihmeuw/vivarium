@@ -353,7 +353,6 @@ class ComponentManager(Manager):
                 )
         return out
 
-    # TODO rmudambi this doesn't need to be its own method
     def _setup_components(self, builder: Builder, components: OrderedComponentSet) -> None:
         for component in components:
             self._current_component = component

@@ -20,6 +20,7 @@ from vivarium.manager import Manager
 from vivarium.types import ClockTime
 
 if TYPE_CHECKING:
+    from vivarium.component import Component
     from vivarium.framework.engine import Builder
 
 
@@ -133,15 +134,17 @@ class RandomnessManager(Manager):
             If another location in the simulation has already created a randomness stream
             with the same identifier.
         """
+        component = self._get_current_component()
         stream = self._get_randomness_stream(
             decision_point,
+            component,
             initializes_crn_attributes,
             rate_conversion_type,
         )
 
         # We need the key columns to be created before this stream can be called.
         self._add_resources(
-            component=self._get_current_component(),
+            component=component,
             resources=stream,
             dependencies=self._key_columns if not initializes_crn_attributes else [],
         )
@@ -184,6 +187,7 @@ class RandomnessManager(Manager):
     def _get_randomness_stream(
         self,
         decision_point: str,
+        component: Component,
         initializes_crn_attributes: bool = False,
         rate_conversion_type: Literal["linear", "exponential"] = "linear",
     ) -> RandomnessStream:
@@ -197,7 +201,7 @@ class RandomnessManager(Manager):
             clock=self._clock,
             seed=self._seed,
             index_map=self._key_mapping,
-            component=self._get_current_component(),
+            component=component,
             initializes_crn_attributes=initializes_crn_attributes,
             rate_conversion_type=rate_conversion_type,
         )

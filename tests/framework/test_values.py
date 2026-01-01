@@ -11,6 +11,7 @@ from pytest_mock import MockerFixture, MockFixture
 
 from tests.helpers import ColumnCreator
 from vivarium import Component
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.resource import Column, Resource
 from vivarium.framework.utilities import from_yearly
 from vivarium.framework.values import (
@@ -37,6 +38,91 @@ if TYPE_CHECKING:
 
 
 INDEX = pd.Index([4, 8, 15, 16, 23, 42])
+
+
+def test_configure_pipeline_calls_methods_correctly(mocker: MockerFixture) -> None:
+    """Test that _configure_pipeline orchestrates calls to helper methods correctly."""
+    # Setup
+    manager = ValuesManager()
+    test_component = Component()
+    test_pipeline = mocker.Mock()
+    test_required_resources = ["resource1", "resource2"]
+    test_combiner = mocker.Mock()
+    test_post_processor = mocker.Mock()
+
+    # Inject mocks into the manager
+    manager._get_current_component = mocker.Mock(return_value=test_component)
+    manager._add_resources = mocker.Mock()
+    manager._add_constraint = mocker.Mock()
+
+    # Execute
+    manager._configure_pipeline(
+        test_pipeline,
+        lambda idx: pd.Series(1, index=idx),
+        test_required_resources,
+        test_combiner,
+        test_post_processor,
+        source_is_private_column=False,
+    )
+
+    # Assert pipeline.set_attributes was called
+    test_pipeline.set_attributes.assert_called_once()
+    call_args = test_pipeline.set_attributes.call_args
+    assert call_args[1]["component"] == test_component
+    assert isinstance(call_args[1]["source"], ValueSource)
+    assert call_args[1]["combiner"] == test_combiner
+    assert call_args[1]["post_processor"] == test_post_processor
+    assert call_args[1]["manager"] == manager
+
+    # Assert _add_resources was called with correct arguments
+    manager._add_resources.assert_called_once_with(  # type: ignore[attr-defined]
+        component=test_pipeline.component,
+        resources=test_pipeline.source,
+        dependencies=test_pipeline.source.required_resources,
+    )
+
+    # Assert _add_constraint was called with correct arguments
+    manager._add_constraint.assert_called_once()  # type: ignore[attr-defined]
+    call_args = manager._add_constraint.call_args  # type: ignore[attr-defined]
+    assert call_args[0][0] == test_pipeline._call
+    assert call_args[1]["restrict_during"] == [
+        lifecycle_states.INITIALIZATION,
+        lifecycle_states.SETUP,
+        lifecycle_states.POST_SETUP,
+    ]
+
+
+def test_configure_modifier_calls_methods_correctly(mocker: MockerFixture) -> None:
+    """Test that _configure_modifier orchestrates calls to helper methods correctly."""
+    # Setup
+    manager = ValuesManager()
+    test_component = Component()
+    test_pipeline = mocker.Mock()
+    test_modifier = lambda idx, val: val + 1
+    test_required_resources = ["resource1", "resource2"]
+
+    # Set up a mock value modifier
+    mock_value_modifier = mocker.Mock()
+    mock_value_modifier.name = "test_modifier"
+    test_pipeline.get_value_modifier.return_value = mock_value_modifier
+
+    # Inject mocks into the manager
+    manager._get_current_component = mocker.Mock(return_value=test_component)
+    manager._add_resources = mocker.Mock()
+    manager.logger = mocker.Mock()
+
+    # Execute
+    manager._configure_modifier(test_pipeline, test_modifier, test_required_resources)
+
+    # Assert pipeline.get_value_modifier was called with correct arguments
+    test_pipeline.get_value_modifier.assert_called_once_with(test_modifier, test_component)
+
+    # Assert _add_resources was called with correct arguments
+    manager._add_resources.assert_called_once_with(  # type: ignore[attr-defined]
+        component=test_component,
+        resources=mock_value_modifier,
+        dependencies=test_required_resources,
+    )
 
 
 @pytest.fixture

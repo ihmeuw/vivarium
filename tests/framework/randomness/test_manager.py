@@ -1,12 +1,81 @@
+from typing import Literal
+
 import pandas as pd
 import pytest
 from layered_config_tree import LayeredConfigTree
+from pytest_mock import MockerFixture
 
-from tests.helpers import ColumnCreator, ColumnCreatorAndRequirer
-from vivarium import InteractiveContext
+from tests.helpers import ColumnCreator
+from vivarium import Component, InteractiveContext
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.randomness.manager import RandomnessError, RandomnessManager
 from vivarium.framework.randomness.stream import get_hash
+
+
+@pytest.mark.parametrize("initializes_crn_attributes", [True, False])
+def test_get_randomness_stream_calls_methods_correctly(
+    mocker: MockerFixture, initializes_crn_attributes: bool
+) -> None:
+    """Test that get_randomness_stream orchestrates calls to helper methods correctly."""
+    # Setup
+    manager = RandomnessManager()
+    test_component = Component()
+    test_decision_point = "test_decision"
+    test_rate_conversion: Literal["linear", "exponential"] = "linear"
+
+    # Set up a mock RandomnessStream
+    mock_stream = mocker.Mock()
+    mock_stream.get_draw = mocker.Mock()
+    mock_stream.filter_for_probability = mocker.Mock()
+    mock_stream.filter_for_rate = mocker.Mock()
+    mock_stream.choice = mocker.Mock()
+
+    # Inject mocks into the manager
+    manager._get_current_component = mocker.Mock(return_value=test_component)
+    manager._get_randomness_stream = mocker.Mock(return_value=mock_stream)  # type: ignore[method-assign]
+    manager._add_resources = mocker.Mock()
+    manager._add_constraint = mocker.Mock()
+    manager._key_columns = ["age", "sex"]
+
+    # Execute
+    result = manager.get_randomness_stream(
+        test_decision_point, initializes_crn_attributes, test_rate_conversion
+    )
+
+    # Assert _get_randomness_stream was called with correct arguments
+    manager._get_randomness_stream.assert_called_once_with(  # type: ignore[attr-defined]
+        test_decision_point,
+        test_component,
+        initializes_crn_attributes,
+        test_rate_conversion,
+    )
+
+    # Assert _add_resources was called with correct arguments
+    expected_dependencies = [] if initializes_crn_attributes else ["age", "sex"]
+    manager._add_resources.assert_called_once_with(  # type: ignore[attr-defined]
+        component=test_component,
+        resources=mock_stream,
+        dependencies=expected_dependencies,
+    )
+
+    # Assert _add_constraint was called for each stream method
+    assert manager._add_constraint.call_count == 4  # type: ignore[attr-defined]
+    restricted_states = [
+        lifecycle_states.INITIALIZATION,
+        lifecycle_states.SETUP,
+        lifecycle_states.POST_SETUP,
+    ]
+    expected_calls = [
+        mocker.call(mock_stream.get_draw, restrict_during=restricted_states),
+        mocker.call(mock_stream.filter_for_probability, restrict_during=restricted_states),
+        mocker.call(mock_stream.filter_for_rate, restrict_during=restricted_states),
+        mocker.call(mock_stream.choice, restrict_during=restricted_states),
+    ]
+    manager._add_constraint.assert_has_calls(expected_calls)  # type: ignore[attr-defined]
+
+    # Assert the stream is returned
+    assert result == mock_stream
 
 
 def mock_clock() -> pd.Timestamp:
@@ -25,7 +94,7 @@ def test_randomness_manager_get_randomness_stream() -> None:
     rm._key_columns = ["age", "sex"]
     rm._key_mapping_ = IndexMap(["age", "sex"])
     rm._rate_conversion_type = "linear"
-    stream = rm._get_randomness_stream("test")
+    stream = rm._get_randomness_stream("test", component)
 
     assert stream.key == "test"
     assert stream.seed == seed
@@ -33,7 +102,7 @@ def test_randomness_manager_get_randomness_stream() -> None:
     assert set(rm._decision_points.keys()) == {"test"}
 
     with pytest.raises(RandomnessError):
-        rm._get_randomness_stream("test")
+        rm._get_randomness_stream("test", component)
 
 
 def test_randomness_manager_register_simulants() -> None:
