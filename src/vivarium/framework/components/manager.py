@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Iterator, Sequence
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 from layered_config_tree import (
     ConfigurationError,
@@ -35,7 +35,7 @@ from vivarium.manager import Manager
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
 
-    _ComponentsType = Sequence[Union[Component, Manager, "_ComponentsType"]]
+T = TypeVar("T", Component, Manager)
 
 
 class ComponentConfigError(VivariumError):
@@ -44,7 +44,7 @@ class ComponentConfigError(VivariumError):
     pass
 
 
-class OrderedComponentSet:
+class OrderedComponentSet(Generic[T]):
     """A container for Vivarium components.
 
     It preserves ordering, enforces uniqueness by name, and provides a
@@ -52,35 +52,34 @@ class OrderedComponentSet:
 
     """
 
-    def __init__(self, *args: Component | Manager):
-        self.components: list[Component | Manager] = []
+    def __init__(self, *args: T) -> None:
+        self.components: list[T] = []
         if args:
             self.update(args)
 
-    def add(self, component: Component | Manager) -> None:
+    def add(self, component: T) -> None:
         if component in self:
             raise ComponentConfigError(
                 f"Attempting to add a component with duplicate name: {component}"
             )
         self.components.append(component)
 
-    def update(
-        self,
-        components: Sequence[Component | Manager],
-    ) -> None:
+    def update(self, components: Sequence[T]) -> None:
         for c in components:
             self.add(c)
 
-    def pop(self) -> Component | Manager:
+    def pop(self) -> T:
         component = self.components.pop(0)
         return component
 
-    def __contains__(self, component: Component | Manager) -> bool:
+    def __contains__(self, component: T) -> bool:
         if not hasattr(component, "name"):
-            raise ComponentConfigError(f"Component {component} has no name attribute")
+            raise ComponentConfigError(
+                f"{type(component).__name__} {component} has no name attribute"
+            )
         return component.name in [c.name for c in self.components]
 
-    def __iter__(self) -> Iterator[Component | Manager]:
+    def __iter__(self) -> Iterator[T]:
         return iter(self.components)
 
     def __len__(self) -> int:
@@ -89,7 +88,7 @@ class OrderedComponentSet:
     def __bool__(self) -> bool:
         return bool(self.components)
 
-    def __add__(self, other: "OrderedComponentSet") -> "OrderedComponentSet":
+    def __add__(self, other: OrderedComponentSet[T]) -> OrderedComponentSet[T]:
         return OrderedComponentSet(*(self.components + other.components))
 
     def __eq__(self, other: object) -> bool:
@@ -102,7 +101,7 @@ class OrderedComponentSet:
         except TypeError:
             return False
 
-    def __getitem__(self, index: int) -> Any:
+    def __getitem__(self, index: int) -> T:
         return self.components[index]
 
     def __repr__(self) -> str:
@@ -126,8 +125,8 @@ class ComponentManager(Manager):
     """
 
     def __init__(self) -> None:
-        self._managers = OrderedComponentSet()
-        self._components = OrderedComponentSet()
+        self._managers: OrderedComponentSet[Manager] = OrderedComponentSet()
+        self._components: OrderedComponentSet[Component] = OrderedComponentSet()
         self._configuration: LayeredConfigTree | None = None
         self._current_component: Component | Manager | None = None
 
@@ -163,7 +162,7 @@ class ComponentManager(Manager):
             self.list_components, restrict_during=[lifecycle_states.INITIALIZATION]
         )
 
-    def add_managers(self, managers: list[Manager] | tuple[Manager]) -> None:
+    def add_managers(self, managers: Sequence[Manager]) -> None:
         """Registers new managers with the component manager.
 
         Managers are configured and setup before components.
@@ -173,11 +172,11 @@ class ComponentManager(Manager):
         managers
             Instantiated managers to register.
         """
-        for m in self._flatten(list(managers)):
-            self.apply_configuration_defaults(m)
-            self._managers.add(m)
+        for manager in managers:
+            self.apply_configuration_defaults(manager)
+            self._managers.add(manager)
 
-    def add_components(self, components: list[Component] | tuple[Component]) -> None:
+    def add_components(self, components: Sequence[Component]) -> None:
         """Register new components with the component manager.
 
         Components are configured and setup after managers.
@@ -187,13 +186,13 @@ class ComponentManager(Manager):
         components
             Instantiated components to register.
         """
-        for c in self._flatten(list(components)):
+        for c in self._flatten_subcomponents(list(components)):
             self.apply_configuration_defaults(c)
             self._components.add(c)
 
     def get_components_by_type(
-        self, component_type: type[Component | Manager] | Sequence[type[Component | Manager]]
-    ) -> list[Component | Manager]:
+        self, component_type: type[Component] | Sequence[type[Component]]
+    ) -> list[Component]:
         """Get all components that are an instance of ``component_type``.
 
         Parameters
@@ -291,7 +290,15 @@ class ComponentManager(Manager):
         builder
             Interface to several simulation tools.
         """
-        self._setup_components(builder, self._managers + self._components)
+        for manager in self._managers:
+            self._current_component = manager
+            manager.setup(builder)
+
+        for component in self._components:
+            self._current_component = component
+            component.setup_component(builder)
+
+        self._current_component = None
 
     def apply_configuration_defaults(self, component: Component | Manager) -> None:
         try:
@@ -332,37 +339,12 @@ class ComponentManager(Manager):
         else:
             return inspect.getfile(component.__class__)
 
-    @staticmethod
-    def _flatten(components: _ComponentsType) -> list[Component | Manager]:
-        out: list[Component | Manager] = []
-        # Reverse the order of components so we can pop appropriately
-        components = list(components)[::-1]
-        while components:
-            current = components.pop()
-            if isinstance(current, (list, tuple)):
-                components.extend(current[::-1])
-            elif isinstance(current, Component):
-                components.extend(current.sub_components[::-1])
-                out.append(current)
-            elif isinstance(current, Manager):
-                out.append(current)
-            else:
-                raise TypeError(
-                    "Expected Component, Manager, List, or Tuple. "
-                    f"Got {type(current)}: {current}"
-                )
-        return out
-
-    def _setup_components(self, builder: Builder, components: OrderedComponentSet) -> None:
+    def _flatten_subcomponents(self, components: Sequence[Component]) -> list[Component]:
+        out: list[Component] = []
         for component in components:
-            self._current_component = component
-            try:
-                if isinstance(component, Component):
-                    component.setup_component(builder)
-                elif isinstance(component, Manager):
-                    component.setup(builder)
-            finally:
-                self._current_component = None
+            out.append(component)
+            out.extend(self._flatten_subcomponents(component.sub_components))
+        return out
 
     def __repr__(self) -> str:
         return "ComponentManager()"

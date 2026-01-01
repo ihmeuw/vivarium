@@ -94,7 +94,7 @@ def test_randomness_manager_get_randomness_stream() -> None:
     rm._key_columns = ["age", "sex"]
     rm._key_mapping_ = IndexMap(["age", "sex"])
     rm._rate_conversion_type = "linear"
-    stream = rm._get_randomness_stream("test")
+    stream = rm._get_randomness_stream("test", component)
 
     assert stream.key == "test"
     assert stream.seed == seed
@@ -102,7 +102,7 @@ def test_randomness_manager_get_randomness_stream() -> None:
     assert set(rm._decision_points.keys()) == {"test"}
 
     with pytest.raises(RandomnessError):
-        rm._get_randomness_stream("test")
+        rm._get_randomness_stream("test", component)
 
 
 def test_randomness_manager_register_simulants() -> None:
