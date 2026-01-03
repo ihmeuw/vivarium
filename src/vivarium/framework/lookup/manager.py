@@ -23,7 +23,6 @@ from typing import overload
 import pandas as pd
 from layered_config_tree import LayeredConfigTree
 
-from vivarium.component import Component
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.lookup.table import (
@@ -37,6 +36,7 @@ from vivarium.manager import Manager
 from vivarium.types import LookupTableData
 
 if TYPE_CHECKING:
+    from vivarium import Component
     from vivarium.framework.engine import Builder
 
 
@@ -72,6 +72,7 @@ class LookupTableManager(Manager):
         self._validate = builder.configuration.interpolation.validate
         self._add_resources = builder.resources.add_resources
         self._add_constraint = builder.lifecycle.add_constraint
+        self._get_current_component = builder.components.get_current_component
 
         builder.lifecycle.add_constraint(
             self.build_table, allow_during=[lifecycle_states.SETUP]
@@ -98,7 +99,6 @@ class LookupTableManager(Manager):
     @overload
     def build_table(
         self,
-        component: Component,
         data: LookupTableData,
         name: str,
         value_columns: str | None,
@@ -108,7 +108,6 @@ class LookupTableManager(Manager):
     @overload
     def build_table(
         self,
-        component: Component,
         data: LookupTableData,
         name: str,
         value_columns: list[str] | tuple[str, ...],
@@ -117,12 +116,12 @@ class LookupTableManager(Manager):
 
     def build_table(
         self,
-        component: Component,
         data: LookupTableData,
         name: str,
         value_columns: list[str] | tuple[str, ...] | str | None,
     ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
         """Construct a lookup table from input data."""
+        component = self._get_current_component()
         table = self._build_table(component, data, name, value_columns)
         self._add_resources(component, table, table.required_resources)
         self._add_constraint(
