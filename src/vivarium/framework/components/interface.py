@@ -92,8 +92,9 @@ class ComponentInterface(Interface):
     def get_current_component_or_manager(self) -> Component | Manager:
         """Get the component or manager currently being set up, if any.
 
-        This method is primarily used internally by the framework to support
-        automatic component injection in interface methods.
+        This method exists to allow for cases where a manager is needed during
+        setup, such as if a manager creates a Value Pipeline.
+
 
         Returns
         -------
