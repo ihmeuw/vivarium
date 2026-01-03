@@ -201,7 +201,8 @@ class SimulationContext:
             self._tables,
             self._data,
             self._results,
-        ] + list(self._plugin_manager.get_optional_controllers().values())
+            *self._plugin_manager.get_optional_controllers().values(),
+        ]
         self._component_manager.add_managers(managers)
 
         component_config_parser = self._plugin_manager.get_component_config_parser()
