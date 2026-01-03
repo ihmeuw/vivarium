@@ -109,14 +109,12 @@ class SimulationClock(Manager):
         self._step_size_pipeline = builder.value.register_value_producer(
             self._simulant_step_size_pipeline,
             source=lambda idx: [pd.Series(np.nan, index=idx).astype("timedelta64[ns]")],
-            component=self,
             preferred_combiner=list_combiner,
             preferred_post_processor=self.step_size_post_processor,
         )
         self.register_step_modifier = partial(
             builder.value.register_value_modifier,
             self._simulant_step_size_pipeline,
-            component=self,
         )
         builder.population.initializes_simulants(self)
         builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)

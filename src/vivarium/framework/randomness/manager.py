@@ -20,7 +20,7 @@ from vivarium.manager import Manager
 from vivarium.types import ClockTime
 
 if TYPE_CHECKING:
-    from vivarium import Component
+    from vivarium.component import Component
     from vivarium.framework.engine import Builder
 
 
@@ -76,9 +76,12 @@ class RandomnessManager(Manager):
         pop_size = builder.configuration.population.population_size
         map_size = max(map_size, 10 * pop_size)
         self._key_mapping_ = IndexMap(self._key_columns, map_size)
+
+        self._get_current_component = builder.components.get_current_component
         self._rate_conversion_type = builder.configuration.randomness.rate_conversion_type
-        self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
+        self._add_resources = builder.resources.add_resources
+
         self._add_constraint(self.get_seed, restrict_during=[lifecycle_states.INITIALIZATION])
         self._add_constraint(
             self.get_randomness_stream, allow_during=[lifecycle_states.SETUP]
@@ -97,7 +100,6 @@ class RandomnessManager(Manager):
     def get_randomness_stream(
         self,
         decision_point: str,
-        component: Component,
         initializes_crn_attributes: bool = False,
         rate_conversion_type: Literal["linear", "exponential"] = "linear",
     ) -> RandomnessStream:
@@ -109,8 +111,6 @@ class RandomnessManager(Manager):
             A unique identifier for a stream of random numbers.  Typically
             represents a decision that needs to be made each time step like
             'moves_left' or 'gets_disease'.
-        component
-            The component that is requesting the randomness stream.
         initializes_crn_attributes
             A flag indicating whether this stream is used to generate key
             initialization information that will be used to identify simulants
@@ -134,12 +134,13 @@ class RandomnessManager(Manager):
             If another location in the simulation has already created a randomness stream
             with the same identifier.
         """
+        component = self._get_current_component()
         stream = self._get_randomness_stream(
             decision_point, component, initializes_crn_attributes, rate_conversion_type
         )
 
         # We need the key columns to be created before this stream can be called.
-        self.resources.add_resources(
+        self._add_resources(
             component=component,
             resources=stream,
             dependencies=self._key_columns if not initializes_crn_attributes else [],
