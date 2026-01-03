@@ -136,7 +136,10 @@ class RandomnessManager(Manager):
         """
         component = self._get_current_component()
         stream = self._get_randomness_stream(
-            decision_point, component, initializes_crn_attributes, rate_conversion_type
+            decision_point,
+            component,
+            initializes_crn_attributes,
+            rate_conversion_type,
         )
 
         # We need the key columns to be created before this stream can be called.
@@ -198,7 +201,7 @@ class RandomnessManager(Manager):
             clock=self._clock,
             seed=self._seed,
             index_map=self._key_mapping,
-            component=component,
+            component=self._get_current_component(),
             initializes_crn_attributes=initializes_crn_attributes,
             rate_conversion_type=rate_conversion_type,
         )

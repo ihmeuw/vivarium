@@ -49,6 +49,7 @@ py:class vivarium.framework.plugins.M
 py:class vivarium.framework.plugins.I
 py:class vivarium.framework.utilities.TimeValue
 py:class T
+py:class vivarium.framework.components.manager.T
 
 # layered_config_tree
 py:class layered_config_tree.main.LayeredConfigTree
