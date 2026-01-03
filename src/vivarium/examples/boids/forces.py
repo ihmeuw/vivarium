@@ -33,7 +33,6 @@ class Force(Component, ABC):
             "acceleration",
             modifier=self.apply_force,
             required_resources=["x", "y", "vx", "vy", "neighbors"],
-            component=self,
         )
 
     ##################################

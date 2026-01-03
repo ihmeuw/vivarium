@@ -43,6 +43,7 @@ from vivarium.types import ClockTime, NumericArray
 
 if TYPE_CHECKING:
     from vivarium import Component
+    from vivarium.manager import Manager
 
 RESIDUAL_CHOICE = object()
 
@@ -99,7 +100,7 @@ class RandomnessStream(Resource):
         clock: Callable[[], ClockTime],
         seed: Any,
         index_map: IndexMap,
-        component: Component,
+        component: Component | Manager,
         initializes_crn_attributes: bool = False,
         rate_conversion_type: Literal["linear", "exponential"] = "linear",
     ):

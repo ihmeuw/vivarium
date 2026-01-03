@@ -164,7 +164,6 @@ class MultiLevelSingleColumnCreator(Component):
         builder.value.register_attribute_producer(
             "some_attribute",
             lambda idx: pd.DataFrame({"some_column": [i % 3 for i in idx]}, index=idx),
-            component=self,
         )
 
 
@@ -176,12 +175,10 @@ class MultiLevelMultiColumnCreator(Component):
                 {"column_1": [i % 3 for i in idx], "column_2": [i % 3 for i in idx]},
                 index=idx,
             ),
-            component=self,
         )
         builder.value.register_attribute_producer(
             "some_other_attribute",
             lambda idx: pd.DataFrame({"column_3": [i % 3 for i in idx]}, index=idx),
-            component=self,
         )
 
 
@@ -205,12 +202,10 @@ class AttributePipelineCreator(Component):
                 },
                 index=idx,
             ),
-            component=self,
         )
         builder.value.register_attribute_producer(
             "attribute_generating_column_8",
             lambda idx: pd.DataFrame({"test_column_8": [i % 3 for i in idx]}, index=idx),
-            component=self,
         )
 
         # Non-simple attributes
@@ -218,7 +213,6 @@ class AttributePipelineCreator(Component):
         builder.value.register_attribute_producer(
             "test_attribute",
             lambda idx: pd.Series([i % 3 for i in idx], index=idx),
-            component=self,
         )
         builder.value.register_attribute_producer(
             "attribute_generating_columns_6_7",
@@ -229,17 +223,14 @@ class AttributePipelineCreator(Component):
                 },
                 index=idx,
             ),
-            component=self,
         )
         builder.value.register_attribute_modifier(
             "test_attribute",
             lambda index, series: series,
-            component=self,
         )
         builder.value.register_attribute_modifier(
             "attribute_generating_columns_6_7",
             lambda index, df: df,
-            component=self,
         )
 
 
@@ -352,7 +343,7 @@ class ColumnCreatorAndRequirer(Component):
 
     def setup(self, builder: Builder) -> None:
         self.pipeline = builder.value.get_value("pipeline_1")
-        self.randomness = builder.randomness.get_stream("stream_1", self)
+        self.randomness = builder.randomness.get_stream("stream_1")
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         initialization_data = pd.DataFrame({"test_column_4": 8}, index=pop_data.index)

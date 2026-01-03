@@ -41,14 +41,12 @@ class DiseaseTransition(Transition):
         builder.value.register_attribute_producer(
             self.joint_paf_pipeline,
             source=lambda index: [pd.Series(0.0, index=index)],
-            component=self,
             preferred_combiner=list_combiner,
             preferred_post_processor=union_post_processor,
         )
         builder.value.register_rate_producer(
             self.rate_name,
             source=self._risk_deleted_rate,
-            component=self,
             required_resources=[self.joint_paf_pipeline],
         )
 
@@ -107,7 +105,6 @@ class DiseaseState(State):
         builder.value.register_attribute_producer(
             self.emr_paf_pipeline,
             source=lambda index: [pd.Series(0.0, index=index)],
-            component=self,
             preferred_combiner=list_combiner,
             preferred_post_processor=union_post_processor,
         )
@@ -115,14 +112,12 @@ class DiseaseState(State):
         builder.value.register_rate_producer(
             self.emr_pipeline,
             source=self.risk_deleted_excess_mortality_rate,
-            component=self,
             required_resources=[self.emr_paf_pipeline],
         )
 
         builder.value.register_attribute_modifier(
             "mortality_rate",
             modifier=self.add_in_excess_mortality,
-            component=self,
             required_resources=[self.emr_pipeline]
         )
 
@@ -183,13 +178,11 @@ class DiseaseModel(Machine):
         builder.value.register_rate_producer(
             self.csmr_pipeline,
             source=lambda index: pd.Series(cause_specific_mortality_rate, index=index),
-            component=self,
         )
         builder.value.register_attribute_modifier(
             "mortality_rate",
             modifier=self.delete_cause_specific_mortality,
             required_resources=[self.csmr_pipeline],
-            component=self,
         )
 
     ##################################

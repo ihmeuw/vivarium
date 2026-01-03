@@ -77,14 +77,12 @@ class Hogwarts(Component):
             source=lambda index: self.population_view.get_attributes(index, "exam_score").map(
                 lambda x: x // 10
             ),
-            component=self,
             required_resources=["exam_score"],
         )
         builder.value.register_attribute_producer(
             "double_power",
             source=lambda index: self.population_view.get_attributes(index, "power_level")
             * 2,
-            component=self,
             required_resources=["power_level"],
         )
 

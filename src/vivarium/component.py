@@ -614,7 +614,7 @@ class Component(ABC):
         try:
             data = self.get_data(builder, data_source)
             return builder.lookup.build_table(
-                component=self, data=data, name=name, value_columns=value_columns
+                data=data, name=name, value_columns=value_columns
             )
         except ConfigurationError as e:
             raise ConfigurationError(f"Error building lookup table '{name}': {e}")
@@ -703,7 +703,6 @@ class Component(ABC):
             builder.value.register_attribute_producer(
                 column,
                 source=[column],
-                component=self,
                 source_is_private_column=True,
             )
 

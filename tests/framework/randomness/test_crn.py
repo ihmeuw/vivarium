@@ -104,11 +104,9 @@ class BasePopulation(Component):
     def setup(self, builder: Builder) -> None:
         self.register = builder.randomness.register_simulants
         self.randomness_init = builder.randomness.get_stream(
-            "crn_init",
-            self,
-            initializes_crn_attributes=self.with_crn,
+            "crn_init", initializes_crn_attributes=self.with_crn
         )
-        self.randomness_other = builder.randomness.get_stream("other", self)
+        self.randomness_other = builder.randomness.get_stream("other")
         self.simulant_creator = builder.population.get_simulant_creator()
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:

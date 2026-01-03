@@ -47,9 +47,9 @@ class Mortality(Component):
         builder
             Access to simulation tools and subsystems.
         """
-        self.randomness = builder.randomness.get_stream("mortality", self)
+        self.randomness = builder.randomness.get_stream("mortality")
         builder.value.register_rate_producer(
-            "mortality_rate", source=self.build_lookup_table(builder, "mortality_rate"), component=self
+            "mortality_rate", source=self.build_lookup_table(builder, "mortality_rate")
         )
 
     ########################

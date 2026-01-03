@@ -71,3 +71,38 @@ class ComponentInterface(Interface):
             A dictionary mapping component names to components.
         """
         return self._manager.list_components()
+
+    def get_current_component(self) -> Component:
+        """Get the component currently being set up, if any.
+
+        This method is primarily used internally by the framework to support
+        automatic component injection in interface methods.
+
+        Returns
+        -------
+            The component currently being set up.
+
+        Raises
+        ------
+            LifeCycleError
+                If there is no component currently being set up.
+        """
+        return self._manager.get_current_component()
+
+    def get_current_component_or_manager(self) -> Component | Manager:
+        """Get the component or manager currently being set up, if any.
+
+        This method exists to allow for cases where a manager is needed during
+        setup, such as if a manager creates a Value Pipeline.
+
+
+        Returns
+        -------
+            The component or manager currently being set up.
+
+        Raises
+        ------
+            LifeCycleError
+                If there is no component or manager currently being set up.
+        """
+        return self._manager.get_current_component_or_manager()
