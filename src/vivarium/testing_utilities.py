@@ -42,7 +42,7 @@ class NonCRNTestPopulation(Component):
     def setup(self, builder: Builder) -> None:
         self.config = builder.configuration
         self.randomness = builder.randomness.get_stream(
-            "population_age_fuzz", self, initializes_crn_attributes=True
+            "population_age_fuzz", initializes_crn_attributes=True
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
@@ -79,7 +79,7 @@ class TestPopulation(NonCRNTestPopulation):
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
         self.age_randomness = builder.randomness.get_stream(
-            "age_initialization", self, initializes_crn_attributes=True
+            "age_initialization", initializes_crn_attributes=True
         )
         self.register = builder.randomness.register_simulants
 
