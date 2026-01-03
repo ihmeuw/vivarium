@@ -143,7 +143,7 @@ def test_manager_get_file() -> None:
 
 def test_flatten_simple() -> None:
     components = [MockComponentA(name=str(i)) for i in range(10)]
-    assert ComponentManager._flatten(components) == components
+    assert ComponentManager()._flatten_subcomponents(components) == components
 
 
 def test_flatten_with_lists() -> None:
@@ -151,7 +151,7 @@ def test_flatten_with_lists() -> None:
     for i in range(5):
         for j in range(5):
             components.append(MockComponentA(name=str(5 * i + j)))
-    out = ComponentManager._flatten(components)
+    out = ComponentManager()._flatten_subcomponents(components)
     expected = [MockComponentA(name=str(i)) for i in range(25)]
     assert out == expected
 
@@ -161,7 +161,7 @@ def test_flatten_with_sub_components() -> None:
     for i in range(5):
         name, *args = [str(5 * i + j) for j in range(5)]
         components.append(MockComponentB(*args, name=name))
-    out = ComponentManager._flatten(components)
+    out = ComponentManager()._flatten_subcomponents(components)
     expected = [MockComponentB(name=str(i)) for i in range(25)]
     assert out == expected
 
@@ -177,13 +177,9 @@ def test_flatten_with_nested_sub_components() -> None:
     components: list[Component] = []
     for i in range(5):
         components.append(nest(5 * i, 5))
-    out = ComponentManager._flatten(components)
+    out = ComponentManager()._flatten_subcomponents(components)
     expected = [MockComponentA(name=str(i)) for i in range(25)]
     assert out == expected
-
-    # Lists with nested subcomponents
-    out = ComponentManager._flatten([components, components])
-    assert out == 2 * expected
 
 
 def test_setup_components(mocker: MockerFixture) -> None:
@@ -193,8 +189,9 @@ def test_setup_components(mocker: MockerFixture) -> None:
     mocker.patch("vivarium.framework.results.observer.Observer.get_configuration")
     mock_a = MockComponentA("test_a")
     mock_b = MockComponentB("test_b")
-    components = OrderedComponentSet(mock_a, mock_b)
-    ComponentManager()._setup_components(builder, components)
+    manager = ComponentManager()
+    manager._components.update([mock_a, mock_b])
+    manager.setup_components(builder)
 
     assert mock_a.builder_used_for_setup is None  # class has no setup method
     assert mock_b.builder_used_for_setup is builder
@@ -296,7 +293,7 @@ def test_component_manager_add_components(components: list[Component]) -> None:
     cm = ComponentManager()
     cm._configuration = config
     cm.add_components(components)
-    assert cm._components == OrderedComponentSet(*ComponentManager._flatten(components))
+    assert cm._components == OrderedComponentSet(*cm._flatten_subcomponents(components))
 
 
 @pytest.mark.parametrize(
