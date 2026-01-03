@@ -181,7 +181,6 @@ class StepModifierWithRatePipeline(StepModifier):
             self.rate_pipeline,
             source=lambda idx: pd.Series(1.75, index=idx),
             preferred_post_processor=rescale_post_processor,
-            component=self,
         )
 
     def on_time_step(self, event: Event) -> None:
