@@ -10,7 +10,7 @@ methods to register different types of value and attribute producers and modifie
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
 from vivarium.framework.resource import Resource
@@ -21,12 +21,11 @@ from vivarium.framework.values.post_processors import (
     PostProcessor,
     rescale_post_processor,
 )
-from vivarium.manager import Interface, Manager
+from vivarium.manager import Interface
 
 if TYPE_CHECKING:
     import pandas as pd
 
-    from vivarium import Component
     from vivarium.framework.values import ValuesManager
 
 
@@ -46,7 +45,6 @@ class ValuesInterface(Interface):
         self,
         value_name: str,
         source: Callable[..., Any],
-        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | None = None,
@@ -59,8 +57,6 @@ class ValuesInterface(Interface):
             The name of the new dynamic value pipeline.
         source
             A callable source for the dynamic value pipeline.
-        component
-            The component that is registering the value producer.
         required_resources
             A list of resources that need to be properly sourced before the
             pipeline source is called. This is a list of strings, pipelines,
@@ -85,7 +81,6 @@ class ValuesInterface(Interface):
         return self._manager.register_value_producer(
             value_name,
             source,
-            component,
             required_resources,
             preferred_combiner,
             preferred_post_processor,
@@ -95,7 +90,6 @@ class ValuesInterface(Interface):
         self,
         value_name: str,
         source: Callable[[pd.Index[int]], Any] | list[str],
-        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: AttributePostProcessor | None = None,
@@ -112,8 +106,6 @@ class ValuesInterface(Interface):
             a list containing a single name of a private column created by this
             component, or a list of population attributes. If a private column name
             is passed, `source_is_private_column` must also be set to True.
-        component
-            The component that is registering the attribute producer.
         required_resources
             A list of resources that need to be properly sourced before the
             pipeline source is called. This is a list of strings, pipelines,
@@ -137,7 +129,6 @@ class ValuesInterface(Interface):
         self._manager.register_attribute_producer(
             value_name,
             source,
-            component,
             required_resources,
             preferred_combiner,
             preferred_post_processor,
@@ -148,7 +139,6 @@ class ValuesInterface(Interface):
         self,
         rate_name: str,
         source: Callable[[pd.Index[int]], Any] | list[str],
-        component: Component,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Marks a ``Callable`` as the producer of a named rate.
@@ -169,8 +159,6 @@ class ValuesInterface(Interface):
             or a list of column names. If a list of column names is provided,
             the component that is registering this attribute producer must be the
             one that creates those columns.
-        component
-            The component that is registering the rate producer.
         required_resources
             A list of resources that need to be properly sourced before the
             pipeline source is called. This is a list of strings, pipelines,
@@ -179,7 +167,6 @@ class ValuesInterface(Interface):
         self.register_attribute_producer(
             rate_name,
             source,
-            component,
             required_resources,
             preferred_post_processor=rescale_post_processor,
         )
@@ -188,7 +175,6 @@ class ValuesInterface(Interface):
         self,
         value_name: str,
         modifier: Callable[..., Any],
-        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Marks a ``Callable`` as the modifier of a named value.
@@ -205,22 +191,17 @@ class ValuesInterface(Interface):
             previous stage in the pipeline. For the ``list_combiner`` strategy,
             the pipeline modifiers should have the same signature as the pipeline
             source.
-        component
-            The component that is registering the value modifier.
         required_resources
             A list of resources that need to be properly sourced before the
             pipeline modifier is called. This is a list of strings, pipelines,
             or randomness streams.
         """
-        self._manager.register_value_modifier(
-            value_name, modifier, component, required_resources
-        )
+        self._manager.register_value_modifier(value_name, modifier, required_resources)
 
     def register_attribute_modifier(
         self,
         value_name: str,
         modifier: Callable[..., Any] | str,
-        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Marks a ``Callable`` as the modifier of a named attribute.
@@ -239,8 +220,6 @@ class ValuesInterface(Interface):
             previous stage in the pipeline. For the ``list_combiner`` strategy,
             the pipeline modifiers should have the same signature as the pipeline
             source.
-        component
-            The component that is registering the attribute modifier.
         required_resources
             A list of resources that need to be properly sourced before the
             pipeline modifier is called. This is a list of strings, pipelines,
@@ -249,7 +228,6 @@ class ValuesInterface(Interface):
         self._manager.register_attribute_modifier(
             value_name,
             modifier,
-            component,
             required_resources=required_resources,
         )
 
