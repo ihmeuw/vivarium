@@ -47,8 +47,8 @@ class ComponentInterface(Interface):
         return self._manager.get_component(name)
 
     def get_components_by_type(
-        self, component_type: type[Component | Manager] | Sequence[type[Component | Manager]]
-    ) -> list[Component | Manager]:
+        self, component_type: type[Component] | Sequence[type[Component]]
+    ) -> list[Component]:
         """Get all components that are an instance of ``component_type``.
 
         Parameters
