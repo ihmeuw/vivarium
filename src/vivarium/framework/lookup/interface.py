@@ -9,12 +9,10 @@ This module provides an interface to the :class:`LookupTableManager <vivarium.fr
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Any, overload
 
 import pandas as pd
 
-from vivarium.component import Component
 from vivarium.framework.lookup.manager import LookupTableManager
 from vivarium.framework.lookup.table import LookupTable
 from vivarium.manager import Interface
@@ -38,7 +36,6 @@ class LookupTableInterface(Interface):
     @overload
     def build_table(
         self,
-        component: Component,
         data: LookupTableData,
         name: str = "",
         value_columns: str | None = None,
@@ -48,7 +45,6 @@ class LookupTableInterface(Interface):
     @overload
     def build_table(
         self,
-        component: Component,
         data: LookupTableData,
         name: str = "",
         value_columns: list[str] | tuple[str, ...] = ...,
@@ -57,7 +53,6 @@ class LookupTableInterface(Interface):
 
     def build_table(
         self,
-        component: Component,
         data: LookupTableData,
         name: str = "",
         value_columns: list[str] | tuple[str, ...] | str | None = None,
@@ -84,8 +79,6 @@ class LookupTableInterface(Interface):
 
         Parameters
         ----------
-        component
-            The component that is building the LookupTable.
         data
             The source data which will be used to build the resulting
             :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`.
@@ -99,4 +92,4 @@ class LookupTableInterface(Interface):
         -------
             LookupTable
         """
-        return self._manager.build_table(component, data, name, value_columns)
+        return self._manager.build_table(data, name, value_columns)

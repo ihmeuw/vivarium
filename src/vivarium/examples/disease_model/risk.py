@@ -52,21 +52,18 @@ class Risk(Component):
         builder.value.register_attribute_producer(
             self.base_proportion_exposed_pipeline,
             source=lambda index: pd.Series(proportion_exposed, index=index),
-            component=self,
         )
         builder.value.register_attribute_producer(
             self.exposure_threshold_pipeline,
             source=[self.base_proportion_exposed_pipeline],
-            component=self,
         )
 
         builder.value.register_attribute_producer(
             f"{self.risk}.exposure",
             source=self._exposure,
             required_resources=[self.propensity_column, self.exposure_threshold_pipeline],
-            component=self,
         )
-        self.randomness = builder.randomness.get_stream(self.risk, self)
+        self.randomness = builder.randomness.get_stream(self.risk)
 
     ########################
     # Event-driven methods #
@@ -120,19 +117,16 @@ class RiskEffect(Component):
         builder.value.register_attribute_producer(
             self.relative_risk_pipeline,
             source=lambda index: pd.Series(relative_risk, index=index),
-            component=self,
         )
 
         builder.value.register_attribute_modifier(
             f"{self.disease_rate}.population_attributable_fraction",
             modifier=self.population_attributable_fraction,
-            component=self,
             required_resources=[self.base_exposure_pipeline, self.relative_risk_pipeline],
         )
         builder.value.register_attribute_modifier(
             f"{self.disease_rate}",
             modifier=self.rate_adjustment,
-            component=self,
             required_resources=[self.exposure_pipeline, self.relative_risk_pipeline],
         )
 
