@@ -35,6 +35,7 @@ from vivarium.manager import Manager
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
 
+C = TypeVar("C", bound=Component)
 T = TypeVar("T", Component, Manager)
 
 
@@ -190,9 +191,7 @@ class ComponentManager(Manager):
             self.apply_configuration_defaults(c)
             self._components.add(c)
 
-    def get_components_by_type(
-        self, component_type: type[Component] | Sequence[type[Component]]
-    ) -> list[Component]:
+    def get_components_by_type(self, component_type: type[C] | Sequence[type[C]]) -> list[C]:
         """Get all components that are an instance of ``component_type``.
 
         Parameters
@@ -208,7 +207,7 @@ class ComponentManager(Manager):
         component_type = (
             component_type if isinstance(component_type, type) else tuple(component_type)
         )
-        return [c for c in self._components if isinstance(c, component_type)]
+        return [c for c in self._components if isinstance(c, component_type)]  # type: ignore[misc]
 
     def get_component(self, name: str) -> Component | Manager:
         """Get the component with name ``name``.
