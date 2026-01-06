@@ -1,3 +1,7 @@
+**3.6.6 - 01/05/26**
+
+  - Fail deployment if changelog date is not current date
+
 **3.6.5 - 12/16/25**
 
   - Type-hinting: Fix mypy errors in framework/utilities.py
