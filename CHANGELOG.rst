@@ -1,4 +1,4 @@
-**3.6.6 - 01/05/26**
+**3.6.6 - 01/06/26**
 
   - Fail deployment if changelog date is not current date
 
