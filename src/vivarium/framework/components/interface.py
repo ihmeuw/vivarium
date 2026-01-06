@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Union
 
 from vivarium import Component
-from vivarium.framework.components.manager import ComponentManager
+from vivarium.framework.components.manager import C, ComponentManager
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
@@ -46,9 +46,7 @@ class ComponentInterface(Interface):
         """
         return self._manager.get_component(name)
 
-    def get_components_by_type(
-        self, component_type: type[Component] | Sequence[type[Component]]
-    ) -> list[Component]:
+    def get_components_by_type(self, component_type: type[C] | Sequence[type[C]]) -> list[C]:
         """Get all components that are an instance of ``component_type``.
 
         Parameters
