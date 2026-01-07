@@ -82,10 +82,6 @@ class BasePopulation(Component):
     def name(self) -> str:
         return "population"
 
-    @property
-    def columns_created(self) -> list[str]:
-        return ["crn_attr1", "crn_attr2", "other_attr1"]
-
     def __init__(self, with_crn: bool, sims_to_add: Iterator[int] = cycle([0])) -> None:
         """
         Parameters
@@ -109,9 +105,6 @@ class BasePopulation(Component):
         self.randomness_other = builder.randomness.get_stream("other")
         self.simulant_creator = builder.population.get_simulant_creator()
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        pass
-
     def on_time_step(self, event: Event) -> None:
         sims_to_add = next(self.sims_to_add)
         if sims_to_add > 0:
@@ -121,7 +114,16 @@ class BasePopulation(Component):
 class EntranceTimePopulation(BasePopulation):
     """Population that bases identity on entrance time and a random number"""
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    def setup(self, builder: Builder) -> None:
+        super().setup(builder)
+        builder.population.register_initializer(
+            ["crn_attr1", "crn_attr2"], self.register_crn_attributes, [self.randomness_init]
+        )
+        builder.population.register_initializer(
+            "other_attr1", self.register_other_attribute, [self.randomness_other]
+        )
+
+    def register_crn_attributes(self, pop_data: SimulantData) -> None:
         crn_attr = (1_000_000 * self.randomness_init.get_draw(index=pop_data.index)).astype(
             int
         )
@@ -133,11 +135,12 @@ class EntranceTimePopulation(BasePopulation):
         if self.with_crn:
             self.register(population)
 
-        population["other_attr1"] = self.randomness_other.get_draw(
-            pop_data.index,
-            additional_key="attr1",
-        )
         self.population_view.update(population)
+
+    def register_other_attribute(self, pop_data: SimulantData) -> None:
+        attr1 = self.randomness_other.get_draw(pop_data.index, additional_key="attr1")
+        attr1.name = "other_attr1"
+        self.population_view.update(attr1)
 
 
 class SequentialPopulation(BasePopulation):
@@ -151,8 +154,12 @@ class SequentialPopulation(BasePopulation):
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
         self.count = 0
+        builder.population.register_initializer(
+            ["crn_attr1", "crn_attr2"], self.register_crn_attributes
+        )
+        builder.population.register_initializer("other_attr1", self.register_other_attribute)
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    def register_crn_attributes(self, pop_data: SimulantData) -> None:
         new_people = len(pop_data.index)
 
         population = pd.DataFrame(
@@ -166,12 +173,13 @@ class SequentialPopulation(BasePopulation):
         if self.with_crn:
             self.register(population)
 
-        population["other_attr1"] = self.randomness_other.get_draw(
-            pop_data.index,
-            additional_key="attr1",
-        )
         self.population_view.update(population)
         self.count += new_people
+
+    def register_other_attribute(self, pop_data: SimulantData) -> None:
+        attr1 = self.randomness_other.get_draw(pop_data.index, additional_key="attr1")
+        attr1.name = "other_attr1"
+        self.population_view.update(attr1)
 
 
 @pytest.mark.parametrize(
@@ -275,7 +283,16 @@ class UnBrokenPopulation(BasePopulation):
     This is now a regression testing class.
     """
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    def setup(self, builder: Builder) -> None:
+        super().setup(builder)
+        builder.population.register_initializer(
+            ["crn_attr1", "crn_attr2"], self.register_crn_attributes, [self.randomness_init]
+        )
+        builder.population.register_initializer(
+            "other_attr1", self.register_other_attribute, [self.randomness_other]
+        )
+
+    def register_crn_attributes(self, pop_data: SimulantData) -> None:
         crn_attr = (1_000_000 * self.randomness_init.get_draw(index=pop_data.index)).astype(
             int
         )
@@ -287,11 +304,12 @@ class UnBrokenPopulation(BasePopulation):
         if self.with_crn:
             self.register(population)
 
-        population["other_attr1"] = self.randomness_other.get_draw(
-            pop_data.index,
-            additional_key="attr1",
-        )
         self.population_view.update(population)
+
+    def register_other_attribute(self, pop_data: SimulantData) -> None:
+        attr1 = self.randomness_other.get_draw(pop_data.index, additional_key="attr1")
+        attr1.name = "other_attr1"
+        self.population_view.update(attr1)
 
 
 @pytest.mark.parametrize(

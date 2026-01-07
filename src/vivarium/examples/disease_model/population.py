@@ -1,3 +1,4 @@
+# docs-start: imports
 from typing import Any
 
 import pandas as pd
@@ -7,6 +8,7 @@ from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 from vivarium.examples.disease_model import Mortality
+# docs-end: imports
 
 
 class BasePopulation(Component):
@@ -16,6 +18,7 @@ class BasePopulation(Component):
     # Properties #
     ##############
 
+    # docs-start: configuration_defaults
     @property
     def configuration_defaults(self) -> dict[str, Any]:
         """A set of default configuration values for this component.
@@ -31,20 +34,20 @@ class BasePopulation(Component):
                 # Note: There is also a 'population_size' key.
             },
         }
-
-    @property
-    def columns_created(self) -> list[str]:
-        return ["age", "sex", "entrance_time"]
+    # docs-end: configuration_defaults
     
+    # docs-start: sub_components
     @property
     def sub_components(self) -> list[Component]:
         return [Mortality()]
+    # docs-end: sub_components
 
     #####################
     # Lifecycle methods #
     #####################
 
     # noinspection PyAttributeOutsideInit
+    # docs-start: setup
     def setup(self, builder: Builder) -> None:
         """Performs this component's simulation setup.
 
@@ -59,6 +62,7 @@ class BasePopulation(Component):
         """
         self.config = builder.configuration
 
+        # docs-start: crn
         self.with_common_random_numbers = bool(self.config.randomness.key_columns)
         self.register = builder.randomness.register_simulants
         if (
@@ -69,39 +73,36 @@ class BasePopulation(Component):
                 "If running with CRN, you must specify ['entrance_time', 'age'] as"
                 "the randomness key columns."
             )
+        # docs-end: crn
 
+        # docs-start: randomness
         self.age_randomness = builder.randomness.get_stream(
             "age_initialization", initializes_crn_attributes=self.with_common_random_numbers,
         )
         self.sex_randomness = builder.randomness.get_stream("sex_initialization")
+        # docs-end: randomness
+
+        # docs-start: initializers
+        builder.population.register_initializer(
+            columns=["entrance_time", "age"],
+            initializer=self.initialize_entrance_time_and_age,
+            dependencies=[self.age_randomness]
+        )
+        builder.population.register_initializer(
+            columns="sex",
+            initializer=self.initialize_sex,
+            dependencies=[self.sex_randomness]
+        )
+        # docs-end: initializers
+    # docs-end: setup
 
     ########################
     # Event-driven methods #
     ########################
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        """Called by the simulation whenever new simulants are added.
-
-        This component is responsible for creating and filling three columns
-        in the population state table:
-
-        'age'
-            The age of the simulant in fractional years.
-        'sex'
-            The sex of the simulant. One of {'Male', 'Female'}
-        'entrance_time'
-            The time that the simulant entered the simulation. The 'birthday'
-            for simulants that enter as newborns. A `pandas.Timestamp`.
-
-        Parameters
-        ----------
-        pop_data
-            A record containing the index of the new simulants, the
-            start of the time step the simulants are added on, the width
-            of the time step, and the age boundaries for the simulants to
-            generate.
-        """
-
+    # docs-start: initialize_entrance_time_and_age
+    def initialize_entrance_time_and_age(self, pop_data: SimulantData) -> None:
+        # docs-start: ages
         age_start = pop_data.user_data.get("age_start", self.config.population.age_start)
         age_end = pop_data.user_data.get("age_end", self.config.population.age_end)
 
@@ -112,26 +113,33 @@ class BasePopulation(Component):
 
         age_draw = self.age_randomness.get_draw(pop_data.index)
         age = age_start + age_draw * age_window
+        # docs-end: ages
+        # docs-start: population_dataframe
+        population = pd.DataFrame(
+            {
+                "entrance_time": pop_data.creation_time,
+                "age": age.values,
+            },
+            index=pop_data.index,
+        )
+        # docs-end: population_dataframe
 
+        # docs-start: crn_registration
         if self.with_common_random_numbers:
-            population = pd.DataFrame(
-                {"entrance_time": pop_data.creation_time, "age": age.values},
-                index=pop_data.index,
-            )
             self.register(population)
-            population["sex"] = self.sex_randomness.choice(pop_data.index, ["Male", "Female"])
-        else:
-            population = pd.DataFrame(
-                {
-                    "age": age.values,
-                    "sex": self.sex_randomness.choice(pop_data.index, ["Male", "Female"]),
-                    "entrance_time": pop_data.creation_time,
-                },
-                index=pop_data.index,
-            )
+        # docs-end: crn_registration
 
+        # docs-start: update_entrance_time_and_age
         self.population_view.update(population)
+        # docs-end: update_entrance_time_and_age
+    # docs-end: initialize_entrance_time_and_age
 
+    # docs-start: initialize_sex
+    def initialize_sex(self, pop_data: SimulantData) -> None:
+        self.population_view.update(pd.Series(self.sex_randomness.choice(pop_data.index, ["Male", "Female"]), name="sex"))
+    # docs-end: initialize_sex
+
+    # docs-start: on_time_step
     def on_time_step(self, event: Event) -> None:
         """Updates simulant age on every time step.
 
@@ -145,3 +153,4 @@ class BasePopulation(Component):
         population = self.population_view.get_private_columns(event.index, "age", query="alive == 'alive'")
         population += event.step_size / pd.Timedelta(days=365)  # type: ignore[operator]
         self.population_view.update(population)
+    # docs-end: on_time_step

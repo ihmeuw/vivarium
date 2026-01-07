@@ -17,6 +17,7 @@ class Mortality(Component):
     # Properties #
     ##############
 
+    # docs-start: configuration_defaults
     @property
     def configuration_defaults(self) -> dict[str, Any]:
         """A set of default configuration values for this component.
@@ -25,16 +26,14 @@ class Mortality(Component):
         providing override values when constructing an interactive simulation.
         """
         return {self.name: {"data_sources": {"mortality_rate": 0.01}}}
-    
-    @property
-    def columns_created(self) -> list[str]:
-        return ["alive"]
+    # docs-end: configuration_defaults
 
     #####################
     # Lifecycle methods #
     #####################
 
     # noinspection PyAttributeOutsideInit
+    # docs-start: setup
     def setup(self, builder: Builder) -> None:
         """Performs this component's simulation setup.
 
@@ -51,11 +50,14 @@ class Mortality(Component):
         builder.value.register_rate_producer(
             "mortality_rate", source=self.build_lookup_table(builder, "mortality_rate")
         )
+        builder.population.register_initializer("alive", self.on_initialize_simulants, [])
+    # docs-end: setup
 
     ########################
     # Event-driven methods #
     ########################
 
+    # docs-start: on_initialize_simulants
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """Called by the simulation whenever new simulants are added.
 
@@ -72,6 +74,9 @@ class Mortality(Component):
         """
         self.population_view.update(pd.Series("alive", index=pop_data.index, name="alive"))
 
+    # docs-end: on_initialize_simulants
+
+    # docs-start: on_time_step
     def on_time_step(self, event: Event) -> None:
         """Determines who dies each time step.
 
@@ -89,3 +94,4 @@ class Mortality(Component):
         self.population_view.update(
             pd.Series("dead", index=event.index[affected_simulants], name="alive")
         )
+    # docs-end: on_time_step

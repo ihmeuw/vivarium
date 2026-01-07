@@ -17,10 +17,11 @@ import pandas as pd
 
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.framework.resource import Resource
-from vivarium.manager import Interface, Manager
+from vivarium.manager import Interface
 
 if TYPE_CHECKING:
     from vivarium import Component
+    from vivarium.framework.population import SimulantData
     from vivarium.framework.population.manager import PopulationManager
 
 
@@ -86,42 +87,35 @@ class PopulationInterface(Interface):
         """
         return self._manager.get_simulant_creator()
 
-    def initializes_simulants(
+    def register_initializer(
         self,
-        component: Component | Manager,
-        creates_columns: str | Sequence[str] = (),
-        required_resources: Sequence[str | Resource] = (),
+        columns: str | Sequence[str] | None,
+        initializer: Callable[[SimulantData], None],
+        dependencies: Sequence[str | Resource] = (),
     ) -> None:
-        """Marks a source of initial state information for new simulants.
+        """Registers a component's initializer(s) and any columns created by them.
+
+        This does three primary things:
+        1. Registers each column's corresponding attribute producer.
+        2. Records metadata about which component created which private columns.
+        3. Registers the initializer as a resource.
+
+        A `columns` value of None indicates that no private columns are being registered.
+        This is useful when a component or manager needs to register an initializer
+        that does not create any private columns.
 
         Parameters
         ----------
-        component
-            The component or manager that will add or update initial state
-            information about new simulants.
-        creates_columns
-            The state table columns that the given initializer
-            provides the initial state information for.
-        required_resources
-            The resources that the initializer requires to run. Strings are
-            interpreted as column names, and Pipelines and RandomnessStreams
-            are interpreted as value pipelines and randomness streams,
+        columns
+            The state table columns that the given initializer provides the initial
+            state information for.
+        initializer
+            A function that will be called to initialize the state of new simulants.
+        dependencies
+            The resources that the initializer requires to run. Strings are interpreted
+            as attributes.
         """
-        self._manager.register_simulant_initializer(
-            component,
-            creates_columns,
-            required_resources,
-        )
-
-    def register_private_columns(self, component: Component) -> None:
-        """Registers the private columns created by a component.
-
-        Parameters
-        ----------
-        component
-            The component that is registering its private columns.
-        """
-        self._manager.register_private_columns(component)
+        self._manager.register_initializer(columns, initializer, dependencies)
 
     def register_tracked_query(self, query: str) -> None:
         """Updates the default query for all population views.

@@ -9,15 +9,17 @@ This module provides an interface to the :class:`ResourceManager <vivarium.frame
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, Any
 
 from vivarium.framework.resource.manager import ResourceManager
-from vivarium.framework.resource.resource import Column, Resource
+from vivarium.framework.resource.resource import Resource
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
+
     from vivarium import Component
+    from vivarium.framework.population.manager import SimulantData
 
 
 class ResourceInterface(Interface):
@@ -64,33 +66,29 @@ class ResourceInterface(Interface):
         ResourceError
             If there are multiple producers of the same resource.
         """
-        self._manager.add_resources(component, resources, dependencies)
+        self._manager.add_resources(component, resources, dependencies, initializer=None)
 
     def add_private_columns(
         self,
-        component: Component | Manager,
-        resources: Iterable[str] | str,
+        columns: Iterable[str] | str,
         dependencies: Iterable[str | Resource],
+        initializer: Callable[[SimulantData], None] | None,
     ) -> None:
         """Adds private column resources to the resource pool.
 
         Parameters
         ----------
-        component
-            The component or manager adding the resources.
-        creates_columns
-            The population attribute private columns being added.
-        required_resources
-            A list of resources that the producer requires. A string represents
-            a population attribute.
+        columns
+            The state table columns that the given initializer provides the initial
+            state information for.
+        dependencies
+            The resources that the initializer requires to run. Strings are interpreted
+            as attributes.
+        initializer
+            A function that will be called to initialize the state of new simulants.
         """
-        if isinstance(resources, str):
-            resources = [resources]
-        columns = [Column(col, component) for col in resources]
-        self._manager.add_resources(
-            component=component,
-            resources=columns,
-            dependencies=dependencies,
+        self._manager.add_private_columns(
+            columns=columns, dependencies=dependencies, initializer=initializer
         )
 
     def get_population_initializers(self) -> list[Any]:

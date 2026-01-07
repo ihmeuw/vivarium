@@ -26,6 +26,11 @@ class Neighbors(Component):
         builder.value.register_attribute_producer(
             "neighbors", source=self.get_neighbors, required_resources=["x", "y"]
         )
+        builder.population.register_initializer(
+            columns=None,
+            initializer=self.on_initialize_simulants,
+            dependencies=[],
+        )
 
     ########################
     # Event-driven methods #

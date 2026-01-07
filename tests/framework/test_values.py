@@ -771,14 +771,13 @@ def test_source_callable(
     """Test that the source is correctly converted to a callable if needed."""
 
     class SomeComponent(Component):
-        @property
-        def columns_created(self) -> list[str]:
-            return ["attr1", "attr2"]
-
         def setup(self, builder: Builder) -> None:
             builder.value.register_attribute_producer(
                 "some-attribute",
                 source=source,  # type: ignore [arg-type] # we are testing invalid types too
+            )
+            builder.population.register_initializer(
+                ["attr1", "attr2"], self.on_initialize_simulants
             )
 
         def on_initialize_simulants(self, pop_data: SimulantData) -> None:

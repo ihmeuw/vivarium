@@ -7,7 +7,7 @@ Resource Manager
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any
 
 import networkx as nx
@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from vivarium import Component
     from vivarium.framework.engine import Builder
     from vivarium.framework.event import Event
+    from vivarium.framework.population.manager import SimulantData
 
 
 class ResourceManager(Manager):
@@ -76,6 +77,9 @@ class ResourceManager(Manager):
     def setup(self, builder: Builder) -> None:
         self.logger = builder.logging.get_logger(self.name)
         self._get_attribute_pipelines = builder.value.get_attribute_pipelines()
+        self._get_current_component_or_manager = (
+            builder.components.get_current_component_or_manager
+        )
         builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
 
     def on_post_setup(self, _: Event) -> None:
@@ -89,6 +93,7 @@ class ResourceManager(Manager):
         component: Component | Manager,
         resources: Iterable[Column] | Resource,
         dependencies: Iterable[str | Resource],
+        initializer: Callable[[SimulantData], None] | None,
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -107,7 +112,9 @@ class ResourceManager(Manager):
         ResourceError
             If there are multiple producers of the same resource.
         """
-        resource_group = self._get_resource_group(component, resources, dependencies)
+        resource_group = self._get_resource_group(
+            component, resources, dependencies, initializer
+        )
         for resource_id, resource in resource_group.resources.items():
             if resource_id in self._resource_group_map:
                 other_resource = self._resource_group_map[resource_id]
@@ -118,11 +125,37 @@ class ResourceManager(Manager):
                 )
             self._resource_group_map[resource_id] = resource_group
 
+    def add_private_columns(
+        self,
+        columns: Iterable[str] | str,
+        dependencies: Iterable[str | Resource],
+        initializer: Callable[[SimulantData], None] | None,
+    ) -> None:
+        """Adds private column resources to the resource pool.
+
+        Parameters
+        ----------
+        columns
+            The state table columns that the given initializer provides the initial
+            state information for.
+        dependencies
+            The resources that the initializer requires to run. Strings are interpreted
+            as attributes.
+        initializer
+            A function that will be called to initialize the state of new simulants.
+        """
+        if isinstance(columns, str):
+            columns = [columns]
+        component = self._get_current_component_or_manager()
+        columns_ = [Column(col, component) for col in columns]
+        self.add_resources(component, columns_, dependencies, initializer)
+
     def _get_resource_group(
         self,
         component: Component | Manager,
         resources: Iterable[Column] | Resource,
         dependencies: Iterable[str | Resource],
+        initializer: Callable[[SimulantData], None] | None,
     ) -> ResourceGroup:
         """Packages resource information into a resource group.
 
@@ -144,7 +177,7 @@ class ResourceManager(Manager):
                 f" component: {resources.name}"
             )
 
-        return ResourceGroup(resources, dependencies)
+        return ResourceGroup(resources, dependencies, initializer)
 
     def _to_graph(self) -> nx.DiGraph:
         """Constructs the full resource graph from information in the groups.

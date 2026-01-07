@@ -35,14 +35,15 @@ class NonCRNTestPopulation(Component):
         },
     }
 
-    @property
-    def columns_created(self) -> list[str]:
-        return ["age", "sex", "location", "alive", "entrance_time", "exit_time"]
-
     def setup(self, builder: Builder) -> None:
         self.config = builder.configuration
         self.randomness = builder.randomness.get_stream(
             "population_age_fuzz", initializes_crn_attributes=True
+        )
+        builder.population.register_initializer(
+            ["age", "sex", "location", "alive", "entrance_time", "exit_time"],
+            self.on_initialize_simulants,
+            [self.randomness],
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
@@ -77,11 +78,19 @@ class NonCRNTestPopulation(Component):
 
 class TestPopulation(NonCRNTestPopulation):
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
+        self.config = builder.configuration
+        self.randomness = builder.randomness.get_stream(
+            "population_age_fuzz", initializes_crn_attributes=True
+        )
         self.age_randomness = builder.randomness.get_stream(
             "age_initialization", initializes_crn_attributes=True
         )
         self.register = builder.randomness.register_simulants
+        builder.population.register_initializer(
+            ["age", "sex", "location", "alive", "entrance_time", "exit_time"],
+            self.on_initialize_simulants,
+            [self.randomness, self.age_randomness],
+        )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         age_start = pop_data.user_data.get(
