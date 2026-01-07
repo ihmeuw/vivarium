@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Union
 
 from vivarium import Component
-from vivarium.framework.components.manager import ComponentManager
+from vivarium.framework.components.manager import C, ComponentManager
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
@@ -46,9 +46,7 @@ class ComponentInterface(Interface):
         """
         return self._manager.get_component(name)
 
-    def get_components_by_type(
-        self, component_type: type[Component] | Sequence[type[Component]]
-    ) -> list[Component]:
+    def get_components_by_type(self, component_type: type[C] | Sequence[type[C]]) -> list[C]:
         """Get all components that are an instance of ``component_type``.
 
         Parameters
@@ -92,8 +90,8 @@ class ComponentInterface(Interface):
     def get_current_component_or_manager(self) -> Component | Manager:
         """Get the component or manager currently being set up, if any.
 
-        This method is primarily used internally by the framework to support
-        automatic component injection in interface methods.
+        This method exists to allow for cases where a manager is needed during
+        setup, such as if a manager creates a Value Pipeline.
 
         Returns
         -------
