@@ -594,13 +594,7 @@ class Machine(Component):
                 "Cannot specify both an initial state and provide initialization"
                 " weights to states."
             )
-
-        # TODO: [MIC-5403] remove this on_initialize_simulants check once
-        #  VPH's DiseaseModel has a compatible initialization strategy
-        elif (
-            type(self).on_initialize_simulants == Machine.on_initialize_simulants
-            and not states_with_initialization_weights
-        ):
+        elif self._initial_state is None and not states_with_initialization_weights:
             raise ValueError(
                 "Must specify either an initial state or provide"
                 " initialization weights to states."
