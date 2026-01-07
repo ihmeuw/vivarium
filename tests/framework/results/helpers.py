@@ -71,7 +71,8 @@ class Hogwarts(Component):
             required_resources=["power_level"],
         )
         builder.population.register_initializer(
-            [
+            initializer=self.on_initialize_simulants,
+            columns=[
                 "student_id",
                 "student_house",
                 "familiar",
@@ -82,7 +83,6 @@ class Hogwarts(Component):
                 "spell_power",
                 "potion_power",
             ],
-            self.on_initialize_simulants,
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:

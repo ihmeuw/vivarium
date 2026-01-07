@@ -50,7 +50,11 @@ class Mortality(Component):
         builder.value.register_rate_producer(
             "mortality_rate", source=self.build_lookup_table(builder, "mortality_rate")
         )
-        builder.population.register_initializer("alive", self.on_initialize_simulants, [])
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns="alive",
+            dependencies=[]
+        )
     # docs-end: setup
 
     ########################

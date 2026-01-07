@@ -41,9 +41,9 @@ class NonCRNTestPopulation(Component):
             "population_age_fuzz", initializes_crn_attributes=True
         )
         builder.population.register_initializer(
-            ["age", "sex", "location", "alive", "entrance_time", "exit_time"],
-            self.on_initialize_simulants,
-            [self.randomness],
+            initializer=self.on_initialize_simulants,
+            columns=["age", "sex", "location", "alive", "entrance_time", "exit_time"],
+            dependencies=[self.randomness],
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
@@ -87,9 +87,9 @@ class TestPopulation(NonCRNTestPopulation):
         )
         self.register = builder.randomness.register_simulants
         builder.population.register_initializer(
-            ["age", "sex", "location", "alive", "entrance_time", "exit_time"],
-            self.on_initialize_simulants,
-            [self.randomness, self.age_randomness],
+            initializer=self.on_initialize_simulants,
+            columns=["age", "sex", "location", "alive", "entrance_time", "exit_time"],
+            dependencies=[self.randomness, self.age_randomness],
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:

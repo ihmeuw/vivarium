@@ -84,13 +84,13 @@ class BasePopulation(Component):
 
         # docs-start: initializers
         builder.population.register_initializer(
-            columns=["entrance_time", "age"],
             initializer=self.initialize_entrance_time_and_age,
+            columns=["entrance_time", "age"],
             dependencies=[self.age_randomness]
         )
         builder.population.register_initializer(
-            columns="sex",
             initializer=self.initialize_sex,
+            columns="sex",
             dependencies=[self.sex_randomness]
         )
         # docs-end: initializers

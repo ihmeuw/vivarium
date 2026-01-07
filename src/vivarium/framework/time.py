@@ -117,7 +117,7 @@ class SimulationClock(Manager):
             self._simulant_step_size_pipeline,
         )
         builder.population.register_initializer(
-            columns=None, initializer=self.on_initialize_simulants
+            initializer=self.on_initialize_simulants, columns=None
         )
         builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
         self._individual_clocks = pd.DataFrame()

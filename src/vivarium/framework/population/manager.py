@@ -441,8 +441,8 @@ class PopulationManager(Manager):
 
     def register_initializer(
         self,
-        columns: str | Sequence[str] | None,
         initializer: Callable[[SimulantData], None],
+        columns: str | Sequence[str] | None,
         dependencies: Sequence[str | Resource] = (),
     ) -> None:
         """Registers a component's initializer(s) and any columns created by them.
@@ -500,9 +500,9 @@ class PopulationManager(Manager):
         # Register the initializer as a resource
         self._initializer_components.add(initializer, columns)
         self.resources.add_private_columns(
+            initializer=initializer,
             columns=columns,
             dependencies=dependencies,
-            initializer=initializer,
         )
 
     ###############

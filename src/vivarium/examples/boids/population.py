@@ -29,8 +29,8 @@ class Population(Component):
         self.colors = builder.configuration.population.colors
         self.randomness = builder.randomness.get_stream(self.name)
         builder.population.register_initializer(
-            columns=["color", "entrance_time"],
             initializer=self.on_initialize_simulants,
+            columns=["color", "entrance_time"],
             dependencies=[self.randomness]
         )
     # docs-end: setup

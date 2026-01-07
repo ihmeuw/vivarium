@@ -117,10 +117,14 @@ class EntranceTimePopulation(BasePopulation):
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
         builder.population.register_initializer(
-            ["crn_attr1", "crn_attr2"], self.register_crn_attributes, [self.randomness_init]
+            initializer=self.register_crn_attributes,
+            columns=["crn_attr1", "crn_attr2"],
+            dependencies=[self.randomness_init],
         )
         builder.population.register_initializer(
-            "other_attr1", self.register_other_attribute, [self.randomness_other]
+            initializer=self.register_other_attribute,
+            columns="other_attr1",
+            dependencies=[self.randomness_other],
         )
 
     def register_crn_attributes(self, pop_data: SimulantData) -> None:
@@ -155,9 +159,11 @@ class SequentialPopulation(BasePopulation):
         super().setup(builder)
         self.count = 0
         builder.population.register_initializer(
-            ["crn_attr1", "crn_attr2"], self.register_crn_attributes
+            initializer=self.register_crn_attributes, columns=["crn_attr1", "crn_attr2"]
         )
-        builder.population.register_initializer("other_attr1", self.register_other_attribute)
+        builder.population.register_initializer(
+            initializer=self.register_other_attribute, columns="other_attr1"
+        )
 
     def register_crn_attributes(self, pop_data: SimulantData) -> None:
         new_people = len(pop_data.index)
@@ -286,10 +292,14 @@ class UnBrokenPopulation(BasePopulation):
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
         builder.population.register_initializer(
-            ["crn_attr1", "crn_attr2"], self.register_crn_attributes, [self.randomness_init]
+            initializer=self.register_crn_attributes,
+            columns=["crn_attr1", "crn_attr2"],
+            dependencies=[self.randomness_init],
         )
         builder.population.register_initializer(
-            "other_attr1", self.register_other_attribute, [self.randomness_other]
+            initializer=self.register_other_attribute,
+            columns="other_attr1",
+            dependencies=[self.randomness_other],
         )
 
     def register_crn_attributes(self, pop_data: SimulantData) -> None:

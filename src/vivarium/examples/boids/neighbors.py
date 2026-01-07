@@ -27,8 +27,8 @@ class Neighbors(Component):
             "neighbors", source=self.get_neighbors, required_resources=["x", "y"]
         )
         builder.population.register_initializer(
-            columns=None,
             initializer=self.on_initialize_simulants,
+            columns=None,
             dependencies=[],
         )
 

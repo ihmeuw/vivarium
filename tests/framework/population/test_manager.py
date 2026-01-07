@@ -396,20 +396,28 @@ def test_register_initializer(mocker: MockerFixture) -> None:
         mgr, "_get_current_component_or_manager", return_value=component1, create=True
     )
     mgr.register_initializer(
-        ["foo", "bar"], component1.on_initialize_simulants, ["dep1", "dep2"]
+        initializer=component1.on_initialize_simulants,
+        columns=["foo", "bar"],
+        dependencies=["dep1", "dep2"],
     )
 
     component2 = ColumnCreator2()
     mocker.patch.object(
         mgr, "_get_current_component_or_manager", return_value=component2, create=True
     )
-    mgr.register_initializer(None, component2.on_initialize_simulants, ["dep3", "dep4"])
+    mgr.register_initializer(
+        initializer=component2.on_initialize_simulants,
+        columns=None,
+        dependencies=["dep3", "dep4"],
+    )
 
     component3 = ColumnCreator3()
     mocker.patch.object(
         mgr, "_get_current_component_or_manager", return_value=component3, create=True
     )
-    mgr.register_initializer("qux", component3.on_initialize_simulants, [])
+    mgr.register_initializer(
+        initializer=component3.on_initialize_simulants, columns="qux", dependencies=[]
+    )
 
     # Check that register_attribute_producer was called appropriately
     assert mock_register_attr.call_count == 3

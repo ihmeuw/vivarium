@@ -15,9 +15,9 @@ def test_add_private_columns(mocker: MockerFixture) -> None:
         create=True,
     )
     interface.add_private_columns(
+        initializer=lambda pop_data: None,
         columns=["private_col_1", "private_col_2"],
         dependencies=[],
-        initializer=lambda pop_data: None,
     )
     resource_map = mgr._resource_group_map
     resource_ids = ["column.private_col_1", "column.private_col_2"]

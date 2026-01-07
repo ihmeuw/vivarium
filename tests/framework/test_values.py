@@ -777,7 +777,7 @@ def test_source_callable(
                 source=source,  # type: ignore [arg-type] # we are testing invalid types too
             )
             builder.population.register_initializer(
-                ["attr1", "attr2"], self.on_initialize_simulants
+                initializer=self.on_initialize_simulants, columns=["attr1", "attr2"]
             )
 
         def on_initialize_simulants(self, pop_data: SimulantData) -> None:

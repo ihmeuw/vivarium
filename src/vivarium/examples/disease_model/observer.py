@@ -15,7 +15,11 @@ class DeathsObserver(Observer):
     #################
 
     def setup(self, builder: Builder) -> None:
-        builder.population.register_initializer("previous_alive", self.on_initialize_simulants, ["alive"])
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns="previous_alive",
+            dependencies=["alive"]
+        )
 
     def register_observations(self, builder: Builder) -> None:
         builder.results.register_adding_observation(

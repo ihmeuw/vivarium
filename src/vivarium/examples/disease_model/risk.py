@@ -55,7 +55,11 @@ class Risk(Component):
             required_resources=[self.propensity_column, self.exposure_threshold_pipeline],
         )
         self.randomness = builder.randomness.get_stream(self.risk)
-        builder.population.register_initializer(self.propensity_column, self.on_initialize_simulants, [self.randomness])
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns=self.propensity_column,
+            dependencies=[self.randomness]
+        )
 
     ########################
     # Event-driven methods #

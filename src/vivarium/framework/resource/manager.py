@@ -91,9 +91,9 @@ class ResourceManager(Manager):
     def add_resources(
         self,
         component: Component | Manager,
+        initializer: Callable[[SimulantData], None] | None,
         resources: Iterable[Column] | Resource,
         dependencies: Iterable[str | Resource],
-        initializer: Callable[[SimulantData], None] | None,
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -101,6 +101,8 @@ class ResourceManager(Manager):
         ----------
         component
             The component or manager adding the resources.
+        initializer
+            A method that will be called to initialize the state of new simulants.
         resources
             The resources being added. A string represents a population attribute.
         dependencies
@@ -113,7 +115,7 @@ class ResourceManager(Manager):
             If there are multiple producers of the same resource.
         """
         resource_group = self._get_resource_group(
-            component, resources, dependencies, initializer
+            component, initializer, resources, dependencies
         )
         for resource_id, resource in resource_group.resources.items():
             if resource_id in self._resource_group_map:
@@ -127,35 +129,40 @@ class ResourceManager(Manager):
 
     def add_private_columns(
         self,
+        initializer: Callable[[SimulantData], None] | None,
         columns: Iterable[str] | str,
         dependencies: Iterable[str | Resource],
-        initializer: Callable[[SimulantData], None] | None,
     ) -> None:
         """Adds private column resources to the resource pool.
 
         Parameters
         ----------
+        initializer
+            A method that will be called to initialize the state of new simulants.
         columns
             The state table columns that the given initializer provides the initial
             state information for.
         dependencies
             The resources that the initializer requires to run. Strings are interpreted
             as attributes.
-        initializer
-            A function that will be called to initialize the state of new simulants.
         """
         if isinstance(columns, str):
             columns = [columns]
         component = self._get_current_component_or_manager()
         columns_ = [Column(col, component) for col in columns]
-        self.add_resources(component, columns_, dependencies, initializer)
+        self.add_resources(
+            component=component,
+            initializer=initializer,
+            resources=columns_,
+            dependencies=dependencies,
+        )
 
     def _get_resource_group(
         self,
         component: Component | Manager,
+        initializer: Callable[[SimulantData], None] | None,
         resources: Iterable[Column] | Resource,
         dependencies: Iterable[str | Resource],
-        initializer: Callable[[SimulantData], None] | None,
     ) -> ResourceGroup:
         """Packages resource information into a resource group.
 

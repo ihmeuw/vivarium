@@ -35,7 +35,11 @@ class Movement(Component):
         )
         # docs-end: register_attribute_producer
         self.randomness = builder.randomness.get_stream(self.name)
-        builder.population.register_initializer(["x", "y", "vx", "vy"], self.on_initialize_simulants, [self.randomness])
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns=["x", "y", "vx", "vy"],
+            dependencies=[self.randomness]
+        )
 
     ##################################
     # Pipeline sources and modifiers #

@@ -89,8 +89,8 @@ class PopulationInterface(Interface):
 
     def register_initializer(
         self,
-        columns: str | Sequence[str] | None,
         initializer: Callable[[SimulantData], None],
+        columns: str | Sequence[str] | None,
         dependencies: Sequence[str | Resource] = (),
     ) -> None:
         """Registers a component's initializer(s) and any columns created by them.
@@ -106,16 +106,16 @@ class PopulationInterface(Interface):
 
         Parameters
         ----------
+        initializer
+            A function that will be called to initialize the state of new simulants.
         columns
             The state table columns that the given initializer provides the initial
             state information for.
-        initializer
-            A function that will be called to initialize the state of new simulants.
         dependencies
             The resources that the initializer requires to run. Strings are interpreted
             as attributes.
         """
-        self._manager.register_initializer(columns, initializer, dependencies)
+        self._manager.register_initializer(initializer, columns, dependencies)
 
     def register_tracked_query(self, query: str) -> None:
         """Updates the default query for all population views.

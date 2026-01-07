@@ -212,7 +212,9 @@ def test_side_effects() -> None:
     class CountingState(State):
         def setup(self, builder: Builder) -> None:
             super().setup(builder)
-            builder.population.register_initializer("count", self.on_initialize_simulants)
+            builder.population.register_initializer(
+                initializer=self.on_initialize_simulants, columns="count"
+            )
 
         def on_initialize_simulants(self, pop_data: SimulantData) -> None:
             self.population_view.update(pd.Series(0, index=pop_data.index, name="count"))

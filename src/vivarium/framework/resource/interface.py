@@ -66,29 +66,31 @@ class ResourceInterface(Interface):
         ResourceError
             If there are multiple producers of the same resource.
         """
-        self._manager.add_resources(component, resources, dependencies, initializer=None)
+        self._manager.add_resources(
+            component, initializer=None, resources=resources, dependencies=dependencies
+        )
 
     def add_private_columns(
         self,
+        initializer: Callable[[SimulantData], None] | None,
         columns: Iterable[str] | str,
         dependencies: Iterable[str | Resource],
-        initializer: Callable[[SimulantData], None] | None,
     ) -> None:
         """Adds private column resources to the resource pool.
 
         Parameters
         ----------
+        initializer
+            A function that will be called to initialize the state of new simulants.
         columns
             The state table columns that the given initializer provides the initial
             state information for.
         dependencies
             The resources that the initializer requires to run. Strings are interpreted
             as attributes.
-        initializer
-            A function that will be called to initialize the state of new simulants.
         """
         self._manager.add_private_columns(
-            columns=columns, dependencies=dependencies, initializer=initializer
+            initializer=initializer, columns=columns, dependencies=dependencies
         )
 
     def get_population_initializers(self) -> list[Any]:

@@ -574,9 +574,9 @@ class Machine(Component):
     def setup(self, builder: Builder) -> None:
         self.randomness = builder.randomness.get_stream(self.name)
         builder.population.register_initializer(
-            self.state_column,
-            self.on_initialize_simulants,
-            [self.randomness, *self.initialization_weights_pipelines],
+            initializer=self.on_initialize_simulants,
+            columns=self.state_column,
+            dependencies=[self.randomness, *self.initialization_weights_pipelines],
         )
 
     def on_post_setup(self, event: Event) -> None:

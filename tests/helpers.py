@@ -141,7 +141,8 @@ class Listener(MockComponentB):
 class ColumnCreator(Component):
     def setup(self, builder: Builder) -> None:
         builder.population.register_initializer(
-            ["test_column_1", "test_column_2", "test_column_3"], self.on_initialize_simulants
+            initializer=self.on_initialize_simulants,
+            columns=["test_column_1", "test_column_2", "test_column_3"],
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
@@ -160,7 +161,7 @@ class ColumnCreator(Component):
 class SingleColumnCreator(ColumnCreator):
     def setup(self, builder: Builder) -> None:
         builder.population.register_initializer(
-            ["test_column_1"], self.on_initialize_simulants
+            initializer=self.on_initialize_simulants, columns=["test_column_1"]
         )
 
     def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:
@@ -316,7 +317,9 @@ class OrderedColumnsLookupCreator(Component):
         self.interpolated_table = self.build_lookup_table(
             builder, "interpolated", value_columns=self.VALUE_COLUMNS
         )
-        builder.population.register_initializer(["foo", "bar"], self.on_initialize_simulants)
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants, columns=["foo", "bar"]
+        )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         initialization_data = pd.DataFrame(
@@ -346,9 +349,9 @@ class ColumnCreatorAndRequirer(Component):
         self.pipeline = builder.value.get_value("pipeline_1")
         self.randomness = builder.randomness.get_stream("stream_1")
         builder.population.register_initializer(
-            "test_column_4",
-            self.on_initialize_simulants,
-            ["test_column_2", self.pipeline, self.randomness],
+            initializer=self.on_initialize_simulants,
+            columns="test_column_4",
+            dependencies=["test_column_2", self.pipeline, self.randomness],
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
