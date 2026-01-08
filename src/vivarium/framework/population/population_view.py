@@ -13,7 +13,7 @@ to the underlying simulation :term:`state table`. It has two primary responsibil
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, overload
 
 import pandas as pd
 
@@ -58,7 +58,6 @@ class PopulationView:
         self._manager = manager
         self._component = component
         self._id = view_id
-        self.private_columns = component.columns_created if component else []
         self._default_query = ""
 
     ##############
@@ -68,6 +67,15 @@ class PopulationView:
     @property
     def name(self) -> str:
         return f"population_view_{self._id}"
+
+    @property
+    def private_columns(self) -> list[str]:
+        """The private columns managed by this PopulationView."""
+        if self._component is None:
+            raise PopulationError(
+                "This PopulationView is read-only, so it doesn't have access to private_columns."
+            )
+        return self._manager.get_private_column_names(self._component.name)
 
     ###########
     # Methods #
@@ -416,7 +424,8 @@ class PopulationView:
 
     def __repr__(self) -> str:
         name = self._component.name if self._component else "None"
-        return f"PopulationView(_id={self._id}, _component={name}, private_columns={self.private_columns}, default_query={self._default_query})"
+        private_columns = self.private_columns if self._component else "N/A"
+        return f"PopulationView(_id={self._id}, _component={name}, private_columns={private_columns}, default_query={self._default_query})"
 
     ##################
     # Helper methods #

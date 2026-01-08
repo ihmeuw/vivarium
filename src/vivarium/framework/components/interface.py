@@ -93,7 +93,6 @@ class ComponentInterface(Interface):
         This method exists to allow for cases where a manager is needed during
         setup, such as if a manager creates a Value Pipeline.
 
-
         Returns
         -------
             The component or manager currently being set up.
