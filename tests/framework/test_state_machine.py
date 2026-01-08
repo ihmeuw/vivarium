@@ -9,8 +9,8 @@ from pytest_mock import MockerFixture
 from tests.helpers import ColumnCreator
 from vivarium import InteractiveContext
 from vivarium.framework.configuration import build_simulation_configuration
+from vivarium.framework.engine import Builder
 from vivarium.framework.population import SimulantData
-from vivarium.framework.resource import Resource
 from vivarium.framework.state_machine import Machine, State, Transition
 from vivarium.types import ClockTime, DataInput
 
@@ -210,9 +210,11 @@ def test_null_transition(base_config: LayeredConfigTree) -> None:
 
 def test_side_effects() -> None:
     class CountingState(State):
-        @property
-        def columns_created(self) -> list[str]:
-            return ["count"]
+        def setup(self, builder: Builder) -> None:
+            super().setup(builder)
+            builder.population.register_initializer(
+                initializer=self.on_initialize_simulants, columns="count"
+            )
 
         def on_initialize_simulants(self, pop_data: SimulantData) -> None:
             self.population_view.update(pd.Series(0, index=pop_data.index, name="count"))

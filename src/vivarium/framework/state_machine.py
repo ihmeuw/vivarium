@@ -23,7 +23,6 @@ if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
     from vivarium.framework.event import Event
     from vivarium.framework.population import PopulationView, SimulantData
-    from vivarium.framework.resource import Resource
     from vivarium.types import ClockTime, DataInput, NumericArray
 
 
@@ -544,14 +543,6 @@ class Machine(Component):
     def sub_components(self) -> Sequence[Component]:
         return self.states
 
-    @property
-    def columns_created(self) -> list[str]:
-        return [self.state_column]
-
-    @property
-    def initialization_requirements(self) -> list[str | Resource]:
-        return [self.randomness, *self.initialization_weights_pipelines]
-
     #####################
     # Lifecycle methods #
     #####################
@@ -582,6 +573,11 @@ class Machine(Component):
 
     def setup(self, builder: Builder) -> None:
         self.randomness = builder.randomness.get_stream(self.name)
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns=self.state_column,
+            dependencies=[self.randomness, *self.initialization_weights_pipelines],
+        )
 
     def on_post_setup(self, event: Event) -> None:
         states_with_initialization_weights = [
