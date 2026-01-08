@@ -9,6 +9,7 @@ from vivarium import Component
 from vivarium.framework.engine import Builder
 
 
+# docs-start: force_base_class
 class Force(Component, ABC):
     ##############
     # Properties #
@@ -29,11 +30,13 @@ class Force(Component, ABC):
         self.config = builder.configuration[self.__class__.__name__.lower()]
         self.max_speed = builder.configuration.movement.max_speed
 
+        # docs-start: register_acceleration_modifier
         builder.value.register_attribute_modifier(
             "acceleration",
             modifier=self.apply_force,
             required_resources=["x", "y", "vx", "vy", "neighbors"],
         )
+        # docs-end: register_acceleration_modifier
 
     ##################################
     # Pipeline sources and modifiers #
@@ -112,8 +115,10 @@ class Force(Component, ABC):
 
     def _magnitude(self, df: pd.DataFrame) -> pd.Series[float]:
         return pd.Series(np.sqrt(np.square(df.x) + np.square(df.y)), dtype=float)
+# docs-end: force_base_class
 
 
+# docs-start: concrete_force_classes
 class Separation(Force):
     """Push boids apart when they get too close."""
 
@@ -168,3 +173,4 @@ class Alignment(Force):
             .sum()
             .rename(columns=lambda c: c.replace("v", "").replace("_other", ""))
         )
+# docs-end: concrete_force_classes

@@ -18,12 +18,12 @@ from tests.framework.population.conftest import (
     PieComponent,
 )
 from tests.framework.population.helpers import (
-    assert_squeezing_multi_level_single_outer_multi_inner,
     assert_squeezing_multi_level_single_outer_single_inner,
     assert_squeezing_single_level_single_col,
 )
 from tests.helpers import AttributePipelineCreator, ColumnCreator, SingleColumnCreator
 from vivarium import InteractiveContext
+from vivarium.framework.engine import Builder
 from vivarium.framework.population import PopulationError, PopulationManager, PopulationView
 
 ##########################
@@ -110,17 +110,18 @@ def tracked_query(request: pytest.FixtureRequest) -> str:
 
 def test_initialization(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     component = PieComponent()
+    expected_private_columns = set(["pie", "pi"])
     pv = pies_and_cubes_pop_mgr.get_view(component)
     assert pv._id == 0
     assert pv.name == f"population_view_{pv._id}"
-    assert set(pv.private_columns) == set(component.columns_created)
+    assert set(pv.private_columns) == expected_private_columns
     assert pv._default_query == ""
 
     q_string = "color == 'red'"
     pv = pies_and_cubes_pop_mgr.get_view(component, default_query=q_string)
     assert pv._id == 1
     assert pv.name == f"population_view_{pv._id}"
-    assert set(pv.private_columns) == set(component.columns_created)
+    assert set(pv.private_columns) == expected_private_columns
     assert pv._default_query == q_string
 
 
@@ -315,7 +316,9 @@ class TestGetAttributesReturnTypes:
     class SomeComponent(ColumnCreator, AttributePipelineCreator):
         """Class that creates multi-level column attributes and private columns."""
 
-        ...
+        def setup(self, builder: Builder) -> None:
+            ColumnCreator.setup(self, builder)
+            AttributePipelineCreator.setup(self, builder)
 
     @pytest.fixture(scope="class")
     def simulation(self) -> InteractiveContext:
