@@ -538,11 +538,12 @@ def test_private_columns_get_registered() -> None:
     sim.setup()
     metadata = sim._population._private_column_metadata
     assert metadata == {
-        component1.name: component1.columns_created,
-        component2.name: component2.columns_created,
+        component1.name: ["test_column_1", "test_column_2", "test_column_3"],
+        # The datetime clock does not have private columns but does register an initializer
+        "datetime_clock": [],
     }
     # Check that there are indeed other attributes registered besides via column_created
-    len(sim.get_population().columns) > len(component1.columns_created)
+    len(sim.get_population().columns) > 3
 
 
 ####################

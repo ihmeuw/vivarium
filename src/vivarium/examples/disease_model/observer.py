@@ -6,27 +6,20 @@ from vivarium.framework.engine import Builder
 from vivarium.framework.results import Observer
 from vivarium.framework.population import SimulantData
 from vivarium.framework.event import Event
-from vivarium.framework.resource import Resource
 
 class DeathsObserver(Observer):
     """Observes the number of deaths."""
 
-    ##############
-    # Properties #
-    ##############
-
-    @property
-    def initialization_requirements(self) -> list[str | Resource]:
-        """Requirements for observer initialization."""
-        return ["alive"]
-    
-    @property
-    def columns_created(self) -> list[str]:
-        return ["previous_alive"]
-
     #################
     # Setup methods #
     #################
+
+    def setup(self, builder: Builder) -> None:
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns="previous_alive",
+            dependencies=["alive"]
+        )
 
     def register_observations(self, builder: Builder) -> None:
         builder.results.register_adding_observation(

@@ -82,7 +82,9 @@ def test_component_that_creates_columns_population_view() -> None:
 
     # Assert population view is set and has the correct columns
     assert component.population_view is not None
-    assert set(component.population_view.private_columns) == set(component.columns_created)
+    assert set(component.population_view.private_columns) == set(
+        ["test_column_1", "test_column_2", "test_column_3"]
+    )
 
 
 def test_component_with_initialization_requirements() -> None:
@@ -99,6 +101,8 @@ def test_component_with_initialization_requirements() -> None:
         if r.is_initialized
         # its initializer is an instance method
         and hasattr(r.initializer, "__self__")
+        # and is not None
+        and r.initializer is not None
         # and is a method of ColumnCreatorAndRequirer
         and isinstance(r.initializer.__self__, ColumnCreatorAndRequirer)
     ]
@@ -129,11 +133,12 @@ def test_component_initializer_is_not_registered_if_not_defined() -> None:
     component = NoPopulationView()
     simulation = InteractiveContext(components=[component])
 
-    # Assert that simulant initializer has been registered
-    assert (
-        component.on_initialize_simulants
-        not in simulation._resource.get_population_initializers()
-    )
+    # Assert that component did not register an initializer
+    initializers = [
+        initializer.__repr__()
+        for initializer in simulation._resource.get_population_initializers()
+    ]
+    assert "NoPopulationView" not in ";".join(initializers)
 
 
 def test_component_initializer_is_registered_and_called_if_defined() -> None:
@@ -143,7 +148,7 @@ def test_component_initializer_is_registered_and_called_if_defined() -> None:
 
     config = {"population": {"population_size": pop_size}}
     simulation = InteractiveContext(components=[component], configuration=config)
-    population = simulation.get_population(component.columns_created)
+    population = simulation.get_population(component.private_columns)
     assert isinstance(population, pd.DataFrame)
     # Assert that simulant initializer has been registered
     assert (
@@ -151,7 +156,7 @@ def test_component_initializer_is_registered_and_called_if_defined() -> None:
         in simulation._resource.get_population_initializers()
     )
     # and that created columns are correctly initialized
-    pd.testing.assert_frame_equal(population[component.columns_created], expected_pop_view)
+    pd.testing.assert_frame_equal(population[component.private_columns], expected_pop_view)
 
 
 def test_listeners_are_not_registered_if_not_defined() -> None:
@@ -282,17 +287,6 @@ def test_component_lookup_table_configuration(hdf_file_path: Path) -> None:
     )
     sim.setup()
 
-    # Assertions for specific lookup tables
-    expected_tables = {
-        "favorite_team",
-        "favorite_color",
-        "favorite_number",
-        "favorite_scalar",
-        "favorite_list",
-        "baking_time",
-        "cooling_time",
-    }
-
     # check that tables have correct type
     assert isinstance(component.favorite_team_table, CategoricalTable)
     assert isinstance(component.favorite_color_table, InterpolatedTable)
@@ -392,11 +386,11 @@ def test_value_column_order_is_maintained() -> None:
     assert columns == OrderedColumnsLookupCreator.VALUE_COLUMNS
 
 
-def test_attribute_pipelines_from_columns_created() -> None:
+def test_attribute_pipelines_from_private_columns() -> None:
     idx = pd.Index([4, 8, 15, 16, 23, 42])
     component = ColumnCreator()
     sim = InteractiveContext(components=[component])
-    for column in component.columns_created:
+    for column in component.private_columns:
         pipeline = sim._builder.value.get_attribute_pipelines()()[column]
         assert pipeline.name == column
         assert pipeline.mutators == []
