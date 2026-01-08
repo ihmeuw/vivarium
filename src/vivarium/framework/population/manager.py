@@ -29,6 +29,8 @@ if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
     from vivarium.types import ClockStepSize, ClockTime
 
+from collections import defaultdict
+
 
 @dataclass
 class SimulantData:
@@ -106,11 +108,6 @@ class InitializerComponentSet:
             )
 
         component_name = component.name
-        if component_name in self._components:
-            raise PopulationError(
-                f"Component {component_name} has multiple population initializers. "
-                "This is not allowed."
-            )
         for column in columns_produced:
             if column in self._columns_produced:
                 raise PopulationError(
@@ -145,6 +142,21 @@ class PopulationManager(Manager):
         if self._private_columns is None:
             raise PopulationError("Population has not been initialized.")
         return self._private_columns
+
+    def get_private_column_names(self, component_name: str) -> list[str]:
+        """Gets the names of private columns created by a given component.
+
+        Parameters
+        ----------
+        component_name
+            The name of the component whose private column names are to be retrieved.
+
+        Returns
+        -------
+            The list of private column names created by the specified component.
+            If the component has not created any private columns, an empty list is returned.
+        """
+        return self._private_column_metadata[component_name]
 
     @overload
     def get_private_columns(
@@ -244,7 +256,7 @@ class PopulationManager(Manager):
 
     def __init__(self) -> None:
         self._private_columns: pd.DataFrame | None = None
-        self._private_column_metadata: dict[str, list[str]] = dict()
+        self._private_column_metadata: defaultdict[str, list[str]] = defaultdict(list)
         self._initializer_components = InitializerComponentSet()
         self.creating_initial_population = False
         self.adding_simulants = False
@@ -285,6 +297,10 @@ class PopulationManager(Manager):
         self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
         self._get_attribute_pipelines = builder.value.get_attribute_pipelines()
+        self._register_attribute_producer = builder.value.register_attribute_producer
+        self._get_current_component_or_manager = (
+            builder.components.get_current_component_or_manager
+        )
 
         builder.lifecycle.add_constraint(
             self.get_view,
@@ -300,7 +316,7 @@ class PopulationManager(Manager):
             self.get_simulant_creator, allow_during=[lifecycle_states.SETUP]
         )
         builder.lifecycle.add_constraint(
-            self.register_simulant_initializer, allow_during=[lifecycle_states.SETUP]
+            self.register_initializer, allow_during=[lifecycle_states.SETUP]
         )
         self._add_constraint(
             self.get_population,
@@ -385,38 +401,6 @@ class PopulationManager(Manager):
         view.set_default_query(default_query)
         return view
 
-    def register_simulant_initializer(
-        self,
-        component: Component | Manager,
-        creates_columns: str | Iterable[str] = (),
-        required_resources: Iterable[str | Resource] = (),
-    ) -> None:
-        """Marks a source of initial state information for new simulants.
-
-        Parameters
-        ----------
-        component
-            The component or manager that will add or update initial state
-            information about new simulants.
-        creates_columns
-            The state table columns that the given initializer provides the
-            initial state information for.
-        required_resources
-            The resources that the initializer requires to run. Strings are
-            interpreted as population attribute names.
-        """
-        if isinstance(creates_columns, str):
-            creates_columns = [creates_columns]
-
-        self._initializer_components.add(component.on_initialize_simulants, creates_columns)
-        # Add the created columns as resources. The attributes themselves are added
-        # as resources in the Component setup.
-        self.resources.add_private_columns(
-            component=component,
-            resources=creates_columns,
-            dependencies=required_resources,
-        )
-
     def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
         """Gets a function that can generate new simulants.
 
@@ -464,31 +448,53 @@ class PopulationManager(Manager):
                 missing[component] = missing_cols
         if missing:
             raise PopulationError(
-                "The following components include columns in their 'columns_created' "
-                f"property but did not actually create them: {missing}."
+                "The following components registered initializers to create columns "
+                f"that were not actually created: {missing}."
             )
 
         return index
 
-    def register_private_columns(self, component: Component) -> None:
-        """Registers the private columns created by a component.
+    def register_initializer(
+        self,
+        initializer: Callable[[SimulantData], None],
+        columns: str | Sequence[str] | None,
+        dependencies: Sequence[str | Resource] = (),
+    ) -> None:
+        """Registers a component's initializer(s) and any columns created by them.
+
+        This does three primary things:
+        1. Registers each column's corresponding attribute producer.
+        2. Records metadata about which component created which private columns.
+        3. Registers the initializer as a resource.
+
+        A `columns` value of None indicates that no private columns are being registered.
+        This is useful when a component or manager needs to register an initializer
+        that does not create any private columns.
 
         Parameters
         ----------
-        component
-            The component that is registering its private columns.
+        columns
+            The state table columns that the given initializer provides the initial
+            state information for.
+        initializer
+            A function that will be called to initialize the state of new simulants.
+        dependencies
+            The resources that the initializer requires to run. Strings are interpreted
+            as attributes.
 
         Raises
         ------
         PopulationError
             If this component name has already registered private columns.
         """
-        if component.name in self._private_column_metadata:
-            raise PopulationError(
-                f"Component {component.name} has already registered private columns. "
-                "A component may only register its private columns once."
-            )
-        for column_name in component.columns_created:
+
+        component = self._get_current_component_or_manager()
+        if columns is None:
+            columns = []
+        elif isinstance(columns, str):
+            columns = [columns]
+        for column_name in columns:
+            # Check for duplicate registration
             for component_name, columns_list in self._private_column_metadata.items():
                 if column_name in columns_list:
                     raise PopulationError(
@@ -496,7 +502,23 @@ class PopulationManager(Manager):
                         f"private column '{column_name}' but it is already registered "
                         f"by component '{component_name}'."
                     )
-        self._private_column_metadata[component.name] = component.columns_created
+            # Register each private column's attribute producer
+            self._register_attribute_producer(
+                column_name,
+                source=[column_name],
+                source_is_private_column=True,
+            )
+
+        # Register private column metadata
+        self._private_column_metadata[component.name].extend(columns)
+
+        # Register the initializer as a resource
+        self._initializer_components.add(initializer, columns)
+        self.resources.add_private_columns(
+            initializer=initializer,
+            columns=columns,
+            dependencies=dependencies,
+        )
 
     ###############
     # Context API #

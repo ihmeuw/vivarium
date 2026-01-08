@@ -303,7 +303,6 @@ class TestLookupTableResource:
         assert table.resource_type == "lookup_table"
         assert table.name == "lookup_creator.test_table"
         assert table.resource_id == "lookup_table.lookup_creator.test_table"
-        assert table.is_initialized == False
         assert table.required_resources == []
 
     def test_categorical_table_resource_attributes(self, manager: LookupTableManager) -> None:
@@ -316,7 +315,6 @@ class TestLookupTableResource:
         assert table.resource_type == "lookup_table"
         assert table.name == "lookup_creator.test_table"
         assert table.resource_id == "lookup_table.lookup_creator.test_table"
-        assert table.is_initialized == False
         assert table.required_resources == ["foo", "bar"]
 
     def test_interpolated_table_resource_attributes(
@@ -337,7 +335,6 @@ class TestLookupTableResource:
         assert table.resource_type == "lookup_table"
         assert table.name == "lookup_creator.test_table"
         assert table.resource_id == "lookup_table.lookup_creator.test_table"
-        assert table.is_initialized == False
         assert table.required_resources == ["foo", "bar"]
 
     def test_adding_resources(self, manager: LookupTableManager) -> None:

@@ -9,7 +9,6 @@ from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.population import SimulantData
-from vivarium.framework.resource import Resource
 from vivarium.manager import Manager
 
 
@@ -140,23 +139,36 @@ class Listener(MockComponentB):
 
 
 class ColumnCreator(Component):
-    @property
-    def columns_created(self) -> list[str]:
-        return ["test_column_1", "test_column_2", "test_column_3"]
+    def setup(self, builder: Builder) -> None:
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns=["test_column_1", "test_column_2", "test_column_3"],
+        )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         self.population_view.update(self.get_initial_state(pop_data.index))
 
     def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:
         return pd.DataFrame(
-            {column: [i % 3 for i in index] for column in self.columns_created}, index=index
+            {
+                column: [i % 3 for i in index]
+                for column in ["test_column_1", "test_column_2", "test_column_3"]
+            },
+            index=index,
         )
 
 
 class SingleColumnCreator(ColumnCreator):
-    @property
-    def columns_created(self) -> list[str]:
-        return ["test_column_1"]
+    def setup(self, builder: Builder) -> None:
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants, columns=["test_column_1"]
+        )
+
+    def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:
+        return pd.DataFrame(
+            {"test_column_1": [i % 3 for i in index]},
+            index=index,
+        )
 
 
 class MultiLevelSingleColumnCreator(Component):
@@ -185,14 +197,13 @@ class MultiLevelMultiColumnCreator(Component):
 class AttributePipelineCreator(Component):
     """A helper class to register different types of attribute pipelines.
 
-    It does NOT include any columns_created; use the ColumnCreator class for that.
+    It does NOT create any private columns; use the ColumnCreator class for that.
 
     """
 
     def setup(self, builder: Builder) -> None:
 
         # Simple attributes
-        # Note that we already get simple Series attributes from the columns_created property
         builder.value.register_attribute_producer(
             "attribute_generating_columns_4_5",
             lambda idx: pd.DataFrame(
@@ -251,6 +262,7 @@ class LookupCreator(ColumnCreator):
     }
 
     def setup(self, builder: Builder) -> None:
+        super().setup(builder)
         self.favorite_team_table = self.build_lookup_table(builder, "favorite_team")
         self.favorite_scalar_table = self.build_lookup_table(
             builder, "favorite_scalar", value_columns="scalar"
@@ -276,6 +288,7 @@ class SingleLookupCreator(ColumnCreator):
     }
 
     def setup(self, builder: Builder) -> None:
+        super().setup(builder)
         self.favorite_color_table = self.build_lookup_table(builder, "favorite_color")
 
 
@@ -297,16 +310,15 @@ class OrderedColumnsLookupCreator(Component):
             }
         }
 
-    @property
-    def columns_created(self) -> list[str]:
-        return ["foo", "bar"]
-
     def setup(self, builder: Builder) -> None:
         self.categorical_table = self.build_lookup_table(
             builder, "categorical", value_columns=self.VALUE_COLUMNS
         )
         self.interpolated_table = self.build_lookup_table(
             builder, "interpolated", value_columns=self.VALUE_COLUMNS
+        )
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants, columns=["foo", "bar"]
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
@@ -333,17 +345,14 @@ class OrderedColumnsLookupCreator(Component):
 
 
 class ColumnCreatorAndRequirer(Component):
-    @property
-    def columns_created(self) -> list[str]:
-        return ["test_column_4"]
-
-    @property
-    def initialization_requirements(self) -> list[str | Resource]:
-        return ["test_column_2", self.pipeline, self.randomness]
-
     def setup(self, builder: Builder) -> None:
         self.pipeline = builder.value.get_value("pipeline_1")
         self.randomness = builder.randomness.get_stream("stream_1")
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns="test_column_4",
+            dependencies=["test_column_2", self.pipeline, self.randomness],
+        )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         initialization_data = pd.DataFrame({"test_column_4": 8}, index=pop_data.index)
