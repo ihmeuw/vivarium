@@ -27,6 +27,7 @@ class ResourceGroup:
         self,
         initialized_resources: Iterable[Column] | Resource,
         dependencies: Iterable[str | Resource],
+        initializer: Callable[[SimulantData], None] | None,
     ):
         """Create a new resource group.
 
@@ -60,21 +61,17 @@ class ResourceGroup:
         """The component or manager that produces the resources in this group."""
         self.type = initialized_resources_[0].resource_type
         """The type of resource in this group."""
-        self.is_initialized = initialized_resources_[0].is_initialized
-        """Whether this resource group contains initialized resources."""
         self._dependencies = dependencies
         self.resources = {res.resource_id: res for res in initialized_resources_}
         """A dictionary of resources produced by this group, keyed by resource_id."""
+        self.initializer = initializer
+        self.is_initialized = initializer is not None
+        """Whether this resource group contains initialized resources."""
 
     @property
     def names(self) -> list[str]:
         """The long names (including type) of all resources in this group."""
         return list(self.resources)
-
-    @property
-    def initializer(self) -> Callable[[SimulantData], None]:
-        """The method that initializes this group of resources."""
-        return self.component.on_initialize_simulants
 
     @property
     def dependencies(self) -> list[str]:

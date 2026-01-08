@@ -32,7 +32,6 @@ from tests.framework.results.helpers import (
     NoStratificationsQuidditchWinsObserver,
     QuidditchWinsObserver,
     ValedictorianObserver,
-    results_formatter,
     sorting_hat_serial,
     sorting_hat_vectorized,
     verify_stratification_added,

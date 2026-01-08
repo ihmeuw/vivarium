@@ -47,8 +47,8 @@ Imports
 +++++++
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/population.py
-   :lines: 1-6
-   :linenos:
+   :start-after: # docs-start: imports
+   :end-before: # docs-end: imports
 
 `NumPy <http://www.numpy.org/>`_ is a library for doing high performance
 numerical computing in Python. `pandas <https://pandas.pydata.org/>`_ is a set
@@ -78,26 +78,44 @@ configuration information. Components typically expose the values they use in
 the ``configuration_defaults`` class attribute.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/population.py
-   :lines: 13-17
+   :start-after: # docs-start: configuration_defaults
+   :end-before: # docs-end: configuration_defaults
    :dedent: 4
-   :linenos:
-   :lineno-start: 13
 
 We'll talk more about configuration information later. For now observe that
 we're exposing a set of possible colors for our boids.
 
-The ``columns_created`` property
-++++++++++++++++++++++++++++++++
+The ``setup`` method
+++++++++++++++++++++
+
+Almost every component in Vivarium will have a setup method. The setup method
+gives the component access to an instance of the
+:class:`~vivarium.framework.engine.Builder` which exposes a handful of tools
+to help build components. The simulation framework is responsible for calling
+the setup method on components and providing the builder to them. We'll
+explore these tools that the builder provides in detail as we go.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/population.py
-   :lines: 18
+   :start-after: # docs-start: setup
+   :end-before: # docs-end: setup
    :dedent: 4
-   :linenos:
-   :lineno-start: 18
 
-The ``columns_created`` property tells Vivarium what columns (or "attributes")
-the component will add to the population table.
-See the next section for where we actually create these columns.
+Our setup method is pretty simple: we just save the configured colors for later use,
+get a randomness stream, and register some private columns. Regarding the colors,
+note that the component is accessing the subsection of the configuration that it cares about.
+The full simulation configuration is available from the builder as
+``builder.configuration``. You can treat the configuration object just like
+a nested python
+`dictionary <https://docs.python.org/3/tutorial/datastructures.html#dictionaries>`_
+that's been extended to support dot-style attribute access. Our access here
+mirrors what's in the ``configuration_defaults`` at the top of the class
+definition.
+
+Note that the setup method is registering two columns (``color`` and
+``entrance_time``) as private columns with a method called ``on_initialize_simulants``
+as their initializer and the randomness stream as their dependency. This tells 
+Vivarium what columns (or "attributes") the component will add to the population table
+and how. See the next section for where we actually create these columns.
 
 .. note::
 
@@ -111,55 +129,20 @@ See the next section for where we actually create these columns.
 
    __ https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html
 
+Initializers
+++++++++++++
 
-The ``setup`` method
-++++++++++++++++++++
+Finally we look at the ``on_initialize_simulants`` method which was registered
+as the one and only initializer method. Any registered initializers will be automatically 
+called by Vivarium when new simulants are being initialized.
 
-Almost every component in Vivarium will have a setup method. The setup method
-gives the component access to an instance of the
-:class:`~vivarium.framework.engine.Builder` which exposes a handful of tools
-to help build components. The simulation framework is responsible for calling
-the setup method on components and providing the builder to them. We'll
-explore these tools that the builder provides in detail as we go.
+We see that like the ``setup`` method, the initializer (``on_initialize_simulants``
+in this case) takes in a special argument that we don't provide. This argument, 
+``pop_data`` is an instance of :class:`~vivarium.framework.population.manager.SimulantData` 
+containing a handful of information useful when initializing simulants.
 
-.. literalinclude:: ../../../src/vivarium/examples/boids/population.py
-   :lines: 24-25
-   :dedent: 4
-   :linenos:
-   :lineno-start: 24
-
-Our setup method is pretty simple: we just save the configured colors for later use.
-The component is accessing the subsection of the configuration that it cares about.
-The full simulation configuration is available from the builder as
-``builder.configuration``. You can treat the configuration object just like
-a nested python
-`dictionary <https://docs.python.org/3/tutorial/datastructures.html#dictionaries>`_
-that's been extended to support dot-style attribute access. Our access here
-mirrors what's in the ``configuration_defaults`` at the top of the class
-definition.
-
-The ``on_initialize_simulants`` method
-++++++++++++++++++++++++++++++++++++++
-
-Finally we look at the ``on_initialize_simulants`` method,
-which is automatically called by Vivarium when new simulants are
-being initialized.
-This is where we should initialize values in the ``columns_created``
-by this component.
-
-.. literalinclude:: ../../../src/vivarium/examples/boids/population.py
-   :lines: 31-39
-   :dedent: 4
-   :linenos:
-   :lineno-start: 31
-
-We see that like the ``setup`` method, ``on_initialize_simulants`` takes in a
-special argument that we don't provide. This argument, ``pop_data`` is an
-instance of :class:`~vivarium.framework.population.manager.SimulantData` containing a
-handful of information useful when initializing simulants.
-
-The only two bits of information we need for now are the
-``pop_data.index``, which supplies the index of the simulants to be
+The only bits of information we need for now are the randomness stream we registered
+as a dependency, the ``pop_data.index``, which supplies the index of the simulants to be
 initialized, and the ``pop_data.creation_time`` which gives us a
 representation (typically an ``int`` or :class:`pandas.Timestamp`) of the
 simulation time when the simulant was generated.
@@ -173,12 +156,11 @@ simulation time when the simulant was generated.
    simulation to look up information, calculate simulant-specific values,
    and update information about the simulants' state.
 
-Using the population index, we generate a ``pandas.DataFrame`` on lines 32-38
+Using the population index, we generate a ``pandas.DataFrame``
 and fill it with the initial values of 'entrance_time' and 'color' for each
 new simulant. Right now, this is just a table with data hanging out in our
-simulation. To actually do something, we have to tell Vivarium's population
-management system to update the underlying population table, which we do
-on line 39.
+simulation. Finally, to actually do something, we have to tell Vivarium's population
+management system to update the underlying population table.
 
 Putting it together
 +++++++++++++++++++
@@ -236,6 +218,7 @@ It tracks the position and velocity of each boid, and creates an
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/movement.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/movement.py`
+   :linenos:
 
 You'll notice that some parts of this component look very similar to our population component.
 Indeed, we can split up the responsibilities of initializing simulants over
@@ -264,19 +247,17 @@ We call the :meth:`vivarium.framework.values.interface.ValuesInterface.register_
 method to register a new attribute pipeline.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/movement.py
-   :lines: 32-34
+   :start-after: # docs-start: register_attribute_producer
+   :end-before: # docs-end: register_attribute_producer
    :dedent: 4
-   :linenos:
-   :lineno-start: 32
 
 This call provides a ``source`` function for our pipeline, which initializes the values.
 In this case, the default is zero acceleration:
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/movement.py
-   :lines: 40-41
+   :start-after: # docs-start: base_acceleration
+   :end-before: # docs-end: base_acceleration
    :dedent: 4
-   :linenos:
-   :lineno-start: 40
 
 This may seem pointless, since acceleration will always be zero.
 Value pipelines have another feature we will see later: other components can *modify*
@@ -287,7 +268,7 @@ exert forces on our boids.
 The ``on_time_step`` method
 +++++++++++++++++++++++++++
 
-This is a lifecycle method, much like ``on_initialize_simulants``.
+This is a lifecycle method, much like registered simulant initializer methods.
 However, this method will be called on each step forward in time, not only
 when new simulants are initialized.
 
@@ -301,10 +282,9 @@ we simply call that pipeline as a function, using ``event.index``,
 which is the set of simulants affected by the event (in this case, all of them).
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/movement.py
-   :lines: 61-85
+   :start-after: # docs-start: on_time_step
+   :end-before: # docs-end: on_time_step
    :dedent: 4
-   :linenos:
-   :lineno-start: 61
 
 Putting it together
 +++++++++++++++++++
@@ -412,7 +392,8 @@ boids and maybe some arrows to indicated their velocity.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/visualization.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/visualization.py`
-   :lines: 1-17
+   :start-after: # docs-start: plot_boids
+   :end-before: # docs-end: plot_boids
 
 We can then visualize our flock with
 
@@ -458,6 +439,7 @@ __ https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.cKDTree.ht
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/neighbors.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/neighbors.py`
+   :linenos:
 
 This component creates a value pipeline called ``neighbors`` that other components
 can use to access the neighbors of each boid.
@@ -488,8 +470,8 @@ magnitude.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/forces.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/forces.py`
-   :lines: 1-113
-   :linenos:
+   :start-after: # docs-start: force_base_class
+   :end-before: # docs-end: force_base_class
 
 To access the value pipeline we created in the Neighbors component, we use
 ``builder.value.get_attribute`` in the setup method. Then, as we saw with the ``acceleration``
@@ -503,10 +485,9 @@ We register that the ``apply_force`` method will modify the acceleration values 
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/forces.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/forces.py`
-   :lines: 35-38
+   :start-after: # docs-start: register_acceleration_modifier
+   :end-before: # docs-end: register_acceleration_modifier
    :dedent: 4
-   :linenos:
-   :lineno-start: 35
 
 Once we start adding components with these modifiers into our simulation, acceleration won't always be
 zero anymore!
@@ -520,9 +501,8 @@ parameter: the distance within which it should act.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/forces.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/forces.py`
-   :lines: 116-167
-   :linenos:
-   :lineno-start: 116
+   :start-after: # docs-start: concrete_force_classes
+   :end-before: # docs-end: concrete_force_classes
 
 For a quick test of our swarming behavior, let's add in these forces and check in on our boids after
 100 steps:
@@ -570,7 +550,8 @@ Add this method to ``visualization.py``:
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/visualization.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/visualization.py`
-   :lines: 20-41
+   :start-after: # docs-start: plot_boids_animated
+   :end-before: # docs-end: plot_boids_animated
 
 Then, try it out like so:
 

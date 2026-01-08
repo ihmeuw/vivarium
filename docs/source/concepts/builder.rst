@@ -25,9 +25,9 @@ a component needing to leverage the simulation clock and step size
 to determine a numerical effect to apply on each time step, will get the
 simulation clock and step size though the Builder and will register
 method(s) to apply the effect (e.g., via :meth:`vivarium.framework.values.interface.ValuesInterface.register_value_modifier`).
-Another component, needing to initialize state for simulants at before the
-simulation begin, might call :meth:`vivarium.framework.population.interface.PopulationInterface.initializes_simulants` in its setup
-method to register method(s) that setup the additional state.
+Another component, needing to initialize state for simulants before the
+simulation begins, might call :meth:`vivarium.framework.population.interface.PopulationInterface.register_initializer` 
+in its setup method to register method(s) that set up the additional state.
 
 
 Outline
