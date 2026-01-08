@@ -195,13 +195,13 @@ class InteractiveContext(SimulationContext):
             attributes=returned_attributes, squeeze=squeeze
         )
 
+    def get_columns(self) -> list[str]:
+        """List all columns in the population state table."""
+        return self._population.get_all_attribute_names()
+
     def list_values(self) -> list[str]:
         """List the names of all value pipelines in the simulation."""
         return list(self._values.get_value_pipelines().keys())
-
-    def list_attributes(self) -> list[str]:
-        """List the names of all attribute pipelines in the simulation."""
-        return list(self._values.get_attribute_pipelines().keys())
 
     def get_value(self, value_pipeline_name: str) -> Pipeline:
         """Get the value pipeline associated with the given name."""
