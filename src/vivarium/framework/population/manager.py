@@ -143,6 +143,21 @@ class PopulationManager(Manager):
             raise PopulationError("Population has not been initialized.")
         return self._private_columns
 
+    def get_private_column_names(self, component_name: str) -> list[str]:
+        """Gets the names of private columns created by a given component.
+
+        Parameters
+        ----------
+        component_name
+            The name of the component whose private column names are to be retrieved.
+
+        Returns
+        -------
+            The list of private column names created by the specified component.
+            If the component has not created any private columns, an empty list is returned.
+        """
+        return self._private_column_metadata[component_name]
+
     @overload
     def get_private_columns(
         self,

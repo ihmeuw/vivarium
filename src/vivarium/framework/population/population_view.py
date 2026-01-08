@@ -75,7 +75,7 @@ class PopulationView:
             raise PopulationError(
                 "This PopulationView is read-only, so it doesn't have access to private_columns."
             )
-        return self._manager._private_column_metadata[self._component.name]
+        return self._manager.get_private_column_names(self._component.name)
 
     ###########
     # Methods #
