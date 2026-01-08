@@ -12,7 +12,6 @@ from vivarium.framework.population import SimulantData
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.observer import Observer
 from vivarium.framework.results.stratification import Stratification
-from vivarium.framework.values import AttributePipeline, Pipeline
 from vivarium.types import ScalarMapper, VectorMapper
 
 NAME = "hogwarts_house"
@@ -57,20 +56,6 @@ RNG = np.random.default_rng(42)
 
 
 class Hogwarts(Component):
-    @property
-    def columns_created(self) -> list[str]:
-        return [
-            "student_id",
-            "student_house",
-            "familiar",
-            "power_level",
-            "house_points",
-            "quidditch_wins",
-            "exam_score",
-            "spell_power",
-            "potion_power",
-        ]
-
     def setup(self, builder: Builder) -> None:
         builder.value.register_attribute_producer(
             "grade",
@@ -84,6 +69,20 @@ class Hogwarts(Component):
             source=lambda index: self.population_view.get_attributes(index, "power_level")
             * 2,
             required_resources=["power_level"],
+        )
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns=[
+                "student_id",
+                "student_house",
+                "familiar",
+                "power_level",
+                "house_points",
+                "quidditch_wins",
+                "exam_score",
+                "spell_power",
+                "potion_power",
+            ],
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:

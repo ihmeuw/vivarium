@@ -1,37 +1,39 @@
-import numpy as np
+# docs-start: imports
 import pandas as pd
 
 from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.population import SimulantData
-from vivarium.framework.resource.resource import Resource
+# docs-end: imports
 
 
 class Population(Component):
     ##############
     # Properties #
     ##############
+
+    # docs-start: configuration_defaults
     CONFIGURATION_DEFAULTS = {
         "population": {
             "colors": ["red", "blue"],
         }
     }
-
-    @property
-    def columns_created(self) -> list[str]:
-        return ["color", "entrance_time"]
-
-    @property
-    def initialization_requirements(self) -> list[str | Resource]:
-        return [self.randomness]
+    # docs-end: configuration_defaults
 
     #####################
     # Lifecycle methods #
     #####################
 
+    # docs-start: setup
     def setup(self, builder: Builder) -> None:
         self.colors = builder.configuration.population.colors
         self.randomness = builder.randomness.get_stream(self.name)
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns=["color", "entrance_time"],
+            dependencies=[self.randomness]
+        )
+    # docs-end: setup
 
     ########################
     # Event-driven methods #

@@ -31,8 +31,7 @@ if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
     from vivarium.framework.event import Event
     from vivarium.framework.lookup import LookupTable
-    from vivarium.framework.population import PopulationView, SimulantData
-    from vivarium.framework.resource import Resource
+    from vivarium.framework.population import PopulationView
     from vivarium.types import DataInput
 
 DEFAULT_EVENT_PRIORITY = 5
@@ -62,8 +61,6 @@ class Component(ABC):
 
     - :attr:`sub_components`
     - :attr:`configuration_defaults`
-    - :attr:`columns_created`
-    - :attr:`initialization_requirements`
     - :attr:`post_setup_priority`
     - :attr:`time_step_prepare_priority`
     - :attr:`time_step_priority`
@@ -76,7 +73,6 @@ class Component(ABC):
 
     - :meth:`setup`
     - :meth:`on_post_setup`
-    - :meth:`on_initialize_simulants`
     - :meth:`on_time_step_prepare`
     - :meth:`on_time_step`
     - :meth:`on_time_step_cleanup`
@@ -222,12 +218,23 @@ class Component(ABC):
         return self._population_view
 
     @property
+    def private_columns(self) -> list[str]:
+        """Provides the list of private columns created by this component.
+
+        Returns
+        -------
+        list[str]
+            The names of private columns created by this component.
+        """
+        return self.population_view.private_columns
+
+    @property
     def sub_components(self) -> Sequence["Component"]:
         """Provide components managed by this component.
 
         Returns
         -------
-        List[Component]
+        list[Component]
             The sub-components that are managed by this component.
         """
         return self._sub_components
@@ -257,23 +264,6 @@ class Component(ABC):
         The value columns can be a string or a list of strings.
         """
         return {}
-
-    @property
-    def columns_created(self) -> list[str]:
-        """Provides names of columns created by the component.
-
-        Returns
-        -------
-            Names of the columns created by this component, or an empty list if
-            none.
-        """
-        return []
-
-    @property
-    def initialization_requirements(self) -> list[str | Resource]:
-        """A list containing the attributes, pipelines, and randomness streams
-        required by this component's simulant initializer."""
-        return []
 
     @property
     def post_setup_priority(self) -> int:
@@ -364,11 +354,8 @@ class Component(ABC):
         self._logger = builder.logging.get_logger(self.name)
         self.configuration = self.get_configuration(builder)
         self.setup(builder)
-        self._register_attribute_private_columns(builder)
         self._set_population_view(builder)
-        self._register_attribute_producers(builder)
         self._register_post_setup_listener(builder)
-        self._register_simulant_initializer(builder)
         self._register_time_step_prepare_listener(builder)
         self._register_time_step_listener(builder)
         self._register_time_step_cleanup_listener(builder)
@@ -408,25 +395,6 @@ class Component(ABC):
         ----------
         event
             The event object associated with the ``post_setup`` event.
-        """
-        pass
-
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        """
-        Method that vivarium will run during simulant initialization.
-
-        This method is intended to be overridden by subclasses if there are
-        operations they need to perform specifically during the simulant
-        initialization phase.
-
-        Parameters
-        ----------
-        pop_data : SimulantData
-            The data associated with the simulants being initialized.
-
-        Returns
-        -------
-        None
         """
         pass
 
@@ -680,16 +648,6 @@ class Component(ABC):
 
         return data
 
-    def _register_attribute_private_columns(self, builder: Builder) -> None:
-        """Registers the AttributePipeline private columns created by this component.
-
-        Parameters
-        ----------
-        builder
-            The builder object used to set up the component.
-        """
-        builder.population.register_private_columns(self)
-
     def _set_population_view(self, builder: Builder) -> None:
         """Creates the PopulationView for this component.
 
@@ -699,14 +657,6 @@ class Component(ABC):
             The builder object used to set up the component.
         """
         self._population_view = builder.population.get_view(self)
-
-    def _register_attribute_producers(self, builder: Builder) -> None:
-        for column in self.columns_created:
-            builder.value.register_attribute_producer(
-                column,
-                source=[column],
-                source_is_private_column=True,
-            )
 
     def _register_post_setup_listener(self, builder: Builder) -> None:
         """Registers a ``post_setup`` listener if this component has defined one.
@@ -726,27 +676,6 @@ class Component(ABC):
                 lifecycle_states.POST_SETUP,
                 self.on_post_setup,
                 self.post_setup_priority,
-            )
-
-    def _register_simulant_initializer(self, builder: Builder) -> None:
-        """Registers a simulant initializer if this component has defined one.
-
-        This method allows the component to initialize simulants if it has its
-        own :meth:`on_initialize_simulants` method. It registers this method with the
-        builder's :class:`~vivarium.framework.population.PopulationManager`. It also
-        specifies the columns that the component creates and any additional
-        requirements for initialization.
-
-        Parameters
-        ----------
-        builder
-            The builder with which to register the initializer.
-        """
-        if type(self).on_initialize_simulants != Component.on_initialize_simulants:
-            builder.population.initializes_simulants(
-                self,
-                creates_columns=self.columns_created,
-                required_resources=self.initialization_requirements,
             )
 
     def _register_time_step_prepare_listener(self, builder: Builder) -> None:
