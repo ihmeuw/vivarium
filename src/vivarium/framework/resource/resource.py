@@ -37,11 +37,6 @@ class Resource:
         """The long name of the resource, including the type."""
         return f"{self.resource_type}.{self.name}"
 
-    @property
-    def is_initialized(self) -> bool:
-        """Return True if the resource needs to be initialized."""
-        return False
-
 
 class NullResource(Resource):
     """A node in the dependency graph that does not produce any resources."""
@@ -49,22 +44,12 @@ class NullResource(Resource):
     def __init__(self, index: int, component: Component | Manager) -> None:
         super().__init__("null", f"{index}", component)
 
-    @property
-    def is_initialized(self) -> bool:
-        """Return True if the resource needs to be initialized."""
-        return True
-
 
 class Column(Resource):
     """A resource representing a column in the population private data."""
 
     def __init__(self, name: str, component: Component | Manager) -> None:
         super().__init__("column", name, component)
-
-    @property
-    def is_initialized(self) -> bool:
-        """Return True if the resource needs to be initialized."""
-        return True
 
     def __eq__(self, value: object) -> bool:
         return (

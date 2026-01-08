@@ -73,15 +73,6 @@ def test_initializer_set_fail_attr() -> None:
         component_set.add(NonComponent().initializer, ["test_column"])
 
 
-def test_initializer_set_duplicate_component() -> None:
-    component_set = InitializerComponentSet()
-    component = InitializingComponent("test")
-
-    component_set.add(component.initializer, ["test_column1"])
-    with pytest.raises(PopulationError, match="multiple population initializers"):
-        component_set.add(component.other_initializer, ["test_column2"])
-
-
 def test_initializer_set_duplicate_columns() -> None:
     component_set = InitializerComponentSet()
     component1 = InitializingComponent("test1")
@@ -94,13 +85,6 @@ def test_initializer_set_duplicate_columns() -> None:
 
     with pytest.raises(PopulationError, match="both registered initializers"):
         component_set.add(component2.initializer, ["sneaky_column"] + columns)
-
-
-def test_initializer_set_population_manager() -> None:
-    component_set = InitializerComponentSet()
-    population_manager = PopulationManager()
-
-    component_set.add(population_manager.on_initialize_simulants, ["foo"])
 
 
 def test_initializer_set() -> None:
@@ -118,15 +102,16 @@ def test_setting_query_with_get_view(query: str) -> None:
     assert view._default_query == query
 
 
-@pytest.mark.parametrize("columns_created", [[], ["age", "sex"]])
+@pytest.mark.parametrize("private_columns", [[], ["age", "sex"]])
 def test_setting_columns_with_get_view(
-    columns_created: list[str], mocker: MockerFixture
+    private_columns: list[str], mocker: MockerFixture
 ) -> None:
     manager = PopulationManager()
     component = mocker.Mock()
-    component.columns_created = columns_created
+    component.name = "test_component"
+    manager._private_column_metadata["test_component"] = private_columns
     view = manager._get_view(component=component, default_query="")
-    assert view.private_columns == columns_created
+    assert view.private_columns == private_columns
 
 
 @pytest.mark.parametrize("attributes", ("all", PIE_COL_NAMES, ["pie", "cube"]))
@@ -381,29 +366,88 @@ def test_get_population_deduplicates_requested_columns(
     assert set(pop.columns) == {"pie"}
 
 
-def test_register_private_columns() -> None:
-    class ColumnCreator2(Component):
+def test_register_initializer(mocker: MockerFixture) -> None:
+    class ColumnCreator2(ColumnCreator):
         @property
         def name(self) -> str:
             return "column_creator_2"
 
+    class ColumnCreator3(ColumnCreator):
         @property
-        def columns_created(self) -> list[str]:
-            return ["test_column_5", "test_column_6"]
+        def name(self) -> str:
+            return "column_creator_3"
 
     # The metadata for the manager should be empty because the fixture does not
     # actually go through setup.
     mgr = PopulationManager()
+    mock_register_attr = mocker.Mock()
+    mocker.patch.object(mgr, "_register_attribute_producer", mock_register_attr, create=True)
+    mock_resources = mocker.Mock()
+    mocker.patch.object(mgr, "resources", mock_resources, create=True)
+    mock_add_private_cols = mocker.Mock()
+    mocker.patch.object(
+        mgr.resources, "add_private_columns", mock_add_private_cols, create=True
+    )
+
     assert mgr._private_column_metadata == {}
-    # Running setup registers all attribute pipelines and updates the metadata
+
     component1 = ColumnCreator()
+    mocker.patch.object(
+        mgr, "_get_current_component_or_manager", return_value=component1, create=True
+    )
+    mgr.register_initializer(
+        initializer=component1.on_initialize_simulants,
+        columns=["foo", "bar"],
+        dependencies=["dep1", "dep2"],
+    )
+
     component2 = ColumnCreator2()
-    mgr.register_private_columns(component1)
-    mgr.register_private_columns(component2)
+    mocker.patch.object(
+        mgr, "_get_current_component_or_manager", return_value=component2, create=True
+    )
+    mgr.register_initializer(
+        initializer=component2.on_initialize_simulants,
+        columns=None,
+        dependencies=["dep3", "dep4"],
+    )
+
+    component3 = ColumnCreator3()
+    mocker.patch.object(
+        mgr, "_get_current_component_or_manager", return_value=component3, create=True
+    )
+    mgr.register_initializer(
+        initializer=component3.on_initialize_simulants, columns="qux", dependencies=[]
+    )
+
+    # Check that register_attribute_producer was called appropriately
+    assert mock_register_attr.call_count == 3
+    for column in ["foo", "bar", "qux"]:
+        mock_register_attr.assert_any_call(
+            column, source=[column], source_is_private_column=True
+        )
+
+    # Check the private column metadata
     assert mgr._private_column_metadata == {
-        component1.name: component1.columns_created,
-        component2.name: component2.columns_created,
+        component1.name: ["foo", "bar"],
+        component2.name: [],
+        component3.name: ["qux"],
     }
+
+    # Check that resources.add_private_columns was called appropriately
+    assert mock_add_private_cols.call_count == 3
+    mock_add_private_cols.assert_any_call(
+        columns=["foo", "bar"],
+        dependencies=["dep1", "dep2"],
+        initializer=component1.on_initialize_simulants,
+    )
+    mock_add_private_cols.assert_any_call(
+        columns=[],
+        dependencies=["dep3", "dep4"],
+        initializer=component2.on_initialize_simulants,
+    )
+    mock_add_private_cols.assert_any_call(
+        columns=["qux"], dependencies=[], initializer=component3.on_initialize_simulants
+    )
 
 
 @pytest.mark.parametrize(
@@ -437,7 +481,7 @@ def test_get_private_columns(
         if columns is not None:
             assert list(private_columns.columns) == columns
         else:
-            assert list(private_columns.columns) == component.columns_created
+            assert list(private_columns.columns) == component.private_columns
 
 
 def test_get_private_columns_squeezing() -> None:
@@ -504,7 +548,7 @@ def test_forget_to_create_columns() -> None:
         def on_initialize_simulants(self, pop_data: SimulantData) -> None:
             pass
 
-    with pytest.raises(PopulationError, match="but did not actually create them"):
+    with pytest.raises(PopulationError, match="not actually created"):
         InteractiveContext(components=[ColumnForgetter()])
 
 

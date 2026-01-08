@@ -9,7 +9,6 @@ from vivarium import Component
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
     from vivarium.framework.population import SimulantData
-    from vivarium.framework.resource import Resource
 
 
 class Risk(Component):
@@ -26,14 +25,6 @@ class Risk(Component):
     @property
     def configuration_defaults(self) -> dict[str, Any]:
         return {self.risk: self.CONFIGURATION_DEFAULTS["risk"]}
-
-    @property
-    def columns_created(self) -> list[str]:
-        return [self.propensity_column]
-
-    @property
-    def initialization_requirements(self) -> list[str | Resource]:
-        return [self.randomness]
 
     #####################
     # Lifecycle methods #
@@ -64,6 +55,11 @@ class Risk(Component):
             required_resources=[self.propensity_column, self.exposure_threshold_pipeline],
         )
         self.randomness = builder.randomness.get_stream(self.risk)
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns=self.propensity_column,
+            dependencies=[self.randomness]
+        )
 
     ########################
     # Event-driven methods #

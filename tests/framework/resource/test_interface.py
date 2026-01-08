@@ -1,15 +1,22 @@
-from vivarium import Component
+from pytest_mock import MockerFixture
+
 from vivarium.framework.resource.interface import ResourceInterface
 from vivarium.framework.resource.manager import ResourceManager
 from vivarium.framework.resource.resource import Column
 
 
-def test_add_private_columns() -> None:
+def test_add_private_columns(mocker: MockerFixture) -> None:
     mgr = ResourceManager()
     interface = ResourceInterface(mgr)
+    mocker.patch.object(
+        mgr,
+        "_get_current_component_or_manager",
+        return_value=mocker.MagicMock(),
+        create=True,
+    )
     interface.add_private_columns(
-        component=Component(),
-        resources=["private_col_1", "private_col_2"],
+        initializer=lambda pop_data: None,
+        columns=["private_col_1", "private_col_2"],
         dependencies=[],
     )
     resource_map = mgr._resource_group_map
