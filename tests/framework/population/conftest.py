@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 import math
+from collections import defaultdict
 from typing import Any
 
 import pandas as pd
@@ -9,7 +10,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from vivarium import Component
-from vivarium.framework.engine import SimulationContext
+from vivarium.framework.engine import Builder, SimulationContext
 from vivarium.framework.population import PopulationManager, SimulantData
 from vivarium.framework.values import ValuesManager
 
@@ -30,9 +31,10 @@ CUBE_DF = pd.DataFrame(
 
 
 class PieComponent(Component):
-    @property
-    def columns_created(self) -> list[str]:
-        return PIE_COL_NAMES
+    def setup(self, builder: Builder) -> None:
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants, columns=PIE_COL_NAMES
+        )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         self.population_view.update(self.get_initial_state(pop_data.index))
@@ -42,9 +44,10 @@ class PieComponent(Component):
 
 
 class CubeComponent(Component):
-    @property
-    def columns_created(self) -> list[str]:
-        return CUBE_COL_NAMES
+    def setup(self, builder: Builder) -> None:
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants, columns=CUBE_COL_NAMES
+        )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         self.population_view.update(self.get_initial_state(pop_data.index))
@@ -87,8 +90,11 @@ def pies_and_cubes_pop_mgr(mocker: MockerFixture) -> PopulationManager:
     for col in mgr._private_columns.columns:
         mocked_attribute_pipelines[col] = mocker.Mock()
     mgr._attribute_pipelines = mocked_attribute_pipelines
-    mgr._private_column_metadata = {
-        "pie_component": PIE_COL_NAMES,
-        "cube_component": CUBE_COL_NAMES,
-    }
+    mgr._private_column_metadata = defaultdict(
+        list,
+        {
+            "pie_component": PIE_COL_NAMES,
+            "cube_component": CUBE_COL_NAMES,
+        },
+    )
     return mgr

@@ -4,6 +4,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from tests.helpers import ColumnCreator
+from vivarium.framework.population.manager import SimulantData
 from vivarium.framework.randomness import RandomnessStream
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.resource.exceptions import ResourceError
@@ -27,7 +28,9 @@ def test_resource_group(resource_type: str, mocker: MockerFixture) -> None:
         ValueSource(Pipeline("foo"), lambda: 1, None),
     ]
 
-    rg = ResourceGroup(resources, r_dependencies)
+    rg = ResourceGroup(
+        resources, r_dependencies, initializer=component.on_initialize_simulants
+    )
 
     assert rg.component == component
     assert rg.type == "column" if resource_type == "column" else "test"
@@ -47,28 +50,31 @@ def test_resource_group(resource_type: str, mocker: MockerFixture) -> None:
 
 
 @pytest.mark.parametrize(
-    "resource, has_initializer",
+    "resource",
     [
-        (Pipeline("foo", ColumnCreator()), False),
-        (AttributePipeline("foo", ColumnCreator()), False),
-        (ValueSource(Pipeline("bar", ColumnCreator()), lambda: 1, ColumnCreator()), False),
-        (ValueModifier(Pipeline("baz", ColumnCreator()), lambda: 1, ColumnCreator()), False),
-        (Column("foo", ColumnCreator()), True),
-        (
-            RandomnessStream("bar", lambda: datetime.now(), 1, IndexMap(), ColumnCreator()),
-            False,
-        ),
-        (NullResource(0, ColumnCreator()), True),
+        Pipeline("foo", ColumnCreator()),
+        AttributePipeline("foo", ColumnCreator()),
+        ValueSource(Pipeline("bar", ColumnCreator()), lambda: 1, ColumnCreator()),
+        ValueModifier(Pipeline("baz", ColumnCreator()), lambda: 1, ColumnCreator()),
+        Column("foo", ColumnCreator()),
+        RandomnessStream("bar", lambda: datetime.now(), 1, IndexMap(), ColumnCreator()),
+        NullResource(0, ColumnCreator()),
     ],
 )
-def test_resource_group_is_initializer(resource: Resource, has_initializer: bool) -> None:
-    rg = ResourceGroup(resource, [Resource("test", "bar", None)])
-    assert rg.is_initialized == has_initializer
+@pytest.mark.parametrize("initialized", [True, False])
+def test_resource_group_is_initializer(resource: Resource, initialized: bool) -> None:
+    def some_initializer(pop_data: SimulantData) -> None:
+        pass
+
+    rg = ResourceGroup(
+        resource, [Resource("test", "bar", None)], some_initializer if initialized else None
+    )
+    assert rg.is_initialized == initialized
 
 
 def test_resource_group_with_no_resources() -> None:
     with pytest.raises(ResourceError, match="must have at least one resource"):
-        _ = ResourceGroup([], [Resource("test", "foo", None)])
+        _ = ResourceGroup([], [Resource("test", "foo", None)], None)
 
 
 def test_resource_group_with_multiple_components() -> None:
@@ -80,7 +86,7 @@ def test_resource_group_with_multiple_components() -> None:
     ]
 
     with pytest.raises(ResourceError, match="resources must have the same component"):
-        _ = ResourceGroup(resources, [])
+        _ = ResourceGroup(resources, [], None)
 
 
 def test_resource_group_with_multiple_resource_types() -> None:
@@ -94,10 +100,7 @@ def test_resource_group_with_multiple_resource_types() -> None:
     ]
 
     with pytest.raises(ResourceError, match="resources must be of the same type"):
-        _ = ResourceGroup(resources, [])  # type: ignore[arg-type]
-
-
-from pytest_mock import MockerFixture
+        _ = ResourceGroup(resources, [], None)  # type: ignore[arg-type]
 
 
 def test_set_dependencies(mocker: MockerFixture) -> None:
@@ -109,7 +112,7 @@ def test_set_dependencies(mocker: MockerFixture) -> None:
         "some_other_attribute",
     ]
 
-    rg = ResourceGroup(resource, dependencies)
+    rg = ResourceGroup(resource, dependencies, None)
     assert rg._dependencies == [some_attribute, "some_other_attribute"]
     # Mock the attribute pipelines dict
     attribute_pipelines = {
