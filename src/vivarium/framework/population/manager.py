@@ -524,6 +524,15 @@ class PopulationManager(Manager):
     # Context API #
     ###############
 
+    def get_all_attribute_names(self) -> list[str]:
+        """Get the names of all attributes in the population.
+
+        Returns
+        -------
+            A list of all attribute names in the population.
+        """
+        return list(self._attribute_pipelines.keys())
+
     @overload
     def get_population(
         self,
@@ -615,7 +624,7 @@ class PopulationManager(Manager):
             )
 
         if attributes == "all":
-            requested_attributes = list(self._attribute_pipelines.keys())
+            requested_attributes = self.get_all_attribute_names()
         else:
             attributes = list(attributes)
             # check for duplicate request
