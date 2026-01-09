@@ -67,6 +67,12 @@ class ValuesManager(Manager):
             self.register_value_modifier, allow_during=[lifecycle_states.SETUP]
         )
         builder.lifecycle.add_constraint(
+            self.register_attribute_producer, allow_during=[lifecycle_states.SETUP]
+        )
+        builder.lifecycle.add_constraint(
+            self.register_attribute_modifier, allow_during=[lifecycle_states.SETUP]
+        )
+        builder.lifecycle.add_constraint(
             self.get_attribute_pipelines, restrict_during=[lifecycle_states.SETUP]
         )
 
