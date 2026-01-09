@@ -7,6 +7,7 @@ from tests.framework.population.helpers import (
     assert_squeezing_single_level_single_col,
 )
 from tests.helpers import (
+    AttributePipelineCreator,
     ColumnCreator,
     MultiLevelMultiColumnCreator,
     MultiLevelSingleColumnCreator,
@@ -16,7 +17,6 @@ from vivarium import InteractiveContext
 from vivarium.framework.values import Pipeline
 
 
-@pytest.mark.skip(reason="FIXME [MIC-6394]")
 def test_list_values() -> None:
     sim = InteractiveContext()
     # a 'simulant_step_size' value is created by default upon setup
@@ -26,6 +26,26 @@ def test_list_values() -> None:
         sim.get_value("foo")
     # ensure that 'foo' did not get added to the list of values
     assert sim.list_values() == ["simulant_step_size"]
+
+
+def test_get_columns() -> None:
+    sim = InteractiveContext(
+        components=[MultiLevelMultiColumnCreator(), AttributePipelineCreator()]
+    )
+    assert set(sim.get_columns()) == set(
+        [
+            # MultiLevelMultiColumnCreator attributes
+            "some_attribute",
+            "some_other_attribute",
+            # AttributePipelineCreator attributes
+            "attribute_generating_columns_4_5",
+            "attribute_generating_column_8",
+            "test_attribute",
+            "attribute_generating_columns_6_7",
+        ]
+    )
+    # Make sure there's nothing unexpected compared to the actual population df
+    assert set(sim.get_columns()) == set(sim.get_population().columns.get_level_values(0))
 
 
 def test_get_population_squeezing() -> None:
