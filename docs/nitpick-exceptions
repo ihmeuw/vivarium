@@ -53,6 +53,7 @@ py:class vivarium.framework.components.manager.T
 py:class vivarium.framework.components.manager.C
 
 # layered_config_tree
+py:class LayeredConfigTree
 py:class layered_config_tree.main.LayeredConfigTree
 py:exc layered_config_tree.exceptions.ConfigurationError
 
