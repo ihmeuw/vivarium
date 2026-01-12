@@ -51,7 +51,6 @@ py:class vivarium.framework.utilities.TimeValue
 py:class T
 py:class vivarium.framework.components.manager.T
 py:class vivarium.framework.components.manager.C
-py:class vivarium.framework.lookup.table.T
 
 # layered_config_tree
 py:class LayeredConfigTree
