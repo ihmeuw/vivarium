@@ -145,10 +145,10 @@ Female  60         100      27
 Constructing Lookup Tables from a Component
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Components can register lookup tables to be built by specifying
-a ``data_sources`` block in their :attr:`~vivarium.component.Component.configuration_defaults` property. 
-As a basic example, DiseaseModel in ``vivarium_public_health`` has the following
-``data_sources`` configuration:
+Components can build lookup tables as needed via the :meth:`~vivarium.component.Component.build_lookup_table`
+method which will refer to the ``data_sources`` block in the component's
+:attr:`~vivarium.component.Component.configuration_defaults` property. As a basic example,
+DiseaseModel in ``vivarium_public_health`` has the following ``data_sources`` configuration:
 
 .. code-block:: python
 
@@ -162,25 +162,14 @@ As a basic example, DiseaseModel in ``vivarium_public_health`` has the following
             },
         }
 
-which specifies a single lookup table named
-``cause_specific_mortality_rate`` whose data is provided by the component's
+which specifies that when building a lookup table named
+``cause_specific_mortality_rate``, the data should be provided by the component's
 ``load_cause_specific_mortality_rate`` method.
 
 Each entry in ``data_sources`` maps a table name to a data source from one of
-several supported types (see `Data Source Types`_). Barring edge cases (see
-`Limitations and When to Override`_), one should specify all of a component's
-lookup tables via ``data_sources``, instead of accessing the builder's lookup
-interface directly.
+several supported types (see `Data Source Types`_).
 
-When a component configures ``data_sources``, the base
-:class:`~vivarium.component.Component` class automatically builds
-the lookup tables before the component's :meth:`~vivarium.component.Component.setup` method is called. The
-resulting tables are stored in the component's :attr:`~vivarium.component.Component.lookup_tables` dictionary,
-keyed by the name specified in ``data_sources``. 
-
-This approach separates the *what* (which tables to build and where to get data) from the
-*how* (the mechanics of table construction), making components easier to
-write and configure. It also allows users to override data sources in model specification files
+This approach allows users to override data sources in model specification files
 without modifying component code. Following the example above, a model specification could adjust the 
 ``cause_specific_mortality_rate`` data source to point to different data or a scalar value:
 
@@ -289,35 +278,6 @@ code:
                 unmodeled_cause_specific_mortality_rate: "my_module.data::load_unmodeled_csmr"
                 # Or point to different artifact data
                 life_expectancy: "alternative.life_expectancy.data"
-
-Limitations and When to Override
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The automatic ``data_sources`` mechanism works well for straightforward cases,
-but some situations require overriding the :meth:`~vivarium.component.Component.build_all_lookup_tables` method:
-
-**Non-standard value columns:**
-    The component defaults to ``["value"]`` as the value column name. If your
-    data has differently named value columns or multiple value columns, you
-    must call :meth:`~vivarium.component.Component.build_lookup_table` directly with explicit
-    ``value_columns``.
-
-**Complex data transformations:**
-    When data requires transformation before building tables (e.g., pivoting,
-    computing derived parameters, combining multiple data sources), override
-    :meth:`~vivarium.component.Component.build_all_lookup_tables` to perform the transformation first.
-
-**Delegation to sub-components:**
-    When lookup tables should be built by sub-components rather than the
-    parent component, override :meth:`~vivarium.component.Component.build_all_lookup_tables` to skip the
-    default behavior.
-
-Examples of these patterns can be found in `vivarium_public_health <https://vivarium.readthedocs.io/projects/vivarium-public-health/en/latest/>`_:
-
-- `RateTransition <https://vivarium.readthedocs.io/projects/vivarium-public-health/en/latest/api_reference/disease/transition.html>`_ and `DiseaseState <https://vivarium.readthedocs.io/projects/vivarium-public-health/en/latest/api_reference/disease/state.html>`_ in `vivarium_public_health.disease <https://vivarium.readthedocs.io/projects/vivarium-public-health/en/latest/api_reference/disease/>`_
-  demonstrate the basic ``data_sources`` pattern with various data source types.
-- ``Risk`` in ``vivarium_public_health.risks`` overrides :meth:`~vivarium.component.Component.build_all_lookup_tables`
-  to delegate table construction to its exposure distribution sub-component.
 
 Using the Lookup Interface Directly
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
