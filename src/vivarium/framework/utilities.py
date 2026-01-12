@@ -19,6 +19,7 @@ from vivarium.types import NumberLike, NumericArray, Timedelta
 
 TimeValue = TypeVar("TimeValue", bound=NumberLike)
 
+
 def from_yearly(value: NumberLike, time_step: Timedelta) -> NumberLike:
     """Rescale a yearly rate to the size of a time step."""
     return value * (time_step.total_seconds() / (60 * 60 * 24 * 365.0))
