@@ -347,10 +347,14 @@ def test_stream_rate_conversion_config(
     ],
 )
 def test_filter_for_probability_error_with_null_values(
-    probs: float | list[float] | pd.Series[float],
+    probs: float | list[float] | pd.Series[float], mocker: MockerFixture
 ) -> None:
     randomness_stream = RandomnessStream(
-        "test", lambda: pd.Timestamp(2020, 1, 1), 1, IndexMap()
+        key="test",
+        clock=lambda: pd.Timestamp(2020, 1, 1),
+        seed=1,
+        index_map=IndexMap(),
+        component=mocker.Mock(),
     )
     pop = pd.DataFrame({"age": [10, 11, 12, 13, 14], "id": [1, 2, 3, 4, 5]}).set_index("id")
     with pytest.raises(ValueError, match="Probabilities contain null values"):
