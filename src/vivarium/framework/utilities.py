@@ -6,13 +6,16 @@ Framework Utility Functions
 Collection of utility functions shared by the ``vivarium`` framework.
 
 """
+from __future__ import annotations
+
 import functools
 from bdb import BdbQuit
 from collections.abc import Callable, Sequence
 from importlib import import_module
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar, overload
 
 import numpy as np
+import pandas as pd
 from loguru import logger
 
 from vivarium.types import NumberLike, NumericArray, Timedelta
@@ -20,9 +23,63 @@ from vivarium.types import NumberLike, NumericArray, Timedelta
 TimeValue = TypeVar("TimeValue", bound=NumberLike)
 
 
+@overload
+def from_yearly(value: int, time_step: Timedelta) -> float:
+    ...
+
+
+@overload
+def from_yearly(value: float, time_step: Timedelta) -> float:
+    ...
+
+
+@overload
+def from_yearly(value: NumericArray, time_step: Timedelta) -> NumericArray:
+    ...
+
+
+@overload
+def from_yearly(
+    value: pd.Series[int] | pd.Series[float], time_step: Timedelta
+) -> pd.Series[float]:
+    ...
+
+
+@overload
+def from_yearly(value: pd.DataFrame, time_step: Timedelta) -> pd.DataFrame:
+    ...
+
+
 def from_yearly(value: NumberLike, time_step: Timedelta) -> NumberLike:
     """Rescale a yearly rate to the size of a time step."""
     return value * (time_step.total_seconds() / (60 * 60 * 24 * 365.0))
+
+
+@overload
+def to_yearly(value: int, time_step: Timedelta) -> float:
+    ...
+
+
+@overload
+def to_yearly(value: float, time_step: Timedelta) -> float:
+    ...
+
+
+@overload
+def to_yearly(value: NumericArray, time_step: Timedelta) -> NumericArray:
+    ...
+
+
+@overload
+def to_yearly(
+    value: pd.Series[int] | pd.Series[float], time_step: Timedelta
+) -> pd.Series[float]:
+    ...
+
+
+@overload
+def to_yearly(value: pd.DataFrame, time_step: Timedelta) -> pd.DataFrame:
+    ...
 
 
 def to_yearly(value: NumberLike, time_step: Timedelta) -> NumberLike:
