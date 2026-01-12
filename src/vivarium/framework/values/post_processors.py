@@ -65,12 +65,24 @@ def rescale_post_processor(
             "datetime timedelta or pandas Timedelta object."
         )
     if isinstance(value, (int, float)):
-        return pd.Series(from_yearly(value, time_step), index=index)
+        result = from_yearly(value, time_step)
+        if not isinstance(result, (int, float)):
+            raise DynamicValueError(
+                f"Expected from_yearly to return a scalar for scalar input, "
+                f"but got {type(result)}."
+            )
+        return pd.Series(result, index=index)
     elif isinstance(value, np.ndarray):
+        result = from_yearly(value, time_step)
+        if not isinstance(result, np.ndarray):
+            raise DynamicValueError(
+                f"Expected from_yearly to return an ndarray for ndarray input, "
+                f"but got {type(result)}."
+            )
         if value.ndim == 1:
-            return pd.Series(from_yearly(value, time_step), index=index)
+            return pd.Series(result, index=index)
         elif value.ndim == 2:
-            return pd.DataFrame(from_yearly(value, time_step), index=index)
+            return pd.DataFrame(result, index=index)
         else:
             raise DynamicValueError(
                 f"Numpy arrays with {value.ndim} dimensions are not supported. "

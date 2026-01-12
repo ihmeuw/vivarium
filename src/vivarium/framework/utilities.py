@@ -10,7 +10,7 @@ import functools
 from bdb import BdbQuit
 from collections.abc import Callable, Sequence
 from importlib import import_module
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar
 
 import numpy as np
 from loguru import logger
