@@ -662,7 +662,7 @@ scenes and return the results of all computations whenever the pipeline is
 called (in the ``on_time_step`` method in this case - see below).
 
 Finally, we register an initializer method which is responsible for creating an
-``'alive'`` column in the population table.
+``'is_alive'`` column in the population table.
 
 The ``on_initialize_simulants`` method
 ++++++++++++++++++++++++++++++++++++++
@@ -672,13 +672,13 @@ The ``on_initialize_simulants`` method
    :end-before: # docs-end: on_initialize_simulants
    :dedent: 4
 
-This very simple initializer method simply creates an ``'alive'`` column in the population
-table and sets it to ``'alive'`` for all simulants being initialized. Note again
+This very simple initializer method simply creates an ``'is_alive'`` column in the population
+table and sets it to True for all simulants being initialized. Note again
 that we need to call the population view's ``update`` method to actually modify
 the population table.
 
 Notice also that when registering this method, we did not specify any dependencies
-(since every simulant is set as "alive" regardless of anything else).
+(since every simulant is set as alive regardless of anything else).
 
 The ``on_time_step`` method
 +++++++++++++++++++++++++++
@@ -705,7 +705,7 @@ and using the inverse distribution function. We then draw a uniformly distribute
 random number for each person and determine who died by comparing that number to 
 the computed probability of death for the individual.
 
-Finally, we update the state table ``'alive'`` column with the newly dead simulants.
+Finally, we update the state table ``is_alive`` column with the newly dead simulants.
 
 
 Supplying a base mortality rate
@@ -743,69 +743,69 @@ can see the impact of our mortality component without taking too many steps.
    }
 
    sim = InteractiveContext(components=[BasePopulation()], configuration=config)
-   print(sim.get_population(['age', 'sex', 'mortality_rate', 'alive']).head())
+   print(sim.get_population(['age', 'sex', 'mortality_rate', 'is_alive']).head())
 
 ::
 
-            age     sex  mortality_rate  alive
-   0  13.806776  Female        0.000027  alive
-   1  59.172893    Male        0.000027  alive
-   2  11.030887  Female        0.000027  alive
-   3  27.723191  Female        0.000027  alive
-   4  51.052188  Female        0.000027  alive
+            age     sex  mortality_rate  is_alive
+   0  13.806776  Female        0.000027      True
+   1  59.172893    Male        0.000027      True
+   2  11.030887  Female        0.000027      True
+   3  27.723191  Female        0.000027      True
+   4  51.052188  Female        0.000027      True
 
 .. testcode::
    :hide:
    
    config = {
-       'population': {
-           'population_size': 100_000
-       },
-       'randomness': {
-           'key_columns': ['entrance_time', 'age']
-       }
+         'population': {
+            'population_size': 100_000
+         },
+         'randomness': {
+            'key_columns': ['entrance_time', 'age']
+         }
    }
    sim = InteractiveContext(components=[BasePopulation()], configuration=config)
 
-   print(sim.get_population(['age', 'sex', 'mortality_rate', 'alive']).head())
+   print(sim.get_population(['age', 'sex', 'mortality_rate', 'is_alive']).head())
 
 .. testoutput::
 
-            age     sex  mortality_rate  alive
-   0  13.806776  Female        0.000027  alive
-   1  59.172893    Male        0.000027  alive
-   2  11.030887  Female        0.000027  alive
-   3  27.723191  Female        0.000027  alive
-   4  51.052188  Female        0.000027  alive
+            age     sex  mortality_rate  is_alive
+   0  13.806776  Female        0.000027      True
+   1  59.172893    Male        0.000027      True
+   2  11.030887  Female        0.000027      True
+   3  27.723191  Female        0.000027      True
+   4  51.052188  Female        0.000027      True
 
 Note that aside from modifying the population size in the config, we haven't actually
 done anything different than before. Indeed, the ages and sexes of the first five
 simulants are the same. Here, however, we are not subsetting the dataframe to only
 show the ``'age'`` and ``'sex'`` columns, however, and so we see various others 
-(notably, the ``'mortality_rate'`` and ``'alive'`` columns created by the Mortality 
+(notably, the ``'mortality_rate'`` and ``'is_alive'`` columns created by the Mortality 
 component).
 
 As we haven't taken a time step yet, everyone should still be alive.
 
 .. code-block:: python
 
-   print(sim.get_population("alive").value_counts())
+   print(sim.get_population("is_alive").value_counts())
 
 ::
 
-   alive
-   alive    100000
+   is_alive
+   True     100000
    Name: count, dtype: int64
 
 .. testcode::
    :hide:
    
-   print(sim.get_population("alive").value_counts())
+   print(sim.get_population("is_alive").value_counts())
 
 .. testoutput::
 
-   alive
-   alive    100000
+   is_alive
+   True    100000
    Name: count, dtype: int64
 
 
@@ -814,13 +814,13 @@ Now let's run our simulation for a while and see what happens.
 .. code-block:: python
 
    sim.take_steps(365)  # Run for one year with one day time steps
-   sim.get_population("alive").value_counts()
+   sim.get_population("is_alive").value_counts()
 
 ::
 
-   alive
-   alive    99023
-   dead       977
+   is_alive
+   True     99023
+   False      977
    Name: count, dtype: int64
 
 We simulated somewhere between 99,023 (if everyone died in the first time step)
@@ -833,7 +833,7 @@ to 0.0098 deaths per person-year, very close to the 0.01 rate we provided.
    
    # It takes too long to run 365 steps in the test, so we just run 10 steps here
    sim.take_steps(10)
-   assert sim.get_population("alive").value_counts()['dead'] == 27
+   assert sim.get_population("is_alive").value_counts()[False] == 27
 
 Disease
 -------
@@ -884,10 +884,10 @@ from those that died in previous time steps. We update this column in the
 ``on_time_step_prepare`` method of the observer.
 
 Why didn't we update the ``'previous_alive'`` values at the same time 
-as the ``'alive'`` values in the Mortality component's ``on_time_step`` method?
+as the ``'is_alive'`` values in the Mortality component's ``on_time_step`` method?
 The reason is that the deaths observer records the number of deaths that occurred during 
 the previous time step during the ``collect_metrics`` phase. By updating 
-the ``'alive'`` column during the ``time_step`` phase (which occurs *before* 
+the ``'is_alive'`` column during the ``time_step`` phase (which occurs *before* 
 ``collect_metrics``) and the ``'previous_alive'`` column during the ``time_step_prepare``
 phase (which occurs *after* ``collect_metrics``), we ensure that the observer 
 can distinguish which simulants died specifically during the previous time step.

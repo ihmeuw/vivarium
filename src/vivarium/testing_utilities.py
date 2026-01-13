@@ -42,7 +42,7 @@ class NonCRNTestPopulation(Component):
         )
         builder.population.register_initializer(
             initializer=self.on_initialize_simulants,
-            columns=["age", "sex", "location", "alive", "entrance_time", "exit_time"],
+            columns=["age", "sex", "location", "is_alive", "entrance_time", "exit_time"],
             dependencies=[self.randomness],
         )
 
@@ -68,7 +68,7 @@ class NonCRNTestPopulation(Component):
 
     def on_time_step(self, event: Event) -> None:
         population = self.population_view.get_attributes(
-            event.index, ["alive", "age"], query="alive == 'alive'"
+            event.index, ["is_alive", "age"], query="is_alive == True"
         )
         # This component won't work if event.step_size is an int
         if not isinstance(event.step_size, int):
@@ -88,7 +88,7 @@ class TestPopulation(NonCRNTestPopulation):
         self.register = builder.randomness.register_simulants
         builder.population.register_initializer(
             initializer=self.on_initialize_simulants,
-            columns=["age", "sex", "location", "alive", "entrance_time", "exit_time"],
+            columns=["age", "sex", "location", "is_alive", "entrance_time", "exit_time"],
             dependencies=[self.randomness, self.age_randomness],
         )
 
@@ -136,7 +136,7 @@ def _build_population(
             "sex": randomness_stream.choice(
                 index, ["Male", "Female"], additional_key="sex_choice"
             ),
-            "alive": pd.Series("alive", index=index),
+            "is_alive": pd.Series(True, index=index),
             "location": location,
             "exit_time": pd.NaT,
         },
@@ -169,7 +169,7 @@ def _non_crn_build_population(
             "sex": randomness_stream.choice(
                 index, ["Male", "Female"], additional_key="sex_choice"
             ),
-            "alive": pd.Series("alive", index=index),
+            "is_alive": pd.Series(True, index=index),
             "location": location,
             "entrance_time": creation_time,
             "exit_time": pd.NaT,

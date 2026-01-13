@@ -357,7 +357,7 @@ class ResultsManager(Manager):
         ]
         if attributes_to_get:
             # FIXME: (Inefficiency) In the event every single observation has some identical
-            # query string (e.g. 'alive == "alive"'), we still calculate all attributes for
+            # query string (e.g. 'is_alive == True'), we still calculate all attributes for
             # the entire population and then apply the query downstream.
             population = self.population_view.get_attributes(
                 event.index,
