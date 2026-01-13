@@ -90,12 +90,12 @@ configuration by simply printing it.
 
 .. testsetup:: configuration
 
-   from vivarium.examples.disease_model import get_disease_model_simulation
+    from vivarium.examples.disease_model import get_disease_model_simulation
 
-   sim = get_disease_model_simulation()
+    sim = get_disease_model_simulation()
 
-   del sim.configuration['input_data']
-   del sim.configuration['stratification']['excluded_categories']
+    del sim.configuration['input_data']
+    del sim.configuration['stratification']['excluded_categories']
 
 .. testcode:: configuration
 
@@ -204,20 +204,20 @@ just those subsets if we like.
 
 .. testcode::
 
-   print(sim.configuration.randomness)
+    print(sim.configuration.randomness)
 
 .. testoutput::
 
-   key_columns:
-       model_override: ['entrance_time', 'age']
-   map_size:
-       component_configs: 1000000
-   random_seed:
-       component_configs: 0
-   additional_seed:
-       component_configs: None
-   rate_conversion_type:
-       component_configs: linear
+    key_columns:
+        model_override: ['entrance_time', 'age']
+    map_size:
+        component_configs: 1000000
+    random_seed:
+        component_configs: 0
+    additional_seed:
+        component_configs: None
+    rate_conversion_type:
+        component_configs: linear
 
 This subset of configuration data contains more keys.  All of the keys in
 our example here (key_columns, map_size, random_seed, additional_seed,
@@ -226,52 +226,52 @@ as well.
 
 .. testcode::
 
-   print(sim.configuration.randomness.key_columns)
-   print(sim.configuration.randomness.map_size)
-   print(sim.configuration.randomness.random_seed)
-   print(sim.configuration.randomness.additional_seed)
-   print(sim.configuration.randomness.rate_conversion_type)
+    print(sim.configuration.randomness.key_columns)
+    print(sim.configuration.randomness.map_size)
+    print(sim.configuration.randomness.random_seed)
+    print(sim.configuration.randomness.additional_seed)
+    print(sim.configuration.randomness.rate_conversion_type)
 
 
 .. testoutput::
 
-   ['entrance_time', 'age']
-   1000000
-   0
-   None
-   linear
+    ['entrance_time', 'age']
+    1000000
+    0
+    None
+    linear
 
 However, we can no longer modify the configuration since the simulation
 has already been setup.
 
 .. testcode::
 
-   from layered_config_tree import ConfigurationError
+    from layered_config_tree import ConfigurationError
 
-   try:
-       sim.configuration.randomness.update({'random_seed': 5})
-   except ConfigurationError:
-       print("Can't update configuration after setup")
+    try:
+        sim.configuration.randomness.update({'random_seed': 5})
+    except ConfigurationError:
+        print("Can't update configuration after setup")
 
 .. testoutput::
 
-   Can't update configuration after setup
+    Can't update configuration after setup
 
 If we look again at the randomness configuration, it appears that there
 should be one more layer of keys.
 
 .. code-block:: python
 
-   key_columns:
-       model_override: ['entrance_time', 'age']
-   map_size:
-       component_configs: 1000000
-   random_seed:
-       component_configs: 0
-   additional_seed:
-       component_configs: None
+    key_columns:
+        model_override: ['entrance_time', 'age']
+    map_size:
+        component_configs: 1000000
+    random_seed:
+        component_configs: 0
+    additional_seed:
+        component_configs: None
     rate_conversion_type:
-       component_configs: linear
+        component_configs: linear
 
 This last layer reflects a priority level in the way simulation configuration
 is managed. The ``component_configs`` under ``map_size``, ``random_seed``, and
@@ -295,34 +295,33 @@ your starting population.
 
 .. code-block:: python
 
-   pop = sim.get_population()
-   print(pop.head())
+    pop = sim.get_population()
+    print(pop.head())
 
 ::
 
-              age  alive     sex       entrance_time                 lower_respiratory_infections  child_wasting_propensity
-
-    0       4.341734  alive    Male 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.612086
-    1       1.009906  alive    Male 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.395465
-    2       1.166290  alive    Male 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.670765
-    3       4.075051  alive  Female 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.289266
-    4       2.133430  alive  Female 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.700001
+            age  is_alive       entrance_time                 lower_respiratory_infections  child_wasting_propensity
+    0  1.707662      True 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.579157
+    1  2.731665      True 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.280783
+    2  0.511246      True 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.332681
+    3  2.898714      True 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.505482
+    4  1.381896      True 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.017806
 
 This gives you a ``pandas.DataFrame`` representing your starting population.
 You can use it to check all sorts of characteristics about individuals or
 the population as a whole.
 
 .. testcode::
-   :hide:
+    :hide:
 
-   pop = sim.get_population()
-   pop = pop.reindex(sorted(pop.columns), axis=1)
-   print(pop.age.describe())
-   print(pop.alive.value_counts())
-   print(pop.child_wasting_propensity.describe())
-   print(pop.lower_respiratory_infections.value_counts())
-   print(pop.entrance_time.value_counts())
-   print(pop.sex.value_counts())
+    pop = sim.get_population()
+    pop = pop.reindex(sorted(pop.columns), axis=1)
+    print(pop.age.describe())
+    print(pop.is_alive.value_counts())
+    print(pop.child_wasting_propensity.describe())
+    print(pop.lower_respiratory_infections.value_counts())
+    print(pop.entrance_time.value_counts())
+    print(pop.sex.value_counts())
 
 
 .. testoutput::
@@ -336,8 +335,8 @@ the population as a whole.
     75%           3.730555
     max           4.999957
     Name: age, dtype: float64
-    alive
-    alive    100000
+    is_alive
+    True    100000
     Name: count, dtype: int64
     count    1.000000e+05
     mean     5.007716e-01
