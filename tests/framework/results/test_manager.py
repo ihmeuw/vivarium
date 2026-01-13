@@ -217,7 +217,7 @@ def test_add_observation_nop_stratifications(
     mgr.register_observation(
         observation_type=AddingObservation,
         name="name",
-        population_filter=PopulationFilter('alive == "alive"'),
+        population_filter=PopulationFilter("is_alive == True"),
         aggregator_sources=[],
         aggregator=lambda: None,
         requires_attributes=[],

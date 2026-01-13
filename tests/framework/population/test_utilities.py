@@ -15,7 +15,7 @@ from vivarium.framework.population.utilities import (
         (
             (
                 # Basic
-                "alive == 'Alive' and is_aged_out == False and "
+                "is_alive == True and is_aged_out == False and size == 'large' and "
                 # No spaces
                 "answer==42 or "
                 "answer_str=='forty-two' or "
@@ -46,8 +46,9 @@ from vivarium.framework.population.utilities import (
                 "shape not in ['circle', 'square']"
             ),
             {
-                "alive",
+                "is_alive",
                 "is_aged_out",
+                "size",
                 "answer",
                 "answer_str",
                 "correct_answer",
@@ -87,10 +88,10 @@ def test_extract_columns_from_query(query: str, expected: set[str]) -> None:
     "queries, expected_query",
     [
         [("", ""), ""],
-        [("alive == 'alive'", "age < 5"), "(alive == 'alive') and (age < 5)"],
+        [("is_alive == True", "age < 5"), "(is_alive == True) and (age < 5)"],
         [
-            ("alive == 'alive' or is_aged_out == False", "age < 5", "sex == 'Female'"),
-            "(alive == 'alive' or is_aged_out == False) and (age < 5) and (sex == 'Female')",
+            ("is_alive == Trie or is_aged_out == False", "age < 5", "sex == 'Female'"),
+            "(is_alive == Trie or is_aged_out == False) and (age < 5) and (sex == 'Female')",
         ],
     ],
 )
