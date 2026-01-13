@@ -201,8 +201,8 @@ def test_add_stratification_raises(
     [
         {
             "name": "living_person_time",
-            "population_filter": PopulationFilter("alive == 'alive' and undead == False"),
-            "requires_attributes": ["alive", "undead"],
+            "population_filter": PopulationFilter("is_alive == True and undead == False"),
+            "requires_attributes": ["is_alive", "undead"],
             "when": lifecycle_states.COLLECT_METRICS,
         },
         {
