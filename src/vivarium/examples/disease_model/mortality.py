@@ -52,7 +52,7 @@ class Mortality(Component):
         )
         builder.population.register_initializer(
             initializer=self.on_initialize_simulants,
-            columns="alive",
+            columns="is_alive",
             dependencies=[]
         )
     # docs-end: setup
@@ -76,7 +76,7 @@ class Mortality(Component):
             of the time step, and the age boundaries for the simulants to
             generate.
         """
-        self.population_view.update(pd.Series("alive", index=pop_data.index, name="alive"))
+        self.population_view.update(pd.Series(True, index=pop_data.index, name="is_alive"))
 
     # docs-end: on_initialize_simulants
 
@@ -96,6 +96,6 @@ class Mortality(Component):
         draw = self.randomness.get_draw(event.index)
         affected_simulants = draw < effective_probability
         self.population_view.update(
-            pd.Series("dead", index=event.index[affected_simulants], name="alive")
+            pd.Series(False, index=event.index[affected_simulants], name="is_alive")
         )
     # docs-end: on_time_step

@@ -31,7 +31,7 @@ def test_disease_model(fuzzy_checker: FuzzyChecker, disease_model_spec: Path) ->
 
     pop = simulation.get_population()
     expected_columns = {
-        "alive",
+        "is_alive",
         "previous_alive",
         "age",
         "sex",
@@ -58,7 +58,7 @@ def test_disease_model(fuzzy_checker: FuzzyChecker, disease_model_spec: Path) ->
     }
     assert set(pop.columns) == expected_columns
     assert len(pop) == 100_000
-    assert np.all(pop["alive"] == "alive")
+    assert np.all(pop["is_alive"] == True)
     assert np.all((pop["age"] >= 0) & (pop["age"] <= 5))
     assert np.all(pop["entrance_time"] == datetime(2021, 12, 31, 12))
 
@@ -75,8 +75,8 @@ def test_disease_model(fuzzy_checker: FuzzyChecker, disease_model_spec: Path) ->
     assert np.all((pop["child_wasting_propensity"] >= 0) & (pop["child_wasting_propensity"] <= 1))
 
     simulation.step()
-    pop = simulation.get_population(["alive", "lower_respiratory_infections"])
-    is_alive = pop["alive"] == "alive"
+    pop = simulation.get_population(["is_alive", "lower_respiratory_infections"])
+    is_alive = pop["is_alive"] == True
 
     alive_target = from_yearly(20, timedelta(days=0.5))
     assert isinstance(alive_target, float)
