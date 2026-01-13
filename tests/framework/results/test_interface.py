@@ -244,7 +244,7 @@ def test_register_unstratified_observation(mocker: MockerFixture) -> None:
     [
         (
             "living_person_time",
-            'alive == "alive" and undead == False',
+            "is_alive == True and undead == False",
             [],
             _silly_aggregator,
             [],
@@ -362,7 +362,7 @@ def test_unhashable_pipeline(mocker: MockerFixture) -> None:
     with pytest.raises(TypeError, match=f"All required attributes must be strings"):
         interface.register_adding_observation(
             name="living_person_time",
-            pop_filter='alive == "alive" and undead == False',
+            pop_filter="is_alive == True and undead == False",
             when=lifecycle_states.TIME_STEP_CLEANUP,
             requires_attributes=[["bad", "unhashable", "thing"]],  # type: ignore[list-item]
             additional_stratifications=[],

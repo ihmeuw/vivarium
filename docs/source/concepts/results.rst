@@ -86,8 +86,8 @@ to the existing number of people who have died from previous time steps.
     def register_observations(self, builder: Builder) -> None:
       builder.results.register_adding_observation(
         name="total_population_dead",
-        requires_attributes=["alive"],
-        pop_filter='alive == "dead"',
+        requires_attributes=["is_alive"],
+        pop_filter='is_alive == True',
       )
 
 And here is an example of how you might create an observer that records new 
