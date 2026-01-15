@@ -87,14 +87,6 @@ class ComponentInterface(Interface):
         """
         return self._manager.get_current_component()
 
-    def set_current_component(self, component: Component) -> None:
-        """Set the component currently being set up, if any.
-
-        This method is primarily used internally by the framework to support
-        manual setting up of components.
-        """
-        self._manager._current_component = component
-
     def get_current_component_or_manager(self) -> Component | Manager:
         """Get the component or manager currently being set up, if any.
 
