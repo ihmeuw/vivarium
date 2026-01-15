@@ -259,16 +259,6 @@ class ComponentManager(Manager):
             raise LifeCycleError("No component is currently being set up.")
         return self._current_component
 
-    def set_current_component(self, component: Component) -> None:
-        """Set the component currently being set up.
-
-        Parameters
-        ----------
-        component
-            The component to set as currently being set up.
-        """
-        self._current_component = component
-
     def get_current_component_or_manager(self) -> Component | Manager:
         """Get the component or manager currently being set up, if any.
 
