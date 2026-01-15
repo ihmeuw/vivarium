@@ -93,7 +93,7 @@ class ComponentInterface(Interface):
         This method is primarily used internally by the framework to support
         manual setting up of components.
         """
-        self._manager._current_component = component
+        self._manager.set_current_component(component)
 
     def get_current_component_or_manager(self) -> Component | Manager:
         """Get the component or manager currently being set up, if any.
