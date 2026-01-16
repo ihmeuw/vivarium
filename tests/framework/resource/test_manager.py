@@ -57,50 +57,56 @@ def manager_with_resources(
         component=D_component,
         initializer=None,
         resources=attribute_D,
-        dependencies=[stream, pipeline],
+        required_resources=[stream, pipeline],
     )
     # Add the private column resource
     manager.add_resources(
         component=D_component,
         initializer=D_component.initialize_D,
         resources=[Column("D", D_component)],
-        dependencies=[stream, pipeline],
+        required_resources=[stream, pipeline],
     )
 
     stream_component = stream.component
     assert isinstance(stream_component, Component)
     manager.add_resources(
-        component=stream_component, initializer=None, resources=stream, dependencies=["A"]
+        component=stream_component,
+        initializer=None,
+        resources=stream,
+        required_resources=["A"],
     )
 
     pipeline_component = pipeline.component
     assert isinstance(pipeline_component, Component)
     manager.add_resources(
-        component=pipeline_component, initializer=None, resources=pipeline, dependencies=["A"]
+        component=pipeline_component,
+        initializer=None,
+        resources=pipeline,
+        required_resources=["A"],
     )
 
     manager.add_resources(
-        component=A_component, initializer=None, resources=attribute_A, dependencies=[]
+        component=A_component, initializer=None, resources=attribute_A, required_resources=[]
     )
     # Add the private column resource
     manager.add_resources(
         component=A_component,
         initializer=A_component.initialize_A,
         resources=[Column("A", A_component)],
-        dependencies=[],
+        required_resources=[],
     )
 
     manager.add_resources(
         component=null_resource_component,
         initializer=null_resource_component.on_initialize_simulants,
         resources=[],
-        dependencies=[stream],
+        required_resources=[stream],
     )
 
     # Call each resource group's on_post_setup to finalize dependencies
     attribute_pipelines = {"A": attribute_A, "D": attribute_D}
     for rg in manager._resource_group_map.values():
-        rg.set_dependencies(attribute_pipelines)
+        rg.set_required_resources(attribute_pipelines)
 
     return manager
 
@@ -157,12 +163,12 @@ def test_resource_manager_get_resource_group(
         component=component,
         initializer=component.on_initialize_simulants if initialized else None,
         resources=[resource_class(*init_args, component=component)],
-        dependencies=[],
+        required_resources=[],
     )
 
     assert group.type == type_string
     assert group.names == [r.resource_id for r in group.resources.values()]
-    assert not group.dependencies
+    assert not group.required_resources
     assert group.is_initialized == initialized
     assert group.initializer == (component.on_initialize_simulants if initialized else None)
 
@@ -175,24 +181,24 @@ def test_resource_manager_get_resource_group_null(manager: ResourceManager) -> N
         component=component_1,
         initializer=component_1.on_initialize_simulants,
         resources=[],
-        dependencies=[],
+        required_resources=[],
     )
     group_2 = manager._get_resource_group(
         component=component_2,
         initializer=component_2.on_initialize_simulants,
         resources=[],
-        dependencies=[],
+        required_resources=[],
     )
 
     assert group_1.type == "null"
     assert group_1.names == ["null.0"]
     assert group_1.initializer == component_1.on_initialize_simulants
-    assert not group_1.dependencies
+    assert not group_1.required_resources
 
     assert group_2.type == "null"
     assert group_2.names == ["null.1"]
     assert group_2.initializer == component_2.on_initialize_simulants
-    assert not group_2.dependencies
+    assert not group_2.required_resources
 
 
 def test_get_resource_group_multiple_initializers(manager: ResourceManager) -> None:
@@ -209,7 +215,7 @@ def test_get_resource_group_multiple_initializers(manager: ResourceManager) -> N
         component=component,
         initializer=component.initializer_1,
         resources=[Column("foo", component), Column("bar", component)],
-        dependencies=[],
+        required_resources=[],
     )
 
     assert group.type == "column"
@@ -221,7 +227,7 @@ def test_get_resource_group_multiple_initializers(manager: ResourceManager) -> N
         component=component,
         initializer=component.initializer_2,
         resources=Resource("test", "baz", component),
-        dependencies=[],
+        required_resources=[],
     )
 
     assert group2.type == "test"
@@ -238,7 +244,7 @@ def test_add_resource_wrong_component(manager: ResourceManager) -> None:
             component=component,
             initializer=component.on_initialize_simulants,
             resources=resource,
-            dependencies=[],
+            required_resources=[],
         )
 
 
@@ -260,7 +266,10 @@ def test_resource_manager_add_same_resource_twice(
     r1 = [resource_creator(str(i), c1) for i in range(5)]
     r2 = [resource_creator(str(i), c2) for i in range(5, 10)] + [resource_creator("1", c2)]
     manager.add_resources(
-        component=c1, initializer=c1.on_initialize_simulants, resources=r1, dependencies=[]
+        component=c1,
+        initializer=c1.on_initialize_simulants,
+        resources=r1,
+        required_resources=[],
     )
     error_message = (
         f"Component '{c2.name}' is attempting to register resource"
@@ -271,7 +280,7 @@ def test_resource_manager_add_same_resource_twice(
             component=c2,
             initializer=c2.on_initialize_simulants,
             resources=r2,
-            dependencies=[],
+            required_resources=[],
         )
 
 
@@ -284,13 +293,13 @@ def test_resource_manager_sorted_nodes_two_node_cycle(
         component=component,
         initializer=component.on_initialize_simulants,
         resources=[column],
-        dependencies=[randomness_stream],
+        required_resources=[randomness_stream],
     )
     manager.add_resources(
         component=randomness_stream.component,
         initializer=None,
         resources=randomness_stream,
-        dependencies=[column],
+        required_resources=[column],
     )
 
     with pytest.raises(ResourceError, match="The resource pool contains at least one cycle"):
@@ -309,19 +318,19 @@ def test_resource_manager_sorted_nodes_three_node_cycle(
         component=component,
         initializer=component.on_initialize_simulants,
         resources=[column],
-        dependencies=[randomness_stream],
+        required_resources=[randomness_stream],
     )
     manager.add_resources(
         component=pipeline.component,
         initializer=None,
         resources=pipeline,
-        dependencies=[column],
+        required_resources=[column],
     )
     manager.add_resources(
         component=randomness_stream.component,
         initializer=None,
         resources=randomness_stream,
-        dependencies=[pipeline],
+        required_resources=[pipeline],
     )
 
     with pytest.raises(ResourceError, match="The resource pool contains at least one cycle"):
@@ -337,7 +346,7 @@ def test_resource_manager_sorted_nodes_large_cycle(manager: ResourceManager) -> 
             component=component,
             initializer=None,
             resources=resource,
-            dependencies=[dependency],
+            required_resources=[dependency],
         )
 
     with pytest.raises(ResourceError, match="The resource pool contains at least one cycle"):
@@ -351,13 +360,13 @@ def test_large_dependency_chain(manager: ResourceManager, mocker: MockerFixture)
             component=component,
             initializer=component.on_initialize_simulants,
             resources=AttributePipeline(f"c_{i}", component),
-            dependencies=[AttributePipeline(f"c_{i-1}", mocker.Mock())],
+            required_resources=[AttributePipeline(f"c_{i-1}", mocker.Mock())],
         )
     manager.add_resources(
         component=component,
         initializer=component.on_initialize_simulants,
         resources=AttributePipeline("c_0", component),
-        dependencies=[],
+        required_resources=[],
     )
 
     for i, resource in enumerate(manager.sorted_nodes):

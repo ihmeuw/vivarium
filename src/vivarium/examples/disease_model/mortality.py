@@ -53,7 +53,7 @@ class Mortality(Component):
         builder.population.register_initializer(
             initializer=self.on_initialize_simulants,
             columns="is_alive",
-            dependencies=[]
+            required_resources=[]
         )
     # docs-end: setup
 

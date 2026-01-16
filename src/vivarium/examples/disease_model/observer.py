@@ -18,7 +18,7 @@ class DeathsObserver(Observer):
         builder.population.register_initializer(
             initializer=self.on_initialize_simulants,
             columns="previous_alive",
-            dependencies=["is_alive"]
+            required_resources=["is_alive"]
         )
 
     def register_observations(self, builder: Builder) -> None:

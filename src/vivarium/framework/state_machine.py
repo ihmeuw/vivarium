@@ -576,7 +576,7 @@ class Machine(Component):
         builder.population.register_initializer(
             initializer=self.on_initialize_simulants,
             columns=self.state_column,
-            dependencies=[self.randomness, *self.initialization_weights_pipelines],
+            required_resources=[self.randomness, *self.initialization_weights_pipelines],
         )
 
     def on_post_setup(self, event: Event) -> None:
