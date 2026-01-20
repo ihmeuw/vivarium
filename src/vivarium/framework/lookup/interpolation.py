@@ -20,17 +20,17 @@ class Interpolation:
 
     Attributes
     ----------
-    data :
+    data
         The data from which to build the interpolation. Contains
         categorical_parameters and continuous_parameters.
-    categorical_parameters :
+    categorical_parameters
         Column names to be used as categorical parameters in Interpolation
         to select between interpolation functions.
-    continuous_parameters :
+    continuous_parameters
         Column names to be used as continuous parameters in Interpolation. If
         bin edges, should be of the form (column name used in call, column name
         for left bin edge, column name for right bin edge).
-    order :
+    order
         Order of interpolation.
 
     """
@@ -95,8 +95,8 @@ class Interpolation:
 
         Parameters
          ----------
-        interpolants :
-            Data frame containing the parameters to interpolate..
+        interpolants
+            Data frame containing the parameters to interpolate.
 
         Returns
         -------
