@@ -53,8 +53,8 @@ Glossary
 
     Population State Table
         The core representation of the population in the simulation. Often referred
-        to as simply the "state table". It consists of a rokw for each :term:`simulant <Simulant>` 
-        and a column for each :term:`attribute <Attribute>` the simulant possesses.
+        to as simply the "state table", it consists of a row for each :term:`simulant <Simulant>` 
+        and a column for each :term:`attribute <Attribute>`.
 
     Private Column
         The source of a corresponding :term:`attribute pipeline <Attribute Pipeline>`.
