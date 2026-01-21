@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 
 class Manager(ABC):
+
     CONFIGURATION_DEFAULTS: dict[str, Any] = {}
     """A dictionary containing the defaults for any configurations managed by this
     manager. An empty dictionary indicates no managed configurations.

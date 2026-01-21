@@ -117,8 +117,7 @@ class Component(ABC):
 
         Returns
         -------
-            A string representation of the __init__ call made to create this
-            object.
+            A string representation of the __init__ call made to create this object.
         """
         if not self._repr:
             args = ", ".join(
@@ -160,7 +159,6 @@ class Component(ABC):
 
         Returns
         -------
-        str
             The name of the component.
         """
         if not self._name:
@@ -181,12 +179,11 @@ class Component(ABC):
 
         Returns
         -------
-        Logger
             The logger for this component.
 
         Raises
         ------
-        AttributeError
+        LifeCycleError
             If the logger has not been initialized.
         """
         if self._logger is None:
@@ -202,8 +199,7 @@ class Component(ABC):
 
         Returns
         -------
-        PopulationView
-            The PopulationView for this component
+            The PopulationView for this component.
 
         Raises
         ------
@@ -223,18 +219,16 @@ class Component(ABC):
 
         Returns
         -------
-        list[str]
             The names of private columns created by this component.
         """
         return self.population_view.private_columns
 
     @property
     def sub_components(self) -> Sequence["Component"]:
-        """Provide components managed by this component.
+        """Provides components managed by this component.
 
         Returns
         -------
-        list[Component]
             The sub-components that are managed by this component.
         """
         return self._sub_components
@@ -260,8 +254,8 @@ class Component(ABC):
 
         Returns
         -------
-        A dictionary mapping lookup table names to their value columns.
-        The value columns can be a string or a list of strings.
+            A dictionary mapping lookup table names to their value columns.
+            The value columns can be a string or a list of strings.
         """
         return {}
 
