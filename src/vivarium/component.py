@@ -139,7 +139,7 @@ class Component(ABC):
 
     @property
     def name(self) -> str:
-        """Returns the name of the component.
+        """The name of the component.
 
         By convention, these are in snake case with arguments of the :meth:`__init__`
         appended and separated by ``.``.
@@ -156,10 +156,6 @@ class Component(ABC):
         IMPORTANT: this property must not be accessed within the :meth:`__init__`
         functions of this component or its subclasses or its value may not be
         initialized correctly.
-
-        Returns
-        -------
-            The name of the component.
         """
         if not self._name:
             base_name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", type(self).__name__)
@@ -175,11 +171,7 @@ class Component(ABC):
 
     @property
     def logger(self) -> loguru.Logger:
-        """Provides the logger for this component.
-
-        Returns
-        -------
-            The logger for this component.
+        """The logger for this component.
 
         Raises
         ------
@@ -195,11 +187,7 @@ class Component(ABC):
 
     @property
     def population_view(self) -> PopulationView:
-        """Provides the :class:`~vivarium.framework.population.PopulationView` for this component.
-
-        Returns
-        -------
-            The PopulationView for this component.
+        """The :class:`~vivarium.framework.population.PopulationView` for this component.
 
         Raises
         ------
@@ -215,114 +203,57 @@ class Component(ABC):
 
     @property
     def private_columns(self) -> list[str]:
-        """Provides the list of private columns created by this component.
-
-        Returns
-        -------
-            The names of private columns created by this component.
-        """
+        """The list of private columns created by this component."""
         return self.population_view.private_columns
 
     @property
     def sub_components(self) -> Sequence["Component"]:
-        """Provides components managed by this component.
-
-        Returns
-        -------
-            The sub-components that are managed by this component.
-        """
+        """The components managed by this component."""
         return self._sub_components
 
     @property
     def configuration_defaults(self) -> dict[str, Any]:
-        """Provides a dictionary containing the defaults for any configurations
-        managed by this component.
+        """The dictionary containing the defaults for any configurations managed
+        by this component.
 
         These default values will be stored at the ``component_configs`` layer of the
         simulation's :class:`~layered_config_tree.main.LayeredConfigTree`.
-
-        Returns
-        -------
-            A dictionary containing the defaults for any configurations managed by
-            this component.
         """
         return self.CONFIGURATION_DEFAULTS
 
     @property
     def lookup_table_value_columns(self) -> dict[str, str | list[str]]:
-        """Provides a mapping of lookup table names to their value columns.
-
-        Returns
-        -------
-            A dictionary mapping lookup table names to their value columns.
-            The value columns can be a string or a list of strings.
-        """
+        """A mapping of lookup table names to their value columns."""
         return {}
 
     @property
     def post_setup_priority(self) -> int:
-        """Provides the priority of this component's ``post_setup`` listener.
-
-        Returns
-        -------
-            The priority of this component's ``post_setup`` listener. This value
-            can range from 0 to 9, inclusive.
-        """
+        """The priority of this component's ``post_setup`` listener."""
         return DEFAULT_EVENT_PRIORITY
 
     @property
     def time_step_prepare_priority(self) -> int:
-        """Provides the priority of this component's ``time_step__prepare`` listener.
-
-        Returns
-        -------
-            The priority of this component's ``time_step__prepare`` listener. This value
-            can range from 0 to 9, inclusive.
-        """
+        """The priority of this component's ``time_step__prepare`` listener."""
         return DEFAULT_EVENT_PRIORITY
 
     @property
     def time_step_priority(self) -> int:
-        """Provides the priority of this component's ``time_step`` listener.
-
-        Returns
-        -------
-            The priority of this component's ``time_step`` listener. This value
-            can range from 0 to 9, inclusive.
-        """
+        """The priority of this component's ``time_step`` listener."""
         return DEFAULT_EVENT_PRIORITY
 
     @property
     def time_step_cleanup_priority(self) -> int:
-        """Provides the priority of this component's ``time_step__cleanup`` listener.
-
-        Returns
-        -------
-            The priority of this component's ``time_step__cleanup`` listener. This value
-            can range from 0 to 9, inclusive.
-        """
+        """The priority of this component's ``time_step__cleanup`` listener."""
         return DEFAULT_EVENT_PRIORITY
 
     @property
     def collect_metrics_priority(self) -> int:
-        """Provides the priority of this component's ``collect_metrics`` listener.
-
-        Returns
-        -------
-            The priority of this component's ``collect_metrics`` listener. This value
-            can range from 0 to 9, inclusive.
-        """
+        """The priority of this component's ``collect_metrics`` listener."""
         return DEFAULT_EVENT_PRIORITY
 
     @property
     def simulation_end_priority(self) -> int:
-        """Provides the priority of this component's ``simulation_end`` listener.
-
-        Returns
-        -------
-            The priority of this component's ``simulation_end`` listener. This value
-            can range from 0 to 9, inclusive.
-        """
+        """The priority of this component's ``simulation_end`` listener."""
         return DEFAULT_EVENT_PRIORITY
 
     #####################
