@@ -10,17 +10,11 @@ This module provides an interface to the :class:`ArtifactManager <vivarium.frame
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Any
-
-import pandas as pd
+from collections.abc import Sequence
+from typing import Any
 
 from vivarium.framework.artifact.manager import ArtifactManager
 from vivarium.manager import Interface
-from vivarium.types import LookupTableData
-
-if TYPE_CHECKING:
-    from vivarium.types import ScalarValue
 
 
 class ArtifactInterface(Interface):

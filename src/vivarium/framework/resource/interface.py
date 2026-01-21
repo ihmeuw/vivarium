@@ -33,10 +33,10 @@ class ResourceInterface(Interface):
 
     Placing the ordering responsibility on end users makes simulations very
     fragile and difficult to understand. Instead, the resource management
-    system allows users to only specify local dependencies. The system then
-    uses the local dependency information to construct a full dependency
-    graph, validate that there are no cyclic dependencies, and return
-    resources and their producers in an order that makes sense.
+    system allows users to only specify local dependencies (referred to throughout
+    as "required resources"). The system then uses the local dependency information
+    to construct a full dependency graph, validate that there are no cyclic dependencies,
+    and return resources and their producers in an order that makes sense.
 
     """
 
@@ -47,7 +47,7 @@ class ResourceInterface(Interface):
         self,
         component: Component | Manager,
         resources: Resource,
-        dependencies: Iterable[str | Resource],
+        required_resources: Iterable[str | Resource],
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -57,7 +57,7 @@ class ResourceInterface(Interface):
             The component or manager adding the resources.
         resources
             The resources being added. A string represents an attribute pipeline.
-        dependencies
+        required_resources
             A list of resources that the producer requires. A string represents
             a population attribute.
 
@@ -67,14 +67,17 @@ class ResourceInterface(Interface):
             If there are multiple producers of the same resource.
         """
         self._manager.add_resources(
-            component, initializer=None, resources=resources, dependencies=dependencies
+            component,
+            initializer=None,
+            resources=resources,
+            required_resources=required_resources,
         )
 
     def add_private_columns(
         self,
         initializer: Callable[[SimulantData], None] | None,
         columns: Iterable[str] | str,
-        dependencies: Iterable[str | Resource],
+        required_resources: Iterable[str | Resource],
     ) -> None:
         """Adds private column resources to the resource pool.
 
@@ -85,12 +88,12 @@ class ResourceInterface(Interface):
         columns
             The state table columns that the given initializer provides the initial
             state information for.
-        dependencies
+        required_resources
             The resources that the initializer requires to run. Strings are interpreted
             as attributes.
         """
         self._manager.add_private_columns(
-            initializer=initializer, columns=columns, dependencies=dependencies
+            initializer=initializer, columns=columns, required_resources=required_resources
         )
 
     def get_population_initializers(self) -> list[Any]:

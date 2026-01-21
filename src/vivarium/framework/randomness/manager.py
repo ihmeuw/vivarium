@@ -146,7 +146,7 @@ class RandomnessManager(Manager):
         self._add_resources(
             component=component,
             resources=stream,
-            dependencies=self._key_columns if not initializes_crn_attributes else [],
+            required_resources=self._key_columns if not initializes_crn_attributes else [],
         )
 
         self._add_constraint(

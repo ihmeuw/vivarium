@@ -102,22 +102,22 @@ The values system provides four interface methods, available off the
    * - | :meth:`register_value_producer <vivarium.framework.values.interface.ValuesInterface.register_value_producer>`
      - | Register a new pipeline with the values system. Provide a name for the
        | pipeline and a source. Optionally provide a combiner (defaults to
-       | the replace combiner) and a postprocessor. Provide dependencies (see note).
+       | the replace combiner) and a postprocessor. Provide required resources (see note).
    * - | :meth:`register_rate_producer <vivarium.framework.values.interface.ValuesInterface.register_rate_producer>`
      - | A special case of :meth:`register_attribute_producer <vivarium.framework.values.interface.ValuesInterface.register_attribute_producer>`
        | for rates specifically.
        | Provide a name for the pipeline and a source and the values system will
-       | automatically use the rescale postprocessor. Provide dependencies (see note).
+       | automatically use the rescale postprocessor. Provide required resources (see note).
    * - | :meth:`register_value_modifier <vivarium.framework.values.interface.ValuesInterface.register_value_modifier>`
      - | Register a modifier to a pipeline. Provide a name for the pipeline to
-       | modify and a modifier callable. Provide dependencies (see note).
+       | modify and a modifier callable. Provide required resources (see note).
    * - | :meth:`get_value <vivarium.framework.values.interface.ValuesInterface.get_value>`
      - | Retrieve a reference to the pipeline with the given name.
 
 .. note::
-    The registration methods for the values system require dependencies be
+    The registration methods for the values system require that any required resources be
     specified in order for the :ref:`resource manager <resource_concept>` to
-    properly order and manage dependencies. These dependencies are the state
+    properly order and manage dependencies. These required resources are the state
     table columns, other pipelines, and randomness streams that the source or
     modifier callable uses in producing the dataframe it returns.
 

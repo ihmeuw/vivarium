@@ -275,7 +275,7 @@ class ResultsManager(Manager):
             A named tuple of population filtering details. The first item is a Pandas
             query string to filter the population down to the simulants who should be
             considered for the observation. The second item is a boolean indicating whether
-            to exclude untracked simulants from the observation.
+            to include untracked simulants from the observation.
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -362,8 +362,8 @@ class ResultsManager(Manager):
             population = self.population_view.get_attributes(
                 event.index,
                 attributes_to_get,
-                exclude_untracked=all(
-                    obs.population_filter.exclude_untracked for obs in observations
+                include_untracked=any(
+                    obs.population_filter.include_untracked for obs in observations
                 ),
             )
         else:

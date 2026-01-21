@@ -52,11 +52,11 @@ def test_get_randomness_stream_calls_methods_correctly(
     )
 
     # Assert _add_resources was called with correct arguments
-    expected_dependencies = [] if initializes_crn_attributes else ["age", "sex"]
+    expected_required_resources = [] if initializes_crn_attributes else ["age", "sex"]
     manager._add_resources.assert_called_once_with(  # type: ignore[attr-defined]
         component=test_component,
         resources=mock_stream,
-        dependencies=expected_dependencies,
+        required_resources=expected_required_resources,
     )
 
     # Assert _add_constraint was called for each stream method
