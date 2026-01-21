@@ -51,7 +51,7 @@ def from_yearly(value: pd.DataFrame, time_step: Timedelta) -> pd.DataFrame:
 
 
 def from_yearly(value: NumberLike, time_step: Timedelta) -> NumberLike:
-    """Rescale a yearly rate to the size of a time step."""
+    """Rescales a yearly rate to the size of a time step."""
     return value * (time_step.total_seconds() / (60 * 60 * 24 * 365.0))
 
 
@@ -83,7 +83,7 @@ def to_yearly(value: pd.DataFrame, time_step: Timedelta) -> pd.DataFrame:
 
 
 def to_yearly(value: NumberLike, time_step: Timedelta) -> NumberLike:
-    """Convert a time-step-scaled rate back to a yearly rate."""
+    """Converts a time-step-scaled rate back to a yearly rate."""
     return value / (time_step.total_seconds() / (60 * 60 * 24 * 365.0))
 
 
@@ -107,13 +107,20 @@ def rate_to_probability(
 
     Returns
     -------
-        An array of floats representing the probability of the converted rates
+        An array of floats representing the probability of the converted rates.
+
+    Raises
+    ------
+    ValueError
+        If an unsupported rate conversion type is provided.
+
+    Notes
+    -----
+    Beware machine-specific floating point issues. We have encountered underflow
+    when using the exponential conversion for rates greater than ~30,000. To avoid
+    this, we cap the rate at 250 when using the exponential conversion since
+    exp(-250) is effectively zero for practical purposes.
     """
-    if rate_conversion_type not in ["linear", "exponential"]:
-        raise ValueError(
-            f"Rate conversion type {rate_conversion_type} is not implemented. "
-            "Allowable types are 'linear' or 'exponential'."
-        )
     probability: NumericArray
     if rate_conversion_type == "linear":
         # NOTE: The default behavior for randomness streams is to use a rate that is already
@@ -128,13 +135,13 @@ def rate_to_probability(
                 "The rate to probability conversion resulted in a probability greater than 1.0. "
                 "The probability has been clipped to 1.0 and indicates the rate is too high. "
             )
-    else:
-        # encountered underflow from rate > 30k
-        # for rates greater than 250, exp(-rate) evaluates to 1e-109
-        # beware machine-specific floating point issues
+    elif rate_conversion_type == "exponential":
+        # NOTE: Cap the rate at 250 to avoid floating point underflow issues
         rate = np.asarray(rate)
         rate[rate > 250] = 250.0
         probability = 1 - np.exp(-rate * time_scaling_factor)
+    else:
+        raise ValueError(f"Rate conversion type {rate_conversion_type} is not implemented.")
 
     return probability
 
@@ -144,7 +151,7 @@ def probability_to_rate(
     time_scaling_factor: float | int = 1.0,
     rate_conversion_type: Literal["linear", "exponential"] = "linear",
 ) -> NumericArray:
-    """Function to convert a probability to a rate.
+    """Converts a probability to a rate.
 
     Parameters
     ----------
@@ -159,22 +166,25 @@ def probability_to_rate(
 
     Returns
     -------
-        An array of floats representing the rate of the converted probabilities
+        An array of floats representing the rate of the converted probabilities.
+
+    Raises
+    ------
+    ValueError
+        If an unsupported rate conversion type is provided.
     """
     # NOTE: The default behavior for randomness streams is to use a rate that is already
     # scaled to the time step which is why the default time scaling factor is 1.0.
-    if rate_conversion_type not in ["linear", "exponential"]:
-        raise ValueError(
-            f"Rate conversion type {rate_conversion_type} is not implemented. "
-            "Allowable types are 'linear' or 'exponential'."
-        )
     rate: NumericArray
     if rate_conversion_type == "linear":
         # Use asarray to handle both scalars and arrays
         rate = np.asarray(probability) / time_scaling_factor
-    else:
+    elif rate_conversion_type == "exponential":
         probability = np.asarray(probability)
         rate = -np.log(1 - probability)
+    else:
+        raise ValueError(f"Rate conversion type {rate_conversion_type} is not implemented.")
+
     return rate
 
 
@@ -192,16 +202,16 @@ def collapse_nested_dict(
 
 
 def import_by_path(path: str) -> Callable[..., Any]:
-    """Import a class or function given its absolute path.
+    """Imports a class or function given its absolute path.
 
     Parameters
     ----------
     path
-        Path to object to import
+        Fully qualified dotted path to the object (e.g. "module.submodule.ClassName")
 
     Returns
     -------
-        The imported class or function
+        The imported class or function.
     """
 
     module_path, _, class_name = path.rpartition(".")

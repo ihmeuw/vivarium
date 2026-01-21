@@ -27,7 +27,10 @@ if TYPE_CHECKING:
 
 
 def default_probability_function(index: pd.Index[int]) -> pd.Series[float]:
-    """Transition decision function that always triggers this transition."""
+    """Returns a series of ones for the provided index.
+
+    This is the default transition decision function (always triggers this transition).
+    """
     return pd.Series(1.0, index=index)
 
 
@@ -130,7 +133,7 @@ class Transition(Component):
             [pd.Index[int]], pd.Series[float]
         ] = lambda index: pd.Series(1.0, index=index),
         triggered: Trigger = Trigger.NOT_TRIGGERED,
-    ):
+    ) -> None:
         """Initializes a transition between two states.
 
         Parameters
@@ -457,7 +460,7 @@ class TransitionSet(Component):
     def _normalize_probabilities(
         self, outputs: list[State | str], probabilities: NumericArray
     ) -> tuple[list[State | str], NumericArray]:
-        """Normalize probabilities to sum to 1 and add a null transition.
+        """Normalizes probabilities to sum to 1 and add a null transition.
 
         Parameters
         ----------
