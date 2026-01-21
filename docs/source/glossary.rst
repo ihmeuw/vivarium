@@ -7,12 +7,13 @@ Glossary
 .. glossary::
 
     Attribute
-        A variable associated with each :term:`simulant <Simulant>`. For
-        example, each simulant may have an attribute to describe their age or
-        position.
+        A specific type of :term:`value <Value>` that is associated with each
+        :term:`simulant <Simulant>`. For example, each simulant may have an attribute 
+        to describe their age or position. These are computed by :term:`attribute pipelines <Attribute Pipeline>`
+        and stored in the :term:`population state table <Population State Table>`.
 
     Attribute Pipeline
-        A special type of :term:`pipeline <Pipeline>` whose callable must accept
+        A specific type of :term:`pipeline <Pipeline>` whose callable must accept
         a :term:`simulant <Simulant>` index and return tabular data of
         :term:`attributes <Attribute>` for those simulants.
 
@@ -69,3 +70,7 @@ Glossary
         
     Simulant
         An individual or agent. One member of the population being simulated.
+
+    Value
+        A dynamically computed variable in the simulation that are computed by
+        :term:`pipelines <Pipeline>` and can be shared across multiple :term:`components <Component>`.

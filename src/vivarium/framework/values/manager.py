@@ -34,7 +34,14 @@ T = TypeVar("T")
 
 
 class ValuesManager(Manager):
-    """Manager for the dynamic value system."""
+    """Manager for the dynamic value system.
+
+    Notes
+    -----
+    This is the only manager for the values system; different methods exist for
+    working with generic value :class:`Pipelines <vivarium.framework.values.pipeline.Pipeline>`
+    and :class:`AttributePipelines <vivarium.framework.values.pipeline.AttributePipeline>`.
+    """
 
     def __init__(self) -> None:
         # Pipelines are lazily initialized by _register_value_producer
@@ -107,11 +114,34 @@ class ValuesManager(Manager):
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | None = None,
     ) -> Pipeline:
-        """Marks a ``Callable`` as the producer of a named value.
+        """Registers a ``Pipeline`` as the producer of a named value.
 
-        See Also
-        --------
-            :meth:`ValuesInterface.register_value_producer`
+        Parameters
+        ----------
+        value_name
+            The name of the new dynamic value pipeline.
+        source
+            A callable source for the dynamic value pipeline.
+        required_resources
+            A list of resources that need to be properly sourced before the
+            pipeline source is called. This is a list of strings, pipelines,
+            or randomness streams.
+        preferred_combiner
+            A strategy for combining the source and the results of any calls
+            to mutators in the pipeline. ``vivarium`` provides the strategies
+            ``replace_combiner`` (the default) and ``list_combiner``, which
+            are importable from ``vivarium.framework.values``. Client code
+            may define additional strategies as necessary.
+        preferred_post_processor
+            A strategy for processing the final output of the pipeline.
+            ``vivarium`` provides the strategies ``rescale_post_processor``
+            and ``union_post_processor`` which are importable from
+            ``vivarium.framework.values``. Client code may define additional
+            strategies as necessary.
+
+        Returns
+        -------
+            The ``Pipeline`` that is registered as the producer of the named value.
         """
         self.logger.debug(f"Registering value pipeline {value_name}")
         pipeline = self.get_value(value_name)
@@ -133,11 +163,36 @@ class ValuesManager(Manager):
         preferred_post_processor: AttributePostProcessor | None = None,
         source_is_private_column: bool = False,
     ) -> None:
-        """Marks a ``Callable`` as the producer of a named attribute.
+        """Registers an ``AttributePipeline`` as the producer of a named attribute.
 
-        See Also
-        --------
-            :meth:`ValuesInterface.register_attribute_producer`
+        Parameters
+        ----------
+        value_name
+            The name of the new dynamic attribute pipeline.
+        source
+            The source for the dynamic attribute pipeline. This can be a callable,
+            a list containing a single name of a private column created by this
+            component, or a list of population attributes. If a private column name
+            is passed, `source_is_private_column` must also be set to True.
+        required_resources
+            A list of resources that need to be properly sourced before the
+            pipeline source is called. This is a list of strings, pipelines,
+            or randomness streams.
+        preferred_combiner
+            A strategy for combining the source and the results of any calls
+            to mutators in the pipeline. ``vivarium`` provides the strategies
+            ``replace_combiner`` (the default) and ``list_combiner``, which
+            are importable from ``vivarium.framework.values``. Client code
+            may define additional strategies as necessary.
+        preferred_post_processor
+            A strategy for processing the final output of the pipeline.
+            ``vivarium`` provides the strategies ``rescale_post_processor``
+            and ``union_post_processor`` which are importable from
+            ``vivarium.framework.values``. Client code may define additional
+            strategies as necessary.
+        source_is_private_column
+            Whether or not the source is the name of a private column created by
+            this component.
         """
         self.logger.debug(f"Registering attribute pipeline {value_name}")
         pipeline = self.get_attribute(value_name)
@@ -160,10 +215,10 @@ class ValuesManager(Manager):
 
         Parameters
         ----------
-        value_name :
-            The name of the dynamic value pipeline to be modified.
-        modifier :
-            A function that modifies the source of the dynamic value pipeline
+        value_name
+            The name of the dynamic value ``Pipeline`` to be modified.
+        modifier
+            A function that modifies the source of the dynamic value ``Pipeline``
             when called. If the pipeline has a ``replace_combiner``, the
             modifier must have the same arguments as the pipeline source
             with an additional last positional argument for the results of the
@@ -191,18 +246,16 @@ class ValuesManager(Manager):
 
         Parameters
         ----------
-        value_name :
-            The name of the dynamic attribute pipeline to be modified.
-        modifier :
-            A function that modifies the source of the dynamic attribute pipeline
-            when called; if a string is passed, it refers to the name of an
-            :class:`~vivarium.framework.values.pipeline.AttributePipeline`.
-            If the pipeline has a ``replace_combiner``, the
-            modifier should accept the same arguments as the pipeline source
-            with an additional last positional argument for the results of the
-            previous stage in the pipeline. For the ``list_combiner`` strategy,
-            the pipeline modifiers should have the same signature as the pipeline
-            source.
+        value_name
+            The name of the dynamic ``AttributePipeline`` to be modified.
+        modifier
+            A function that modifies the source of the dynamic ``AttributePipeline``
+            when called. If a string is passed, it refers to the name of an ``AttributePipeline``.
+            If the pipeline has a ``replace_combiner``, the modifier should accept
+            the same arguments as the pipeline source with an additional last positional
+            argument for the results of the previous stage in the pipeline. For
+            the ``list_combiner`` strategy, the pipeline modifiers should have the
+            same signature as the pipeline source.
         required_resources
             A list of resources that need to be properly sourced before the
             pipeline modifier is called. This is a list of strings, pipelines,
@@ -216,19 +269,20 @@ class ValuesManager(Manager):
         )
 
     def get_value(self, name: str) -> Pipeline:
-        """Retrieve the pipeline representing the named value.
+        """Retrieves the ``Pipeline`` representing the named value.
 
         Parameters
         ----------
         name
-            Name of the pipeline to return.
+            Name of the ``Pipeline`` to return.
 
         Returns
         -------
-            A callable reference to the named pipeline. The pipeline arguments
-            should be identical to the arguments to the pipeline source
-            (frequently just a :class:`pandas.Index` representing the
-            simulants).
+            The requested ``Pipeline``.
+
+        Notes
+        -----
+        This will create a new ``Pipeline`` if one does not already exist.
         """
         if name in self._attribute_pipelines:
             raise DynamicValueError(
@@ -239,21 +293,33 @@ class ValuesManager(Manager):
         return pipeline
 
     def get_value_pipelines(self) -> dict[str, Pipeline]:
+        """Retrieves a dictionary of all registered value ``Pipelines``.
+
+        To get all ``AttributePipelines``, use :meth:`get_attribute_pipelines`.
+
+        Returns
+        -------
+            A dictionary mapping value names to their corresponding ``Pipelines``.
+        """
         return self._value_pipelines
 
     def get_attribute(self, name: str) -> AttributePipeline:
-        """Retrieve the pipeline representing the named attribute.
+        """Retrieves the ``AttributePipeline`` representing the named attribute.
+
+        To get a value ``Pipeline``, use :meth:`get_value`.
 
         Parameters
         ----------
         name
-            Name of the attribute pipeline to return.
+            Name of the ``AttributePipeline`` to return.
 
         Returns
         -------
-            A callable reference to the named attribute pipeline. The single
-            attribute pipeline argument must a :class:`pandas.Index` representing
-            the simulants and must return a :class:`pandas.DataFrame` with that same index.
+            The requested ``AttributePipeline``.
+
+        Notes
+        -----
+        This will create a new ``AttributePipeline`` if one does not already exist.
         """
         if name in self._value_pipelines:
             raise DynamicValueError(f"'{name}' is already registered as a value pipeline.")
@@ -262,6 +328,22 @@ class ValuesManager(Manager):
         return pipeline
 
     def get_attribute_pipelines(self) -> dict[str, AttributePipeline]:
+        """Returns a dictionary of ``AttributePipelines``.
+
+        Returns
+        -------
+            A dictionary mapping all registered attribute names to their corresponding
+            ``AttributePipelines``.
+
+        Notes
+        -----
+        This is not the preferred access method to getting population attributes
+        since it does not implement various features (e.g. querying, simulant
+        tracking, etc); it exists for other managers to use if needed. Use
+        :meth:`vivarium.framework.population.population_view.PopulationView.get_attributes`
+        or :meth:`vivarium.framework.population.population_view.PopulationView.get_attribute_frame`
+        instead.
+        """
         return self._attribute_pipelines
 
     ##################
