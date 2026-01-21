@@ -72,5 +72,5 @@ Glossary
         An individual or agent. One member of the population being simulated.
 
     Value
-        A variable in the simulation that is computed by a :term:`pipeline <Pipeline>` 
+        A dynamic variable in the simulation that is computed by a :term:`pipeline <Pipeline>` 
         and can be shared across multiple :term:`components <Component>`.
