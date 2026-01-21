@@ -74,7 +74,7 @@ class ResultsContext:
         return "results_context"
 
     def setup(self, builder: Builder) -> None:
-        """Set up the results context.
+        """Sets up the results context.
 
         This method is called by the :class:`ResultsManager <vivarium.framework.results.manager.ResultsManager>`
         during the setup phase of that object.
@@ -87,7 +87,7 @@ class ResultsContext:
 
     # noinspection PyAttributeOutsideInit
     def set_default_stratifications(self, default_grouping_columns: list[str]) -> None:
-        """Set the default stratifications to be used by stratified observations.
+        """Sets the default stratifications to be used by stratified observations.
 
         Parameters
         ----------
@@ -107,7 +107,7 @@ class ResultsContext:
         self.default_stratifications = default_grouping_columns
 
     def set_stratifications(self) -> None:
-        """Set stratifications on all Observers.
+        """Sets stratifications on all Observers.
 
         Emits a warning if any registered stratifications are not being used by any
         observation.
@@ -148,7 +148,7 @@ class ResultsContext:
         mapper: VectorMapper | ScalarMapper | None,
         is_vectorized: bool,
     ) -> None:
-        """Add a stratification to the results context.
+        """Adds a stratification to the results context.
 
         Parameters
         ----------
@@ -173,11 +173,9 @@ class ResultsContext:
         Raises
         ------
         ValueError
-            If the stratification `name` is already used.
-        ValueError
-            If there are duplicate `categories`.
-        ValueError
-            If any `excluded_categories` are not in `categories`.
+            - If the stratification `name` is already used.
+            - If there are duplicate `categories`.
+            - If any `excluded_categories` are not in `categories`.
         """
         if name in self.stratifications:
             raise ValueError(f"Stratification name '{name}' is already used.")
@@ -228,7 +226,7 @@ class ResultsContext:
         stratifications: tuple[str, ...] | None,
         **kwargs: Any,
     ) -> Observation:
-        """Add an observation to the results context.
+        """Adds an observation to the results context.
 
         Parameters
         ----------
@@ -285,12 +283,10 @@ class ResultsContext:
         None,
         None,
     ]:
-        """Generate and yield current results for all observations at this lifecycle
-        state and event.
+        """Generates and yields current results for all observations at this lifecycle state and event.
 
-        Each set of results are stratified and grouped by
-        all registered stratifications as well as filtered by their respective
-        observation's pop_filter.
+        Each set of results are stratified and grouped by all registered stratifications
+        as well as filtered by their respective observation's pop_filter.
 
         Parameters
         ----------
@@ -352,7 +348,7 @@ class ResultsContext:
                     yield (results, observation.name, observation.results_updater)
 
     def get_observations(self, event: Event) -> list[Observation]:
-        """Get all observations for a given event.
+        """Gets all observations for a given event.
 
         Parameters
         ----------
@@ -373,7 +369,7 @@ class ResultsContext:
         ]
 
     def get_stratifications(self, observations: list[Observation]) -> list[Stratification]:
-        """Get all stratifications for a given set of observations.
+        """Gets all stratifications for a given set of observations.
 
         Parameters
         ----------
@@ -397,7 +393,7 @@ class ResultsContext:
     def get_required_attributes(
         self, observations: list[Observation], stratifications: list[Stratification]
     ) -> list[str]:
-        """Get all population attributes required for producing results for a given Event.
+        """Gets all population attributes required for producing results for a given Event.
 
         Parameters
         ----------
@@ -457,7 +453,7 @@ class ResultsContext:
     def _get_groups(
         stratifications: tuple[str, ...], filtered_pop: pd.DataFrame
     ) -> DataFrameGroupBy[tuple[str, ...] | str, bool]:
-        """Group the population by stratification.
+        """Groups the population by stratification.
 
         Notes
         -----
