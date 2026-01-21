@@ -221,7 +221,7 @@ class State(Component):
     def __init__(
         self,
         state_id: str,
-        allow_self_transition: bool = False,
+        allow_self_transition: bool = True,
         initialization_weights: DataInput = 0.0,
     ) -> None:
         super().__init__()
@@ -339,9 +339,6 @@ class State(Component):
         self.transition_set.append(transition)
         return transition
 
-    def allow_self_transitions(self) -> None:
-        self.transition_set.allow_null_transition = True
-
     ##################
     # Helper methods #
     ##################
@@ -390,11 +387,11 @@ class TransitionSet(Component):
     #####################
 
     def __init__(
-        self, state_id: str, *transitions: Transition, allow_self_transition: bool = False
+        self, state_id: str, *transitions: Transition, allow_self_transition: bool = True
     ):
         super().__init__()
         self.state_id = state_id
-        self.allow_null_transition = allow_self_transition
+        self.allow_self_transition = allow_self_transition
         self.transitions: list[Transition] = []
         self._sub_components = self.transitions
 
@@ -494,7 +491,7 @@ class TransitionSet(Component):
         probabilities[has_default] /= total[has_default, np.newaxis]
 
         total = np.sum(probabilities, axis=1)  # All totals should be ~<= 1 at this point.
-        if self.allow_null_transition:
+        if self.allow_self_transition:
             if np.any(total > 1 + 1e-08):  # Accommodate rounding errors
                 raise ValueError(
                     f"Null transition requested with un-normalized "
