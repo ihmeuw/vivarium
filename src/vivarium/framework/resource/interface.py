@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 class ResourceInterface(Interface):
     """The resource management system.
 
-    A resource in :mod:`vivarium` is something like a state table private column,
+    A "resource" in :mod:`vivarium` is something like a state table private column,
     a lookup table, or a randomness stream. These resources are used to initialize
     or alter the state of the simulation. Many of these resources might depend on
     each other and therefore need to be created or updated in a particular order.

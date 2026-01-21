@@ -45,7 +45,6 @@ class ResourceManager(Manager):
 
     @property
     def name(self) -> str:
-        """The name of this manager."""
         return "resource_manager"
 
     @property

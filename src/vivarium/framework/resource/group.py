@@ -15,9 +15,9 @@ class ResourceGroup:
     """Resource groups are the nodes in the resource dependency graph.
 
     A resource group represents the pool of resources produced by a single
-    callable and all the required resources necessary to produce that resource.
+    callable and all the required resources necessary to produce them.
     When thinking of the dependency graph, this represents a vertex and
-    all in-edges.  This is a local-information representation that can be
+    all in-edges. This is a local-information representation that can be
     used to construct the entire dependency graph once all resources are
     specified.
 
@@ -29,7 +29,7 @@ class ResourceGroup:
         required_resources: Iterable[str | Resource],
         initializer: Callable[[SimulantData], None] | None,
     ):
-        """Create a new resource group.
+        """Creates a new resource group.
 
         Parameters
         ----------
@@ -88,7 +88,7 @@ class ResourceGroup:
     def set_required_resources(
         self, attribute_pipelines: dict[str, AttributePipeline]
     ) -> None:
-        """Convert any required resources specified as strings to AttributePipelines."""
+        """Converts any required resources specified as strings to AttributePipelines."""
         self._required_resources = [
             attribute_pipelines[dep] if isinstance(dep, str) else dep
             for dep in self._required_resources
