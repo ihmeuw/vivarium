@@ -88,7 +88,7 @@ class ResourceGroup:
     def set_required_resources(
         self, attribute_pipelines: dict[str, AttributePipeline]
     ) -> None:
-        """Converts any required resources specified as strings to AttributePipelines."""
+        """Converts any required resources specified as strings to :class:`AttributePipelines <vivarium.framework.values.pipeline.AttributePipeline>`."""
         self._required_resources = [
             attribute_pipelines[dep] if isinstance(dep, str) else dep
             for dep in self._required_resources
