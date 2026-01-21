@@ -93,8 +93,8 @@ def test_component_with_initialization_requirements() -> None:
     )
 
     # Assert required resources have been recorded by the ResourceManager
-    component_dependencies_list = [
-        r.dependencies
+    component_required_resources_list = [
+        r.required_resources
         # get all resources in the dependency graph
         for r in simulation._resource.sorted_nodes
         # if the resource is an initializer
@@ -106,12 +106,12 @@ def test_component_with_initialization_requirements() -> None:
         # and is a method of ColumnCreatorAndRequirer
         and isinstance(r.initializer.__self__, ColumnCreatorAndRequirer)
     ]
-    assert len(component_dependencies_list) == 1
-    component_dependencies = component_dependencies_list[0]
+    assert len(component_required_resources_list) == 1
+    component_required_resources = component_required_resources_list[0]
 
-    assert "value.pipeline_1" in component_dependencies
-    assert "attribute.test_column_2" in component_dependencies
-    assert "stream.stream_1" in component_dependencies
+    assert "value.pipeline_1" in component_required_resources
+    assert "attribute.test_column_2" in component_required_resources
+    assert "stream.stream_1" in component_required_resources
 
 
 def test_component_population_view_raises_before_setup() -> None:

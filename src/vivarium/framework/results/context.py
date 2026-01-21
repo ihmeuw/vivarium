@@ -241,7 +241,7 @@ class ResultsContext:
             A named tuple of population filtering details. The first item is a Pandas
             query string to filter the population down to the simulants who should be
             considered for the observation. The second item is a boolean indicating whether
-            to exclude untracked simulants from the observation.
+            to include untracked simulants from the observation.
         when
             Name of the lifecycle state the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -418,7 +418,7 @@ class ResultsContext:
             required_attributes.update(set(observation.requires_attributes))
             required_attributes.update(
                 pop_utils.extract_columns_from_query(self.get_tracked_query())
-                if observation.population_filter.exclude_untracked
+                if not observation.population_filter.include_untracked
                 else set()
             )
             required_attributes.update(
@@ -433,7 +433,7 @@ class ResultsContext:
     ) -> pd.DataFrame:
         """Filter out simulants not to observe."""
         query = population_filter.query
-        if population_filter.exclude_untracked:
+        if not population_filter.include_untracked:
             # combine the tracking query with the population filter query
             query = pop_utils.combine_queries(query, self.get_tracked_query())
         return population.query(query) if query else population.copy()

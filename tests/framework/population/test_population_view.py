@@ -254,11 +254,11 @@ def test_get_attributes_skip_post_processor_with_query(
 
 @pytest.mark.parametrize("include_default_query", [True, False])
 @pytest.mark.parametrize("register_tracked_query", [True, False])
-@pytest.mark.parametrize("exclude_untracked", [True, False])
+@pytest.mark.parametrize("include_untracked", [True, False])
 def test_get_attributes_combined_query(
     include_default_query: bool,
     register_tracked_query: bool,
-    exclude_untracked: bool,
+    include_untracked: bool,
     update_index: pd.Index[int],
     pop_view_default_query: str | None,
     query: str | None,
@@ -270,12 +270,12 @@ def test_get_attributes_combined_query(
     if register_tracked_query:
         pies_and_cubes_pop_mgr.register_tracked_query(tracked_query)
     pv_kwargs, kwargs = _resolve_kwargs(
-        include_default_query, exclude_untracked, pop_view_default_query, query
+        include_default_query, include_untracked, pop_view_default_query, query
     )
     combined_query = _combine_queries(
         include_default_query,
         pop_view_default_query,
-        exclude_untracked,
+        include_untracked,
         pies_and_cubes_pop_mgr.tracked_queries,
         query,
     )
@@ -398,12 +398,12 @@ class TestGetAttributesReturnTypes:
 @pytest.mark.parametrize("private_columns", [None, PIE_COL_NAMES[1:]])
 @pytest.mark.parametrize("include_default_query", [True, False])
 @pytest.mark.parametrize("register_tracked_query", [True, False])
-@pytest.mark.parametrize("exclude_untracked", [True, False])
+@pytest.mark.parametrize("include_untracked", [True, False])
 def test_get_private_columns(
     private_columns: list[str] | None,
     include_default_query: bool,
     register_tracked_query: bool,
-    exclude_untracked: bool,
+    include_untracked: bool,
     update_index: pd.Index[int],
     pop_view_default_query: str | None,
     query: str | None,
@@ -413,7 +413,7 @@ def test_get_private_columns(
     if register_tracked_query:
         pies_and_cubes_pop_mgr.register_tracked_query(tracked_query)
     pv_kwargs, kwargs = _resolve_kwargs(
-        include_default_query, exclude_untracked, pop_view_default_query, query
+        include_default_query, include_untracked, pop_view_default_query, query
     )
     if private_columns is not None:
         kwargs["private_columns"] = private_columns
@@ -424,7 +424,7 @@ def test_get_private_columns(
     combined_query = _combine_queries(
         include_default_query,
         pop_view_default_query,
-        exclude_untracked,
+        include_untracked,
         pies_and_cubes_pop_mgr.tracked_queries,
         query,
     )
@@ -521,11 +521,11 @@ def test_get_private_columns_squeezing() -> None:
 
 @pytest.mark.parametrize("include_default_query", [True, False])
 @pytest.mark.parametrize("register_tracked_query", [True, False])
-@pytest.mark.parametrize("exclude_untracked", [True, False])
+@pytest.mark.parametrize("include_untracked", [True, False])
 def test_get_filtered_index(
     include_default_query: bool,
     register_tracked_query: bool,
-    exclude_untracked: bool,
+    include_untracked: bool,
     update_index: pd.Index[int],
     pop_view_default_query: str | None,
     query: str | None,
@@ -535,7 +535,7 @@ def test_get_filtered_index(
     if register_tracked_query:
         pies_and_cubes_pop_mgr.register_tracked_query(tracked_query)
     pv_kwargs, kwargs = _resolve_kwargs(
-        include_default_query, exclude_untracked, pop_view_default_query, query
+        include_default_query, include_untracked, pop_view_default_query, query
     )
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
     pop_idx = pv.get_filtered_index(update_index, **kwargs)
@@ -543,7 +543,7 @@ def test_get_filtered_index(
     combined_query = _combine_queries(
         include_default_query,
         pop_view_default_query,
-        exclude_untracked,
+        include_untracked,
         pies_and_cubes_pop_mgr.tracked_queries,
         query,
     )
@@ -1039,13 +1039,13 @@ def test_population_view_update_time_step(
 
 def _resolve_kwargs(
     include_default_query: bool,
-    exclude_untracked: bool,
+    include_untracked: bool,
     pop_view_default_query: str | None,
     query: str | None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     kwargs: dict[str, bool | str | list[str]] = {}
     kwargs["include_default_query"] = include_default_query
-    kwargs["exclude_untracked"] = exclude_untracked
+    kwargs["include_untracked"] = include_untracked
 
     pv_kwargs: dict[str, str] = {}
     if pop_view_default_query is not None:
@@ -1070,14 +1070,14 @@ def _get_expected(update_index: pd.Index[int], combined_query: str | None) -> pd
 def _combine_queries(
     include_default_query: bool,
     pop_view_default_query: str | None,
-    exclude_untracked: bool,
+    include_untracked: bool,
     tracked_queries: list[str],
     query: str | None,
 ) -> str:
     combined_query_parts = []
     if include_default_query and pop_view_default_query is not None:
         combined_query_parts.append(f"{pop_view_default_query}")
-    if exclude_untracked and tracked_queries:
+    if not include_untracked and tracked_queries:
         combined_query_parts += tracked_queries
     if query is not None:
         combined_query_parts.append(f"{query}")

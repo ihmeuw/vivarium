@@ -38,7 +38,7 @@ class Movement(Component):
         builder.population.register_initializer(
             initializer=self.on_initialize_simulants,
             columns=["x", "y", "vx", "vy"],
-            dependencies=[self.randomness]
+            required_resources=[self.randomness]
         )
 
     ##################################

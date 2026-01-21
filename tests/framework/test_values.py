@@ -78,7 +78,7 @@ def test_configure_pipeline_calls_methods_correctly(mocker: MockerFixture) -> No
     manager._add_resources.assert_called_once_with(  # type: ignore[attr-defined]
         component=test_pipeline.component,
         resources=test_pipeline.source,
-        dependencies=test_pipeline.source.required_resources,
+        required_resources=test_pipeline.source.required_resources,
     )
 
     # Assert _add_constraint was called with correct arguments
@@ -121,7 +121,7 @@ def test_configure_modifier_calls_methods_correctly(mocker: MockerFixture) -> No
     manager._add_resources.assert_called_once_with(  # type: ignore[attr-defined]
         component=test_component,
         resources=mock_value_modifier,
-        dependencies=test_required_resources,
+        required_resources=test_required_resources,
     )
 
 
