@@ -50,6 +50,11 @@ Glossary
         framework itself.  Examples might include a new simulation clock,
         a results handling service, or a logging service.
 
+    Population State Table
+        The core representation of the population in the simulation. Often referred
+        to as simply the "state table". It consists of a row for each :term:`simulant <Simulant>` 
+        and a column for each :term:`attribute <Attribute>` the simulant possesses.
+
     Private Column
         The source of a corresponding :term:`attribute pipeline <Attribute Pipeline>`.
         Only the :term:`component <Component>` that creates a private column has 
@@ -64,8 +69,3 @@ Glossary
         
     Simulant
         An individual or agent. One member of the population being simulated.
-
-    Population State Table
-        The core representation of the population in the simulation. The state
-        table consists of a row for each :term:`simulant <Simulant>` and a
-        column for each :term:`attribute <Attribute>` the simulant possesses.

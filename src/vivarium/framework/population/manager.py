@@ -3,9 +3,6 @@
 The Population Manager
 ======================
 
-The manager and :ref:`builder <builder_concept>` interface for the
-:ref:`population management system <population_concept>`.
-
 """
 from __future__ import annotations
 
@@ -37,21 +34,19 @@ class SimulantData:
     """Data to help components initialize simulants.
 
     Any time simulants are added to the simulation, each initializer is called
-    with this structure containing information relevant to their
-    initialization.
+    with this structure containing information relevant to their initialization.
 
     """
 
-    #: The index representing the new simulants being added to the simulation.
     index: pd.Index[int]
-    #: A dictionary of extra data passed in by the component creating the
-    #: population.
+    """The index representing the new simulants being added to the simulation."""
     user_data: dict[str, Any]
-    #: The time when the simulants enter the simulation.
+    """A dictionary of extra data passed in by the component creating the population."""
     creation_time: ClockTime
-    #: The span of time over which the simulants are created.  Useful for,
-    #: e.g., distributing ages over the window.
+    """The time when the simulants enter the simulation."""
     creation_window: ClockStepSize
+    """The span of time over which the simulants are created. Useful for, e.g., distributing 
+    ages over the window."""
 
 
 class InitializerComponentSet:
@@ -104,16 +99,15 @@ class InitializerComponentSet:
             raise AttributeError(
                 "Population initializers must be methods of named simulation components. "
                 f"You provided {initializer} which is bound to {component} that has no "
-                f"name attribute."
+                f"'name' attribute."
             )
 
         component_name = component.name
         for column in columns_produced:
             if column in self._columns_produced:
                 raise PopulationError(
-                    f"Component {component_name} and component "
-                    f"{self._columns_produced[column]} have both registered initializers "
-                    f"for column {column}."
+                    f"Component {component_name} and component {self._columns_produced[column]} "
+                    f"have both registered initializers for column {column}."
                 )
             self._columns_produced[column] = component_name
         self._components[component_name] = list(columns_produced)
@@ -126,7 +120,7 @@ class InitializerComponentSet:
 
 
 class PopulationManager(Manager):
-    """Manages the state of the simulated population."""
+    """Manages the population state table."""
 
     # TODO: Move the configuration for initial population creation to
     #  user components.
@@ -138,7 +132,15 @@ class PopulationManager(Manager):
 
     @property
     def private_columns(self) -> pd.DataFrame:
-        """The entire population private columns."""
+        """The dataframe of all population private columns.
+
+        Notes
+        -----
+        Critically, the private columns dataframe not only contains all private
+        columns created for the simulation, but also serves as the simulant
+        index for the entire population. Even if no private columns are created,
+        this dataframe will exist and all simulants will be represetned by its index.
+        """
         if self._private_columns is None:
             raise PopulationError("Population has not been initialized.")
         return self._private_columns
@@ -193,9 +195,10 @@ class PopulationManager(Manager):
     ) -> pd.DataFrame | pd.Series[Any]:
         """Gets the private columns for a given component.
 
-        While the ``private_columns`` property provides the entire private column
-        dataframe, this method returns only the columns created by the specified
-        component. If no component is specified, then no columns are returned.
+        While the ``private_columns`` property provides a dataframe of all private
+        columns in population, this method returns only the private columns created
+        by the specified component. If no component is specified, then no columns
+        are returned.
 
         Parameters
         ----------
@@ -264,12 +267,20 @@ class PopulationManager(Manager):
         self.tracked_queries: list[str] = []
 
     def register_tracked_query(self, query: str) -> None:
-        """Updates list of registered tracked queries.
+        """Updates list of registered tracked queries with the provided query.
 
         Parameters
         ----------
         query
-            The new default query to apply to all population views.
+            The new query to add to the running list of tracked queries.
+
+        Notes
+        -----
+        While we log a warning if the same query is registered multiple times,
+        we make no attempt to de-duplicate functionally-equivalent queries that
+        are syntactically different, e.g. "x > 5" and "5 < x". In such cases,
+        duplicate queries will be applied which is not optimal but will not
+        affect correctness.
         """
         if query in self.tracked_queries:
             self.logger.warning(
@@ -340,7 +351,7 @@ class PopulationManager(Manager):
     ###########################
 
     def get_population_index(self) -> pd.Index[int]:
-        """Get the index of the current population."""
+        """Gets the index of the current population."""
         return self.private_columns.index
 
     def get_view(
@@ -348,7 +359,7 @@ class PopulationManager(Manager):
         component: Component | None = None,
         default_query: str = "",
     ) -> PopulationView:
-        """Get a time-varying view of the population state table.
+        """Gets a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
         to update the state with new values.
@@ -404,14 +415,13 @@ class PopulationManager(Manager):
     def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
         """Gets a function that can generate new simulants.
 
-        The creator function takes the number of simulants to be created as it's
-        first argument and a dict population configuration that will be available
-        to simulant initializers as it's second argument. It generates the new rows
-        in the population state table and then calls each initializer
-        registered with the population system with a data
-        object containing the state table index of the new simulants, the
-        configuration info passed to the creator, the current simulation
-        time, and the size of the next time step.
+        The creator function takes the number of simulants to be created as its
+        first argument and a population configuration dict that will be available
+        to simulant initializers as its second argument. It generates the new rows
+        in the population state table and then calls each initializer registered
+        with the population system with a data object containing the state table
+        index of the new simulants, the configuration info passed to the creator,
+        the current simulation time, and the size of the next time step.
 
         Returns
         -------
@@ -460,10 +470,10 @@ class PopulationManager(Manager):
         columns: str | Sequence[str] | None,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
-        """Registers a component's initializer(s) and any columns created by them.
+        """Registers a component's initializers and any (private) columns created by them.
 
         This does three primary things:
-        1. Registers each column's corresponding attribute producer.
+        1. Registers each private column's corresponding attribute producer.
         2. Records metadata about which component created which private columns.
         3. Registers the initializer as a resource.
 
@@ -473,11 +483,11 @@ class PopulationManager(Manager):
 
         Parameters
         ----------
-        columns
-            The state table columns that the given initializer provides the initial
-            state information for.
         initializer
             A function that will be called to initialize the state of new simulants.
+        columns
+            The private columns that the given initializer provides the initial state
+            information for.
         required_resources
             The resources that the initializer requires to run. Strings are interpreted
             as attributes.
@@ -525,7 +535,7 @@ class PopulationManager(Manager):
     ###############
 
     def get_all_attribute_names(self) -> list[str]:
-        """Get the names of all attributes in the population.
+        """Gets the names of all attributes in the population.
 
         Returns
         -------
@@ -586,8 +596,8 @@ class PopulationManager(Manager):
         query
             Additional conditions used to filter the index.
         squeeze
-            Whether or not to attempt to squeeze a single-column dataframe into a
-            series and/or a multi-level column into a single-level column.
+            Whether or not to attempt to squeeze a multi-level column into a single-level
+            column and/or a single-column dataframe into a series.
         skip_post_processor
             Whether we should invoke the post-processor on the combined
             source and mutator output or return without post-processing.
@@ -601,15 +611,15 @@ class PopulationManager(Manager):
 
         Returns
         -------
-            A copy of the population table.
+            A copy of the population state table.
 
         Raises
         ------
         TypeError
-            If ``attributes`` is not a list of strings or "all".
+            If ``attributes`` is not a list or tuple of strings or "all".
         PopulationError
-            - If any of the requested attributes do not exist in the population table.
-            - If a required column for querying is missing from the population table.
+            - If any of the requested attributes do not exist in the state table.
+            - If a required column for querying is missing from the state table.
             - If the population has not yet been initialized.
         ValueError
             If multiple attributes are requested when ``skip_post_processor`` is True.
@@ -632,7 +642,8 @@ class PopulationManager(Manager):
                 # deduplicate while preserving order
                 requested_attributes = list(dict.fromkeys(attributes))
                 self.logger.warning(
-                    f"Duplicate attributes requested and will be dropped: {set(attributes) - set(requested_attributes)}"
+                    f"Duplicate attributes requested: {set(attributes) - set(requested_attributes)}\n"
+                    "Only returning one instance of each of these duplicate requests."
                 )
             else:
                 requested_attributes = attributes
@@ -642,10 +653,10 @@ class PopulationManager(Manager):
         )
         if non_existent_attributes:
             raise PopulationError(
-                f"Requested attribute(s) {non_existent_attributes} not in population table. "
+                f"Requested attribute(s) {non_existent_attributes} not in population state table. "
                 "This is likely due to a failure to require some columns, randomness "
-                "streams, or pipelines when registering a simulant initializer, a value "
-                "producer, or a value modifier. NOTE: It is possible for a run to "
+                "streams, or pipelines when registering a simulant initializer, an attribute "
+                "producer, or an attribute modifier. NOTE: It is possible for a run to "
                 "succeed even if resource requirements were not properly specified in "
                 "the simulant initializers or pipeline creation/modification calls. This "
                 "success depends on component initialization order which may change in "
@@ -663,7 +674,9 @@ class PopulationManager(Manager):
             missing_query_columns = query_columns.difference(set(self._attribute_pipelines))
             if missing_query_columns:
                 raise PopulationError(
-                    f"Query references missing from population table: {missing_query_columns}."
+                    "Columns used for querying missing from population state table:\n"
+                    f"Missing columns: {missing_query_columns}\n"
+                    f"Query: {query}"
                 )
             query_df = self._get_attributes(idx, list(query_columns))
             query_df = query_df.query(query)
@@ -708,6 +721,12 @@ class PopulationManager(Manager):
         return data
 
     def get_tracked_query(self) -> str:
+        """Gets the combined tracked query for the population.
+
+        Returns
+        -------
+            A query string combining all registered tracked queries with "and" operators.
+        """
         return " and ".join(self.tracked_queries)
 
     @overload

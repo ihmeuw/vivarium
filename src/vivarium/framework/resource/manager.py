@@ -140,8 +140,8 @@ class ResourceManager(Manager):
         initializer
             A method that will be called to initialize the state of new simulants.
         columns
-            The state table columns that the given initializer provides the initial
-            state information for.
+            The population state table private columns that the given initializer
+            provides initial state information for.
         required_resources
             The resources that the initializer requires to run. Strings are interpreted
             as attributes.

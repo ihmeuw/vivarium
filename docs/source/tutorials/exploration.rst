@@ -14,8 +14,8 @@ In this tutorial we'll focus on exploring simulations in an interactive
 setting. The only prerequisite is that you've set up your programming
 environment (See
 :ref:`the getting started section <getting_started_tutorial>`). We'll look
-at how to examine the :term:`population table <State Table>`, how to
-print and interpret the simulation :term:`configuration <Configuration>`,
+at how to examine the :term:`population state table <Population State Table>`, how 
+to print and interpret the simulation :term:`configuration <Configuration>`,
 and how to get values from the :term:`value pipeline <Pipeline>` system.
 
 We'll work through all this with a few case studies using the simulations

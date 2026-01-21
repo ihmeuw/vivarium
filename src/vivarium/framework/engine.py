@@ -428,7 +428,7 @@ class Builder:
         :ref:`event<event_concept>` system."""
 
         self.population = plugin_manager.get_plugin_interface(PopulationInterface)
-        """Provides access to simulant state table via the
+        """Provides access to population state table via the
         :ref:`population<population_concept>` system."""
 
         self.resources = plugin_manager.get_plugin_interface(ResourceInterface)
