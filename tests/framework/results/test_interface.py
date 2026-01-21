@@ -181,7 +181,7 @@ def test_register_stratified_observation(mocker: MockerFixture) -> None:
     stratifications = list(grouped_observations["some-when"][filter_info])[0]
     observations = grouped_observations["some-when"][filter_info][stratifications]
     assert filter_info.query == "some-filter"
-    assert filter_info.exclude_untracked
+    assert not filter_info.include_untracked
     assert isinstance(stratifications, tuple)  # for mypy in following set(stratifications)
     assert set(stratifications) == {
         "default-stratification",
@@ -224,7 +224,7 @@ def test_register_unstratified_observation(mocker: MockerFixture) -> None:
     stratifications = list(grouped_observations["some-when"][filter_info])[0]
     observations = grouped_observations["some-when"][filter_info][stratifications]
     assert filter_info.query == "some-filter"
-    assert filter_info.exclude_untracked
+    assert not filter_info.include_untracked
     assert stratifications is None
     assert len(observations) == 1
     obs = observations[0]
@@ -469,7 +469,7 @@ def test_register_concatenating_observation(mocker: MockerFixture) -> None:
     stratifications = list(grouped_observations["some-when"][filter_info])[0]
     observations = grouped_observations["some-when"][filter_info][stratifications]
     assert filter_info.query == "some-filter"
-    assert filter_info.exclude_untracked
+    assert not filter_info.include_untracked
     assert stratifications is None
     assert len(observations) == 1
     obs = observations[0]

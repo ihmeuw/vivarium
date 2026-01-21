@@ -29,7 +29,7 @@ class Neighbors(Component):
         builder.population.register_initializer(
             initializer=self.on_initialize_simulants,
             columns=None,
-            dependencies=[],
+            required_resources=[],
         )
 
     ########################

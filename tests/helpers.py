@@ -351,7 +351,7 @@ class ColumnCreatorAndRequirer(Component):
         builder.population.register_initializer(
             initializer=self.on_initialize_simulants,
             columns="test_column_4",
-            dependencies=["test_column_2", self.pipeline, self.randomness],
+            required_resources=["test_column_2", self.pipeline, self.randomness],
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:

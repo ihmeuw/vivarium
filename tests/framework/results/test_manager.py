@@ -423,7 +423,7 @@ def test_gather_results_with_different_stratifications_and_to_observes() -> None
     ).all()
 
 
-def test_gather_results_different_exclude_untracked_observations() -> None:
+def test_gather_results_different_include_untracked_observations() -> None:
     class SimulantCountObserver(Observer):
         def register_observations(self, builder: Builder) -> None:
             builder.results.register_unstratified_observation(
@@ -436,7 +436,7 @@ def test_gather_results_different_exclude_untracked_observations() -> None:
             )
             builder.results.register_unstratified_observation(
                 name="simulant_counter_include_untracked",
-                exclude_untracked=False,
+                include_untracked=True,
                 requires_attributes=["student_house"],
                 results_gatherer=lambda df: df,  # type: ignore [arg-type, return-value]
                 results_updater=lambda _existing_df, new_df: new_df.groupby("student_house")
@@ -446,7 +446,6 @@ def test_gather_results_different_exclude_untracked_observations() -> None:
 
     components = [
         Hogwarts(),
-        # HogwartsResultsStratifier(),
         SimulantCountObserver(),
     ]
     sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
@@ -595,7 +594,7 @@ def test_prepare_population_all_untracked(prepare_population_sim: InteractiveCon
     mgr = prepare_population_sim._results
     observation1 = AddingObservation(
         name="familiar",
-        population_filter=PopulationFilter(exclude_untracked=False),  # allow untracked
+        population_filter=PopulationFilter(include_untracked=True),  # allow untracked
         when=lifecycle_states.COLLECT_METRICS,
         requires_attributes=["familiar"],
         results_formatter=lambda *_: pd.DataFrame(),

@@ -119,12 +119,12 @@ class EntranceTimePopulation(BasePopulation):
         builder.population.register_initializer(
             initializer=self.register_crn_attributes,
             columns=["crn_attr1", "crn_attr2"],
-            dependencies=[self.randomness_init],
+            required_resources=[self.randomness_init],
         )
         builder.population.register_initializer(
             initializer=self.register_other_attribute,
             columns="other_attr1",
-            dependencies=[self.randomness_other],
+            required_resources=[self.randomness_other],
         )
 
     def register_crn_attributes(self, pop_data: SimulantData) -> None:
@@ -294,12 +294,12 @@ class UnBrokenPopulation(BasePopulation):
         builder.population.register_initializer(
             initializer=self.register_crn_attributes,
             columns=["crn_attr1", "crn_attr2"],
-            dependencies=[self.randomness_init],
+            required_resources=[self.randomness_init],
         )
         builder.population.register_initializer(
             initializer=self.register_other_attribute,
             columns="other_attr1",
-            dependencies=[self.randomness_other],
+            required_resources=[self.randomness_other],
         )
 
     def register_crn_attributes(self, pop_data: SimulantData) -> None:

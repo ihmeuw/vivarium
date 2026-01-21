@@ -31,7 +31,7 @@ class Population(Component):
         builder.population.register_initializer(
             initializer=self.on_initialize_simulants,
             columns=["color", "entrance_time"],
-            dependencies=[self.randomness]
+            required_resources=[self.randomness]
         )
     # docs-end: setup
 
