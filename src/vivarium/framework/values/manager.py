@@ -96,7 +96,7 @@ class ValuesManager(Manager):
             self._add_resources(
                 component=pipeline.component,
                 resources=pipeline,
-                dependencies=[pipeline.source] + list(pipeline.mutators),
+                required_resources=[pipeline.source] + list(pipeline.mutators),
             )
 
     def register_value_producer(
@@ -302,7 +302,7 @@ class ValuesManager(Manager):
         self._add_resources(
             component=pipeline.component,
             resources=pipeline.source,
-            dependencies=pipeline.source.required_resources,
+            required_resources=pipeline.source.required_resources,
         )
 
         self._add_constraint(
@@ -331,7 +331,9 @@ class ValuesManager(Manager):
             )
             required_resources = [modifier]
         self._add_resources(
-            component=component, resources=value_modifier, dependencies=required_resources
+            component=component,
+            resources=value_modifier,
+            required_resources=required_resources,
         )
 
     def __contains__(self, item: str) -> bool:

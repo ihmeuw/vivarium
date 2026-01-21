@@ -21,7 +21,7 @@ def test_resource_group(resource_type: str, mocker: MockerFixture) -> None:
         resources = [Column(f"resource_{i}", component) for i in range(5)]
     else:
         resources = Resource("test", "some_resource", component)
-    r_dependencies = [
+    r_required_resources = [
         AttributePipeline("an_interesting_attribute", None),
         Pipeline("baz"),
         RandomnessStream("bar", lambda: datetime.now(), 1, IndexMap(), mocker.Mock()),
@@ -29,7 +29,9 @@ def test_resource_group(resource_type: str, mocker: MockerFixture) -> None:
     ]
 
     rg = ResourceGroup(
-        resources, r_dependencies, initializer=component.on_initialize_simulants
+        initialized_resources=resources,
+        required_resources=r_required_resources,
+        initializer=component.on_initialize_simulants,
     )
 
     assert rg.component == component
@@ -40,7 +42,7 @@ def test_resource_group(resource_type: str, mocker: MockerFixture) -> None:
         else ["test.some_resource"]
     )
     assert rg.initializer == component.on_initialize_simulants
-    assert rg.dependencies == [
+    assert rg.required_resources == [
         "attribute.an_interesting_attribute",
         "value.baz",
         "stream.bar",
@@ -103,22 +105,26 @@ def test_resource_group_with_multiple_resource_types() -> None:
         _ = ResourceGroup(resources, [], None)  # type: ignore[arg-type]
 
 
-def test_set_dependencies(mocker: MockerFixture) -> None:
+def test_set_required_resources(mocker: MockerFixture) -> None:
     some_attribute = AttributePipeline("some_attribute", mocker.Mock())
     some_other_attribute = AttributePipeline("some_other_attribute", mocker.Mock())
     resource = Resource("test", "some_resource", mocker.Mock())
-    dependencies: list[AttributePipeline | str] = [
+    required_resources: list[AttributePipeline | str] = [
         some_attribute,
         "some_other_attribute",
     ]
 
-    rg = ResourceGroup(resource, dependencies, None)
-    assert rg._dependencies == [some_attribute, "some_other_attribute"]
+    rg = ResourceGroup(
+        initialized_resources=resource,
+        required_resources=required_resources,
+        initializer=None,
+    )
+    assert rg._required_resources == [some_attribute, "some_other_attribute"]
     # Mock the attribute pipelines dict
     attribute_pipelines = {
         "some_attribute": some_attribute,
         "some_other_attribute": some_other_attribute,
     }
-    rg.set_dependencies(attribute_pipelines)
+    rg.set_required_resources(attribute_pipelines)
     # Check that the 'some_other_attribute' string has been replaced by the pipeline
-    assert rg._dependencies == [some_attribute, some_other_attribute]
+    assert rg._required_resources == [some_attribute, some_other_attribute]

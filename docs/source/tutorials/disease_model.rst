@@ -268,8 +268,8 @@ which columns (if any) each initializer is responsible for creating.
 
 Note that each initializer registration requires us to specify which columns
 that initializer is creating (if any), the initializer method itself, and any
-dependendencies. In this case, each initializer depends on a randomness stream.
-The system will ensure that these dependencies are set up before calling the
+required resources. In this case, each initializer depends on a randomness stream.
+The system will ensure that these required resources are set up before calling the
 initializer methods.
 
 **That was a lot of stuff**
@@ -677,7 +677,7 @@ table and sets it to True for all simulants being initialized. Note again
 that we need to call the population view's ``update`` method to actually modify
 the population table.
 
-Notice also that when registering this method, we did not specify any dependencies
+Notice also that when registering this method, we did not specify any required resources
 (since every simulant is set as alive regardless of anything else).
 
 The ``on_time_step`` method

@@ -39,11 +39,11 @@ def test_run_for_duration() -> None:
     assert sim._clock.time == initial_time + pd.Timedelta("15 days")  # type: ignore[operator]
 
 
-def test_get_columns() -> None:
+def test_get_attribute_names() -> None:
     sim = InteractiveContext(
         components=[MultiLevelMultiColumnCreator(), AttributePipelineCreator()]
     )
-    assert set(sim.get_columns()) == set(
+    assert set(sim.get_attribute_names()) == set(
         [
             # MultiLevelMultiColumnCreator attributes
             "some_attribute",
@@ -56,7 +56,9 @@ def test_get_columns() -> None:
         ]
     )
     # Make sure there's nothing unexpected compared to the actual population df
-    assert set(sim.get_columns()) == set(sim.get_population().columns.get_level_values(0))
+    assert set(sim.get_attribute_names()) == set(
+        sim.get_population().columns.get_level_values(0)
+    )
 
 
 def test_get_population_squeezing() -> None:
