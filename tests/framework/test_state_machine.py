@@ -16,13 +16,13 @@ from vivarium.types import ClockTime, DataInput
 
 
 def test_initialize_allowing_self_transition() -> None:
-    self_transitions = State("self-transitions", allow_self_transition=True)
+    self_transitions = State("self-transitions")
     no_self_transitions = State("no-self-transitions", allow_self_transition=False)
     undefined_self_transitions = State("self-transitions")
 
-    assert self_transitions.transition_set.allow_null_transition
-    assert not no_self_transitions.transition_set.allow_null_transition
-    assert not undefined_self_transitions.transition_set.allow_null_transition
+    assert self_transitions.transition_set.allow_self_transition
+    assert not no_self_transitions.transition_set.allow_self_transition
+    assert undefined_self_transitions.transition_set.allow_self_transition
 
 
 def test_initialize_with_initial_state() -> None:
@@ -148,8 +148,8 @@ def test_transition(
             "randomness": {"key_columns": []},
         }
     )
+    start_state = State("start", allow_self_transition=False)
     done_state = State("done")
-    start_state = State("start")
     if use_transition_arg:
         start_state.add_transition(Transition(start_state, done_state))
     else:
@@ -166,9 +166,9 @@ def test_no_null_transition(base_config: LayeredConfigTree) -> None:
     base_config.update(
         {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}
     )
-    a_state = State("a")
-    b_state = State("b")
-    start_state = State("start")
+    a_state = State("a", allow_self_transition=False)
+    b_state = State("b", allow_self_transition=False)
+    start_state = State("start", allow_self_transition=False)
     start_state.add_transition(
         output_state=a_state, probability_function=lambda index: pd.Series(0.4, index=index)
     )
@@ -194,8 +194,8 @@ def test_null_transition(base_config: LayeredConfigTree) -> None:
     base_config.update(
         {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}
     )
-    a_state = State("a")
-    start_state = State("start", allow_self_transition=True)
+    a_state = State("a", allow_self_transition=False)
+    start_state = State("start")
     start_state.add_transition(
         output_state=a_state, probability_function=lambda index: pd.Series(0.4, index=index)
     )
@@ -223,8 +223,8 @@ def test_side_effects() -> None:
             pop = self.population_view.get_attributes(index, "count")
             self.population_view.update(pop + 1)
 
-    counting_state = CountingState("counting")
-    start_state = State("start")
+    counting_state = CountingState("counting", allow_self_transition=False)
+    start_state = State("start", allow_self_transition=False)
     start_state.add_transition(output_state=counting_state)
     counting_state.add_transition(output_state=start_state)
 

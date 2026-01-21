@@ -213,13 +213,11 @@ class SISDiseaseModel(Component):
         susceptible_state = DiseaseState(f"susceptible_to_{self._name}", self._name)
         infected_state = DiseaseState(f"infected_with_{self._name}", self._name)
 
-        susceptible_state.allow_self_transitions()
         susceptible_state.add_disease_transition(
             infected_state,
             measure="incidence_rate",
             rate_name=f"{infected_state.state_id}.incidence_rate",
         )
-        infected_state.allow_self_transitions()
         infected_state.add_disease_transition(
             susceptible_state,
             measure="remission_rate",
