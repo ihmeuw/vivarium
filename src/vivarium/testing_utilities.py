@@ -43,7 +43,7 @@ class NonCRNTestPopulation(Component):
         builder.population.register_initializer(
             initializer=self.on_initialize_simulants,
             columns=["age", "sex", "location", "is_alive", "entrance_time", "exit_time"],
-            dependencies=[self.randomness],
+            required_resources=[self.randomness],
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
@@ -89,7 +89,7 @@ class TestPopulation(NonCRNTestPopulation):
         builder.population.register_initializer(
             initializer=self.on_initialize_simulants,
             columns=["age", "sex", "location", "is_alive", "entrance_time", "exit_time"],
-            dependencies=[self.randomness, self.age_randomness],
+            required_resources=[self.randomness, self.age_randomness],
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:

@@ -198,8 +198,8 @@ class InteractiveContext(SimulationContext):
             attributes=returned_attributes, squeeze=squeeze
         )
 
-    def get_columns(self) -> list[str]:
-        """List all columns in the population state table."""
+    def get_attribute_names(self) -> list[str]:
+        """List all attributes in the population state table."""
         return self._population.get_all_attribute_names()
 
     def list_values(self) -> list[str]:

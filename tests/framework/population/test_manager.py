@@ -398,7 +398,7 @@ def test_register_initializer(mocker: MockerFixture) -> None:
     mgr.register_initializer(
         initializer=component1.on_initialize_simulants,
         columns=["foo", "bar"],
-        dependencies=["dep1", "dep2"],
+        required_resources=["dep1", "dep2"],
     )
 
     component2 = ColumnCreator2()
@@ -408,7 +408,7 @@ def test_register_initializer(mocker: MockerFixture) -> None:
     mgr.register_initializer(
         initializer=component2.on_initialize_simulants,
         columns=None,
-        dependencies=["dep3", "dep4"],
+        required_resources=["dep3", "dep4"],
     )
 
     component3 = ColumnCreator3()
@@ -416,7 +416,7 @@ def test_register_initializer(mocker: MockerFixture) -> None:
         mgr, "_get_current_component_or_manager", return_value=component3, create=True
     )
     mgr.register_initializer(
-        initializer=component3.on_initialize_simulants, columns="qux", dependencies=[]
+        initializer=component3.on_initialize_simulants, columns="qux", required_resources=[]
     )
 
     # Check that register_attribute_producer was called appropriately
@@ -437,16 +437,16 @@ def test_register_initializer(mocker: MockerFixture) -> None:
     assert mock_add_private_cols.call_count == 3
     mock_add_private_cols.assert_any_call(
         columns=["foo", "bar"],
-        dependencies=["dep1", "dep2"],
+        required_resources=["dep1", "dep2"],
         initializer=component1.on_initialize_simulants,
     )
     mock_add_private_cols.assert_any_call(
         columns=[],
-        dependencies=["dep3", "dep4"],
+        required_resources=["dep3", "dep4"],
         initializer=component2.on_initialize_simulants,
     )
     mock_add_private_cols.assert_any_call(
-        columns=["qux"], dependencies=[], initializer=component3.on_initialize_simulants
+        columns=["qux"], required_resources=[], initializer=component3.on_initialize_simulants
     )
 
 

@@ -98,7 +98,7 @@ class PopulationView:
         attributes: str,
         query: str = "",
         include_default_query: bool = True,
-        exclude_untracked: bool = True,
+        include_untracked: bool = False,
         skip_post_processor: bool = False,
     ) -> pd.Series[Any]:
         ...
@@ -110,7 +110,7 @@ class PopulationView:
         attributes: list[str] | tuple[str, ...],
         query: str = "",
         include_default_query: bool = True,
-        exclude_untracked: bool = True,
+        include_untracked: bool = False,
         skip_post_processor: bool = False,
     ) -> pd.DataFrame:
         ...
@@ -122,7 +122,7 @@ class PopulationView:
         attributes: str | list[str] | tuple[str, ...],
         query: str = "",
         include_default_query: bool = True,
-        exclude_untracked: bool = True,
+        include_untracked: bool = False,
         skip_post_processor: bool = True,
     ) -> Any:
         ...
@@ -133,7 +133,7 @@ class PopulationView:
         attributes: str | list[str] | tuple[str, ...],
         query: str = "",
         include_default_query: bool = True,
-        exclude_untracked: bool = True,
+        include_untracked: bool = False,
         skip_post_processor: Literal[True, False] = False,
     ) -> Any:
         """Get a specific subset of this ``PopulationView``.
@@ -154,8 +154,8 @@ class PopulationView:
             is True, it will be combined with this PopulationView's query property.
         include_default_query
             Whether to combine this view's default query with the provided ``query``.
-        exclude_untracked
-            Whether to exclude untracked simulants.
+        include_untracked
+            Whether to include untracked simulants.
         skip_post_processor
             Whether we should invoke the post-processor on the combined
             source and mutator output or return without post-processing.
@@ -184,7 +184,7 @@ class PopulationView:
         population = self._manager.get_population(
             attributes=attributes,
             index=index,
-            query=self._build_query(query, include_default_query, exclude_untracked),
+            query=self._build_query(query, include_default_query, include_untracked),
             squeeze=squeeze,
             skip_post_processor=skip_post_processor,
         )
@@ -202,7 +202,7 @@ class PopulationView:
         attribute: str,
         query: str = "",
         include_default_query: bool = True,
-        exclude_untracked: bool = True,
+        include_untracked: bool = False,
     ) -> pd.DataFrame:
         """Get a single attribute as a DataFrame.
 
@@ -221,8 +221,8 @@ class PopulationView:
             is True, it will be combined with this PopulationView's query property.
         include_default_query
             Whether to combine this view's default query with the provided ``query``.
-        exclude_untracked
-            Whether to exclude untracked simulants.
+        include_untracked
+            Whether to include untracked simulants.
 
         Notes
         -----
@@ -246,7 +246,7 @@ class PopulationView:
             self._manager.get_population(
                 index=index,
                 attributes=[attribute],
-                query=self._build_query(query, include_default_query, exclude_untracked),
+                query=self._build_query(query, include_default_query, include_untracked),
             )
         )
 
@@ -257,7 +257,7 @@ class PopulationView:
         private_columns: str = ...,
         query: str = "",
         include_default_query: bool = True,
-        exclude_untracked: bool = True,
+        include_untracked: bool = False,
     ) -> pd.Series[Any]:
         ...
 
@@ -268,7 +268,7 @@ class PopulationView:
         private_columns: list[str] | tuple[str, ...] = ...,
         query: str = "",
         include_default_query: bool = True,
-        exclude_untracked: bool = True,
+        include_untracked: bool = False,
     ) -> pd.DataFrame:
         ...
 
@@ -279,7 +279,7 @@ class PopulationView:
         private_columns: None = None,
         query: str = "",
         include_default_query: bool = True,
-        exclude_untracked: bool = True,
+        include_untracked: bool = False,
     ) -> pd.Series[Any] | pd.DataFrame:
         ...
 
@@ -289,7 +289,7 @@ class PopulationView:
         private_columns: str | list[str] | tuple[str, ...] | None = None,
         query: str = "",
         include_default_query: bool = True,
-        exclude_untracked: bool = True,
+        include_untracked: bool = False,
     ) -> pd.Series[Any] | pd.DataFrame:
         """Get a specific subset of this ``PopulationView's`` private columns.
 
@@ -309,8 +309,8 @@ class PopulationView:
             is True, it will be combined with this PopulationView's query property.
         include_default_query
             Whether to combine this view's default query with the provided ``query``.
-        exclude_untracked
-            Whether to exclude untracked simulants.
+        include_untracked
+            Whether to include untracked simulants.
 
         Returns
         -------
@@ -325,9 +325,9 @@ class PopulationView:
 
         index = self.get_filtered_index(
             index,
-            query=self._build_query(query, include_default_query, exclude_untracked),
+            query=self._build_query(query, include_default_query, include_untracked),
             include_default_query=False,
-            exclude_untracked=False,
+            include_untracked=True,
         )
 
         return self._manager.get_private_columns(self._component, index, private_columns)
@@ -337,7 +337,7 @@ class PopulationView:
         index: pd.Index[int],
         query: str = "",
         include_default_query: bool = True,
-        exclude_untracked: bool = True,
+        include_untracked: bool = False,
     ) -> pd.Index[int]:
         """Get a specific index of the population.
 
@@ -352,8 +352,8 @@ class PopulationView:
             is True, it will be combined with this PopulationView's query property.
         include_default_query
             Whether to combine this view's default query with the provided ``query``.
-        exclude_untracked
-            Whether to exclude untracked simulants.
+        include_untracked
+            Whether to include untracked simulants.
 
         Returns
         -------
@@ -365,7 +365,7 @@ class PopulationView:
             attributes=[],
             query=query,
             include_default_query=include_default_query,
-            exclude_untracked=exclude_untracked,
+            include_untracked=include_untracked,
         ).index
 
     def update(self, update: pd.Series[Any] | pd.DataFrame) -> None:
@@ -646,7 +646,7 @@ class PopulationView:
         return new_data
 
     def _build_query(
-        self, query: str, include_default_query: bool, exclude_untracked: bool
+        self, query: str, include_default_query: bool, include_untracked: bool
     ) -> str:
         """Builds the full query for this PopulationView.
 
@@ -656,5 +656,5 @@ class PopulationView:
         return pop_utils.combine_queries(
             query,
             self._default_query if include_default_query else "",
-            self._manager.get_tracked_query() if exclude_untracked else "",
+            self._manager.get_tracked_query() if not include_untracked else "",
         )

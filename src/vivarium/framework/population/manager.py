@@ -458,7 +458,7 @@ class PopulationManager(Manager):
         self,
         initializer: Callable[[SimulantData], None],
         columns: str | Sequence[str] | None,
-        dependencies: Sequence[str | Resource] = (),
+        required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Registers a component's initializer(s) and any columns created by them.
 
@@ -478,7 +478,7 @@ class PopulationManager(Manager):
             state information for.
         initializer
             A function that will be called to initialize the state of new simulants.
-        dependencies
+        required_resources
             The resources that the initializer requires to run. Strings are interpreted
             as attributes.
 
@@ -517,7 +517,7 @@ class PopulationManager(Manager):
         self.resources.add_private_columns(
             initializer=initializer,
             columns=columns,
-            dependencies=dependencies,
+            required_resources=required_resources,
         )
 
     ###############

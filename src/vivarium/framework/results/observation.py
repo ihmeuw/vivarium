@@ -56,7 +56,7 @@ class Observation(ABC):
     """A named tuple of population filtering details. The first item is a Pandas 
     query string to filter the population down to the simulants who should be 
     considered for the observation. The second item is a boolean indicating whether 
-    to exclude untracked simulants from the observation."""
+    to include untracked simulants from the observation."""
     when: str
     """Name of the lifecycle phase the observation should happen. Valid values are:
     "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics"."""
@@ -126,7 +126,7 @@ class UnstratifiedObservation(Observation):
         A named tuple of population filtering details. The first item is a Pandas
         query string to filter the population down to the simulants who should be
         considered for the observation. The second item is a boolean indicating whether
-        to exclude untracked simulants from the observation.
+        to include untracked simulants from the observation.
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -208,7 +208,7 @@ class StratifiedObservation(Observation):
         A named tuple of population filtering details. The first item is a Pandas
         query string to filter the population down to the simulants who should be
         considered for the observation. The second item is a boolean indicating whether
-        to exclude untracked simulants from the observation.
+        to include untracked simulants from the observation.
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -409,7 +409,7 @@ class AddingObservation(StratifiedObservation):
         A named tuple of population filtering details. The first item is a Pandas
         query string to filter the population down to the simulants who should be
         considered for the observation. The second item is a boolean indicating whether
-        to exclude untracked simulants from the observation.
+        to include untracked simulants from the observation.
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -501,7 +501,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
         A named tuple of population filtering details. The first item is a Pandas
         query string to filter the population down to the simulants who should be
         considered for the observation. The second item is a boolean indicating whether
-        to exclude untracked simulants from the observation.
+        to include untracked simulants from the observation.
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
