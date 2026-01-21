@@ -654,12 +654,12 @@ def test_get_observations(
         "neither",
     ],
 )
-@pytest.mark.parametrize("exclude_untracked", [True, False])
+@pytest.mark.parametrize("include_untracked", [True, False])
 def test_get_required_attributes(
     observation_names: list[str],
     stratification_names: list[str],
     expected_resources: set[str],
-    exclude_untracked: bool,
+    include_untracked: bool,
     mocker: MockerFixture,
 ) -> None:
     ctx = ResultsContext()
@@ -668,7 +668,7 @@ def test_get_required_attributes(
     all_observations = {}
     register_observation_kwargs = {
         "observation_type": AddingObservation,
-        "population_filter": PopulationFilter(exclude_untracked=exclude_untracked),
+        "population_filter": PopulationFilter(include_untracked=include_untracked),
         "when": lifecycle_states.COLLECT_METRICS,
         "results_formatter": lambda: None,
         "stratifications": (),
@@ -714,7 +714,7 @@ def test_get_required_attributes(
     stratifications = [all_stratifications[name] for name in stratification_names]
 
     actual_columns = ctx.get_required_attributes(observations, stratifications)
-    if observations and exclude_untracked:
+    if observations and not include_untracked:
         expected_resources = expected_resources.union({"foo"})
     assert set(actual_columns) == expected_resources
 
@@ -756,10 +756,10 @@ def test_get_required_attributes_columns_from_query(mocker: MockerFixture) -> No
     ['familiar=="cat"', 'familiar=="spaghetti_yeti"', ""],
     ids=["pop_filter", "pop_filter_empties_dataframe", "no_pop_filter"],
 )
-@pytest.mark.parametrize("exclude_untracked", [True, False])
+@pytest.mark.parametrize("include_untracked", [True, False])
 @pytest.mark.parametrize("tracked_query", ["house=='hufflepuff'", "house=='whitehouse'", ""])
 def test__filter_population(
-    pop_filter: str, exclude_untracked: bool, tracked_query: str, mocker: MockerFixture
+    pop_filter: str, include_untracked: bool, tracked_query: str, mocker: MockerFixture
 ) -> None:
     population = BASE_POPULATION.copy()
     ctx = ResultsContext()
@@ -767,13 +767,13 @@ def test__filter_population(
 
     filtered_pop = ctx._filter_population(
         population=population,
-        population_filter=PopulationFilter(pop_filter, exclude_untracked=exclude_untracked),
+        population_filter=PopulationFilter(pop_filter, include_untracked=include_untracked),
     )
     expected = population.copy()
     if pop_filter:
         familiar = pop_filter.split("==")[1].strip('"')
         expected = expected[expected["familiar"] == familiar]
-    if exclude_untracked and tracked_query:
+    if not include_untracked and tracked_query:
         house = tracked_query.split("==")[1].strip("'")
         expected = expected[expected["house"] == house]
     assert filtered_pop.equals(expected)

@@ -65,10 +65,10 @@ def _default_unstratified_observation_formatter(
 
 
 class PopulationFilter(NamedTuple):
-    """Container class for population query string and exclude_untracked flag."""
+    """Container class for population query string and include_untracked flag."""
 
     query: str = ""
-    exclude_untracked: bool = True
+    include_untracked: bool = False
 
 
 class ResultsInterface(Interface):
@@ -188,7 +188,7 @@ class ResultsInterface(Interface):
         self,
         name: str,
         pop_filter: str = "",
-        exclude_untracked: bool = True,
+        include_untracked: bool = False,
         when: str = lifecycle_states.COLLECT_METRICS,
         requires_attributes: list[str] = [],
         results_updater: ResultsUpdater = _required_function_placeholder,
@@ -209,8 +209,8 @@ class ResultsInterface(Interface):
         pop_filter
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
-        exclude_untracked
-            Whether to exclude simulants who are untracked from this observation.
+        include_untracked
+            Whether to include simulants who are untracked from this observation.
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -242,7 +242,7 @@ class ResultsInterface(Interface):
         self._manager.register_observation(
             observation_type=StratifiedObservation,
             name=name,
-            population_filter=PopulationFilter(pop_filter, exclude_untracked),
+            population_filter=PopulationFilter(pop_filter, include_untracked),
             when=when,
             requires_attributes=requires_attributes,
             results_updater=results_updater,
@@ -258,7 +258,7 @@ class ResultsInterface(Interface):
         self,
         name: str,
         pop_filter: str = "",
-        exclude_untracked: bool = True,
+        include_untracked: bool = False,
         when: str = lifecycle_states.COLLECT_METRICS,
         requires_attributes: list[str] = [],
         results_gatherer: ResultsGatherer = _required_function_placeholder,
@@ -276,8 +276,8 @@ class ResultsInterface(Interface):
         pop_filter
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
-        exclude_untracked
-            Whether to exclude simulants who are untracked from this observation.
+        include_untracked
+            Whether to include simulants who are untracked from this observation.
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -305,7 +305,7 @@ class ResultsInterface(Interface):
         self._manager.register_observation(
             observation_type=UnstratifiedObservation,
             name=name,
-            population_filter=PopulationFilter(pop_filter, exclude_untracked),
+            population_filter=PopulationFilter(pop_filter, include_untracked),
             when=when,
             requires_attributes=requires_attributes,
             results_updater=results_updater,
@@ -318,7 +318,7 @@ class ResultsInterface(Interface):
         self,
         name: str,
         pop_filter: str = "",
-        exclude_untracked: bool = True,
+        include_untracked: bool = False,
         when: str = lifecycle_states.COLLECT_METRICS,
         requires_attributes: list[str] = [],
         results_formatter: ResultsFormatter = _default_stratified_observation_formatter,
@@ -345,8 +345,8 @@ class ResultsInterface(Interface):
         pop_filter
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
-        exclude_untracked
-            Whether to exclude simulants who are untracked from this observation.
+        include_untracked
+            Whether to include simulants who are untracked from this observation.
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -370,7 +370,7 @@ class ResultsInterface(Interface):
         self._manager.register_observation(
             observation_type=AddingObservation,
             name=name,
-            population_filter=PopulationFilter(pop_filter, exclude_untracked),
+            population_filter=PopulationFilter(pop_filter, include_untracked),
             when=when,
             requires_attributes=requires_attributes,
             results_formatter=results_formatter,
@@ -385,7 +385,7 @@ class ResultsInterface(Interface):
         self,
         name: str,
         pop_filter: str = "",
-        exclude_untracked: bool = True,
+        include_untracked: bool = False,
         when: str = lifecycle_states.COLLECT_METRICS,
         requires_attributes: list[str] = [],
         results_formatter: ResultsFormatter = _default_unstratified_observation_formatter,
@@ -408,8 +408,8 @@ class ResultsInterface(Interface):
         pop_filter
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
-        exclude_untracked
-            Whether to exclude simulants who are untracked from this observation.
+        include_untracked
+            Whether to include simulants who are untracked from this observation.
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -423,7 +423,7 @@ class ResultsInterface(Interface):
         self._manager.register_observation(
             observation_type=ConcatenatingObservation,
             name=name,
-            population_filter=PopulationFilter(pop_filter, exclude_untracked),
+            population_filter=PopulationFilter(pop_filter, include_untracked),
             when=when,
             requires_attributes=requires_attributes,
             results_formatter=results_formatter,

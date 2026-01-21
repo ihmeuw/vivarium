@@ -86,14 +86,14 @@ class ResourceManager(Manager):
         # Finalize the resource group dependencies
         attribute_pipelines = self._get_attribute_pipelines()
         for group in self._resource_group_map.values():
-            group.set_dependencies(attribute_pipelines)
+            group.set_required_resources(attribute_pipelines)
 
     def add_resources(
         self,
         component: Component | Manager,
         initializer: Callable[[SimulantData], None] | None,
         resources: Iterable[Column] | Resource,
-        dependencies: Iterable[str | Resource],
+        required_resources: Iterable[str | Resource],
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -105,7 +105,7 @@ class ResourceManager(Manager):
             A method that will be called to initialize the state of new simulants.
         resources
             The resources being added. A string represents a population attribute.
-        dependencies
+        required_resources
             A list of resources that the producer requires. A string represents
             a population attribute.
 
@@ -115,7 +115,7 @@ class ResourceManager(Manager):
             If there are multiple producers of the same resource.
         """
         resource_group = self._get_resource_group(
-            component, initializer, resources, dependencies
+            component, initializer, resources, required_resources
         )
         for resource_id, resource in resource_group.resources.items():
             if resource_id in self._resource_group_map:
@@ -131,7 +131,7 @@ class ResourceManager(Manager):
         self,
         initializer: Callable[[SimulantData], None] | None,
         columns: Iterable[str] | str,
-        dependencies: Iterable[str | Resource],
+        required_resources: Iterable[str | Resource],
     ) -> None:
         """Adds private column resources to the resource pool.
 
@@ -142,7 +142,7 @@ class ResourceManager(Manager):
         columns
             The state table columns that the given initializer provides the initial
             state information for.
-        dependencies
+        required_resources
             The resources that the initializer requires to run. Strings are interpreted
             as attributes.
         """
@@ -154,7 +154,7 @@ class ResourceManager(Manager):
             component=component,
             initializer=initializer,
             resources=columns_,
-            dependencies=dependencies,
+            required_resources=required_resources,
         )
 
     def _get_resource_group(
@@ -162,7 +162,7 @@ class ResourceManager(Manager):
         component: Component | Manager,
         initializer: Callable[[SimulantData], None] | None,
         resources: Iterable[Column] | Resource,
-        dependencies: Iterable[str | Resource],
+        required_resources: Iterable[str | Resource],
     ) -> ResourceGroup:
         """Packages resource information into a resource group.
 
@@ -184,7 +184,7 @@ class ResourceManager(Manager):
                 f" component: {resources.name}"
             )
 
-        return ResourceGroup(resources, dependencies, initializer)
+        return ResourceGroup(resources, required_resources, initializer)
 
     def _to_graph(self) -> nx.DiGraph:
         """Constructs the full resource graph from information in the groups.
@@ -206,7 +206,7 @@ class ResourceManager(Manager):
         resource_graph.add_nodes_from(self._resource_group_map.values())
 
         for resource_group in resource_graph.nodes:
-            for dependency in resource_group.dependencies:
+            for dependency in resource_group.required_resources:
                 if dependency not in self._resource_group_map:
                     # Warn here because this sometimes happens naturally
                     # if observer components are missing from a simulation.
@@ -233,5 +233,5 @@ class ResourceManager(Manager):
         out = {}
         for resource_group in set(self._resource_group_map.values()):
             produced = ", ".join(resource_group)
-            out[produced] = ", ".join(resource_group.dependencies)
+            out[produced] = ", ".join(resource_group.required_resources)
         return "\n".join([f"{produced} : {depends}" for produced, depends in out.items()])
