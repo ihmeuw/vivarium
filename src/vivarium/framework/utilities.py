@@ -121,6 +121,11 @@ def rate_to_probability(
     this, we cap the rate at 250 when using the exponential conversion since
     exp(-250) is effectively zero for practical purposes.
     """
+    if rate_conversion_type not in ["linear", "exponential"]:
+        raise ValueError(
+            f"Rate conversion type {rate_conversion_type} is not implemented. "
+            "Allowable types are 'linear' or 'exponential'."
+        )
     probability: NumericArray
     if rate_conversion_type == "linear":
         # NOTE: The default behavior for randomness streams is to use a rate that is already
@@ -135,13 +140,11 @@ def rate_to_probability(
                 "The rate to probability conversion resulted in a probability greater than 1.0. "
                 "The probability has been clipped to 1.0 and indicates the rate is too high. "
             )
-    elif rate_conversion_type == "exponential":
+    else:
         # NOTE: Cap the rate at 250 to avoid floating point underflow issues
         rate = np.asarray(rate)
         rate[rate > 250] = 250.0
         probability = 1 - np.exp(-rate * time_scaling_factor)
-    else:
-        raise ValueError(f"Rate conversion type {rate_conversion_type} is not implemented.")
 
     return probability
 
@@ -175,15 +178,18 @@ def probability_to_rate(
     """
     # NOTE: The default behavior for randomness streams is to use a rate that is already
     # scaled to the time step which is why the default time scaling factor is 1.0.
+    if rate_conversion_type not in ["linear", "exponential"]:
+        raise ValueError(
+            f"Rate conversion type {rate_conversion_type} is not implemented. "
+            "Allowable types are 'linear' or 'exponential'."
+        )
     rate: NumericArray
     if rate_conversion_type == "linear":
         # Use asarray to handle both scalars and arrays
         rate = np.asarray(probability) / time_scaling_factor
-    elif rate_conversion_type == "exponential":
+    else:
         probability = np.asarray(probability)
         rate = -np.log(1 - probability)
-    else:
-        raise ValueError(f"Rate conversion type {rate_conversion_type} is not implemented.")
 
     return rate
 
