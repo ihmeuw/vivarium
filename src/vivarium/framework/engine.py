@@ -64,7 +64,7 @@ class SimulationContext:
 
     @staticmethod
     def _get_context_name(sim_name: str | None) -> str:
-        """Get a unique name for a simulation context.
+        """Gets a unique name for a simulation context.
 
         Parameters
         ----------
@@ -98,7 +98,7 @@ class SimulationContext:
 
     @staticmethod
     def _clear_context_cache() -> None:
-        """Clear the cache of simulation context names.
+        """Clears the cache of simulation context names.
 
         Notes
         -----
@@ -245,11 +245,11 @@ class SimulationContext:
         return self._clock.time
 
     def get_results(self) -> dict[str, pd.DataFrame]:
-        """Return the formatted results."""
+        """Returns a dictionary of formatted results."""
         return self._results.get_results()
 
     def run_simulation(self) -> None:
-        """A wrapper method to run all steps of a simulation"""
+        """Runs all steps of a simulation."""
         self.setup()
         self.initialize_simulants()
         self.run()
@@ -338,7 +338,7 @@ class SimulationContext:
         self._write_results(results)
 
     def _write_results(self, results: dict[str, pd.DataFrame]) -> None:
-        """Iterate through the measures and write out the formatted results"""
+        """Iterates through the measures and writes out the formatted results."""
         try:
             results_dir = self.configuration.output_data.results_directory
             for measure, df in results.items():
@@ -387,7 +387,7 @@ class SimulationContext:
 
     @classmethod
     def load_from_backup(cls, backup_path: Path) -> "SimulationContext":
-        """Load a simulation context from a backup file."""
+        """Loads a simulation context from a backup file."""
         with open(backup_path, "rb") as f:
             backup: SimulationContext = dill.load(f)
         return backup
@@ -428,7 +428,7 @@ class Builder:
         :ref:`event<event_concept>` system."""
 
         self.population = plugin_manager.get_plugin_interface(PopulationInterface)
-        """Provides access to simulant state table via the
+        """Provides access to population state table via the
         :ref:`population<population_concept>` system."""
 
         self.resources = plugin_manager.get_plugin_interface(ResourceInterface)

@@ -22,8 +22,7 @@ which returns a callable emitter for the given event type and
 given listener to the event channel for the given event. This is the only part
 of the event framework with which client code should interact.
 
-For more information, see the associated event
-:ref:`concept note <event_concept>`.
+For more information, see the associated event :ref:`concept note <event_concept>`.
 
 """
 from __future__ import annotations
@@ -50,6 +49,7 @@ class Event:
     Events themselves are just a bundle of data.  They must be emitted
     along an :class:`EventChannel` in order for other simulation components
     to respond to them.
+
     """
 
     name: str
@@ -65,11 +65,10 @@ class Event:
     """The current step size at the time of the event."""
 
     def split(self, new_index: pd.Index[int]) -> "Event":
-        """Create a copy of this event with a new index.
+        """Creates a copy of this event with a new index.
 
-        This function should be used to emit an event in a new
-        :class:`EventChannel` in response to an event emitted from a
-        different channel.
+        This function should be used to emit an event in a new :class:`EventChannel`
+        in response to an event emitted from a different channel.
 
         Parameters
         ----------
@@ -204,7 +203,7 @@ class EventManager(Manager):
     def get_emitter(
         self, event_name: str
     ) -> Callable[[pd.Index[int], dict[str, Any] | None], Event]:
-        """Get an emitter function for the named event.
+        """Gets an emitter function for the named event.
 
         Parameters
         ----------
@@ -244,7 +243,7 @@ class EventManager(Manager):
         self.get_channel(event_name).listeners[priority].append(listener)
 
     def get_listeners(self, event_name: str) -> dict[int, list[Callable[[Event], None]]]:
-        """Get all listeners registered for the named event.
+        """Gets all listeners registered for the named event.
 
         Parameters
         ----------
@@ -264,7 +263,7 @@ class EventManager(Manager):
         }
 
     def list_events(self) -> list[str]:
-        """List all event names known to the event system.
+        """Lists all event names known to the event system.
 
         Returns
         -------

@@ -32,9 +32,15 @@ if TYPE_CHECKING:
 class ValuesInterface(Interface):
     """Public interface for the simulation values management system.
 
-    The values system provides tools to build up a value across many
-    components, allowing users to build components that focus on small groups
-    of simulant attributes.
+    The values system provides tools to build up values across many components,
+    allowing users to build components that focus on small groups of simulation
+    variables.
+
+    Notes
+    -----
+    This is the only public interface for the values system; different methods
+    exist for working with generic value :class:`Pipelines <vivarium.framework.values.pipeline.Pipeline>`
+    and :class:`AttributePipelines <vivarium.framework.values.pipeline.AttributePipeline>`.
 
     """
 
@@ -49,7 +55,7 @@ class ValuesInterface(Interface):
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | None = None,
     ) -> Pipeline:
-        """Marks a ``Callable`` as the producer of a named value.
+        """Registers a ``Pipeline`` as the producer of a named value.
 
         Parameters
         ----------
@@ -76,7 +82,7 @@ class ValuesInterface(Interface):
 
         Returns
         -------
-            A callable reference to the named dynamic value pipeline.
+            The ``Pipeline`` that is registered as the producer of the named value.
         """
         return self._manager.register_value_producer(
             value_name,
@@ -95,7 +101,7 @@ class ValuesInterface(Interface):
         preferred_post_processor: AttributePostProcessor | None = None,
         source_is_private_column: bool = False,
     ) -> None:
-        """Marks a ``Callable`` as the producer of a named attribute.
+        """Registers an ``AttributePipeline`` as the producer of a named attribute.
 
         Parameters
         ----------
@@ -141,14 +147,12 @@ class ValuesInterface(Interface):
         source: Callable[[pd.Index[int]], Any] | list[str],
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
-        """Marks a ``Callable`` as the producer of a named rate.
+        """Registers an ``AttributePipeline`` as the producer of a named rate.
 
         This is a convenience wrapper around ``register_attribute_producer`` that
-        makes sure rate data is appropriately scaled to the size of the
-        simulation time step. It is equivalent to
-        ``register_attribute_producer(value_name, source,
-        preferred_combiner=replace_combiner,
-        preferred_post_processor=rescale_post_processor)``
+        makes sure rate data is appropriately scaled to the size of the simulation
+        time step. It is equivalent to calling ``register_attribute_producer()``
+        with the ``rescale_post_processor`` as the preferred post processor.
 
         Parameters
         ----------
@@ -182,9 +186,9 @@ class ValuesInterface(Interface):
         Parameters
         ----------
         value_name
-            The name of the dynamic value pipeline to be modified.
+            The name of the dynamic value ``Pipeline`` to be modified.
         modifier
-            A function that modifies the source of the dynamic value pipeline
+            A function that modifies the source of the dynamic value ``Pipeline``
             when called. If the pipeline has a ``replace_combiner``, the
             modifier must have the same arguments as the pipeline source
             with an additional last positional argument for the results of the
@@ -209,17 +213,15 @@ class ValuesInterface(Interface):
         Parameters
         ----------
         value_name
-            The name of the dynamic attribute pipeline to be modified.
+            The name of the dynamic ``AttributePipeline`` to be modified.
         modifier
-            A function that modifies the source of the dynamic attribute pipeline
-            when called; if a string is passed, it refers to the name of an
-            :class:`~vivarium.framework.values.pipeline.AttributePipeline`.
-            If the pipeline has a ``replace_combiner``, the
-            modifier should accept the same arguments as the pipeline source
-            with an additional last positional argument for the results of the
-            previous stage in the pipeline. For the ``list_combiner`` strategy,
-            the pipeline modifiers should have the same signature as the pipeline
-            source.
+            A function that modifies the source of the dynamic ``AttributePipeline``
+            when called. If a string is passed, it refers to the name of an ``AttributePipeline``.
+            If the pipeline has a ``replace_combiner``, the modifier should accept
+            the same arguments as the pipeline source with an additional last positional
+            argument for the results of the previous stage in the pipeline. For
+            the ``list_combiner`` strategy, the pipeline modifiers should have the
+            same signature as the pipeline source.
         required_resources
             A list of resources that need to be properly sourced before the
             pipeline modifier is called. This is a list of strings, pipelines,
@@ -232,36 +234,38 @@ class ValuesInterface(Interface):
         )
 
     def get_value(self, name: str) -> Pipeline:
-        """Retrieve the pipeline representing the named value.
+        """Retrieves the ``Pipeline`` representing the named value.
 
         Parameters
         ----------
         name
-            Name of the pipeline to return.
+            Name of the ``Pipeline`` to return.
 
         Returns
         -------
-            A callable reference to the named pipeline. The pipeline arguments
-            should be identical to the arguments to the pipeline source
-            (frequently just a :class:`pandas.Index` representing the
-            simulants).
+            The requested ``Pipeline``.
 
+        Notes
+        -----
+        This will create a new ``Pipeline`` if one does not already exist.
         """
         return self._manager.get_value(name)
 
     def get_attribute_pipelines(self) -> Callable[[], dict[str, AttributePipeline]]:
-        """Get all registered attribute pipelines.
+        """Returns a ``Callable`` that retrieves a dictionary of ``AttributePipelines``.
 
         Returns
         -------
-            A callable that returns a dictionary mapping attribute names to
-            their corresponding :class:`~ <vivarium.framework.values.pipeline.AttributePipeline>`.
+            A ``Callable`` that returns a dictionary mapping all registered attribute
+            names to their corresponding ``AttributePipelines``.
 
         Notes
         -----
         This is not the preferred access method to getting population attributes
         since it does not implement various features (e.g. querying, simulant
-        tracking, etc). Use :meth:`vivarium.framework.population.population_view.PopulationView.get_attributes` or
-        :meth:`vivarium.framework.population.population_view.PopulationView.get_attribute_frame` instead.
+        tracking, etc); it exists for other managers to use if needed. Use
+        :meth:`vivarium.framework.population.population_view.PopulationView.get_attributes`
+        or :meth:`vivarium.framework.population.population_view.PopulationView.get_attribute_frame`
+        instead.
         """
         return self._manager.get_attribute_pipelines

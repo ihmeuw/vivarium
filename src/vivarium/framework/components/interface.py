@@ -21,28 +21,23 @@ if TYPE_CHECKING:
 
 
 class ComponentInterface(Interface):
-    """The builder interface for the component manager system.
-
-    This class defines component manager methods a ``vivarium`` component can
-    access from the builder. It provides methods for querying and adding components
-    to the :class:`ComponentManager <vivarium.framework.components.manager.ComponentManager>`.
-    """
+    """The builder interface for the component manager system."""
 
     def __init__(self, manager: ComponentManager):
         self._manager = manager
 
     def get_component(self, name: str) -> Component | Manager:
-        """Get the component that has ``name`` if presently held by the component
-        manager. Names are guaranteed to be unique.
+        """Get the component or manager that has ``name`` if presently held by the
+        component manager. Names are guaranteed to be unique.
 
         Parameters
         ----------
         name
-            A component name.
+            A component or manager name.
 
         Returns
         -------
-            A component that has name ``name``.
+            A component or manager that has name ``name``.
         """
         return self._manager.get_component(name)
 
@@ -62,11 +57,11 @@ class ComponentInterface(Interface):
         return self._manager.get_components_by_type(component_type)
 
     def list_components(self) -> dict[str, Component | Manager]:
-        """Get a mapping of component names to components held by the manager.
+        """Get a mapping of names to components or managers held by the manager.
 
         Returns
         -------
-            A dictionary mapping component names to components.
+            A dictionary mapping names to components or managers.
         """
         return self._manager.list_components()
 

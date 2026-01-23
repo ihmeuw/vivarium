@@ -176,7 +176,7 @@ def test_get_attributes_raises(pies_and_cubes_pop_mgr: PopulationManager) -> Non
 
     with pytest.raises(
         PopulationError,
-        match="Requested attribute\(s\) \{'foo'\} not in population table.",
+        match="Requested attribute\(s\) \{'foo'\} not in population state table.",
     ):
         pv.get_attributes(index, "foo")
 

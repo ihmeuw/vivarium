@@ -51,7 +51,7 @@ class ResultsManager(Manager):
         return self._name
 
     def get_results(self) -> dict[str, pd.DataFrame]:
-        """Return the measure-specific formatted results in a dictionary.
+        """Gets the measure-specific formatted results in a dictionary.
 
         Returns
         -------
@@ -66,7 +66,7 @@ class ResultsManager(Manager):
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: "Builder") -> None:
-        """Set up the results manager."""
+        """Sets up the results manager."""
         self._results_context.setup(builder)
 
         self.logger = builder.logging.get_logger(self.name)
@@ -95,23 +95,23 @@ class ResultsManager(Manager):
             self._raw_results[name] = observation.results_initializer()
 
     def on_time_step_prepare(self, event: Event) -> None:
-        """Define the listener callable for the time_step__prepare phase."""
+        """Defines the listener callable for the time_step__prepare phase."""
         self.gather_results(event)
 
     def on_time_step(self, event: Event) -> None:
-        """Define the listener callable for the time_step phase."""
+        """Defines the listener callable for the time_step phase."""
         self.gather_results(event)
 
     def on_time_step_cleanup(self, event: Event) -> None:
-        """Define the listener callable for the time_step__cleanup phase."""
+        """Defines the listener callable for the time_step__cleanup phase."""
         self.gather_results(event)
 
     def on_collect_metrics(self, event: Event) -> None:
-        """Define the listener callable for the collect_metrics phase."""
+        """Defines the listener callable for the collect_metrics phase."""
         self.gather_results(event)
 
     def gather_results(self, event: Event) -> None:
-        """Update existing results with any new results."""
+        """Updates existing results with any new results."""
         observations = self._results_context.get_observations(event)
         stratifications = self._results_context.get_stratifications(observations)
         if not observations or event.index.empty:
@@ -128,7 +128,7 @@ class ResultsManager(Manager):
     ##########################
 
     def set_default_stratifications(self, builder: "Builder") -> None:
-        """Set the default stratifications for the results context.
+        """Sets the default stratifications for the results context.
 
         This passes the default stratifications from the configuration to the
         :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`
@@ -151,10 +151,9 @@ class ResultsManager(Manager):
         is_vectorized: bool,
         requires_attributes: list[str] = [],
     ) -> None:
-        """Manager-level stratification registration.
+        """Registers a stratification that can be used by stratified observations.
 
-        Adds a stratification to the
-        :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`
+        Adds a stratification to the :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`
         as well as the stratification's required resources to this manager.
 
         Parameters
@@ -197,8 +196,7 @@ class ResultsManager(Manager):
         excluded_categories: list[str] | None,
         **cut_kwargs: int | str | bool,
     ) -> None:
-        """Manager-level registration of a continuous `target` quantity to observe
-        into bins in a `binned_column`.
+        """Registers a continuous `target` quantity to observe into bins in a `binned_column`.
 
         Parameters
         ----------
@@ -259,10 +257,7 @@ class ResultsManager(Manager):
         requires_attributes: list[str],
         **kwargs: Any,
     ) -> None:
-        """Manager-level observation registration.
-
-        Adds an observation to the
-        :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`.
+        """Registers an observation to the results system.
 
         Parameters
         ----------
@@ -323,7 +318,7 @@ class ResultsManager(Manager):
         additional_stratifications: list[str] = [],
         excluded_stratifications: list[str] = [],
     ) -> tuple[str, ...]:
-        """Resolve the stratifications required for the observation."""
+        """Resolves the stratifications required for the observation."""
         self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
 
         stratifications = list(
@@ -343,7 +338,7 @@ class ResultsManager(Manager):
         observations: list[Observation],
         stratifications: list[Stratification],
     ) -> pd.DataFrame:
-        """Prepare the population for results gathering."""
+        """Prepares the population for results gathering."""
         required_attributes = self._results_context.get_required_attributes(
             observations, stratifications
         )
@@ -394,7 +389,7 @@ class ResultsManager(Manager):
     def _warn_check_stratifications(
         self, additional_stratifications: list[str], excluded_stratifications: list[str]
     ) -> None:
-        """Check additional and excluded stratifications if they'd not affect
+        """Checks additional and excluded stratifications if they'd not affect
         stratifications (i.e., would be NOP), and emit warning."""
         nop_additional = [
             s
