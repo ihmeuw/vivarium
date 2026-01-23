@@ -394,7 +394,7 @@ class PopulationView:
         Parameters
         ----------
         update
-            The data which should be copied into the simulation's private data.
+            The data which should be copied into the simulation's private columns.
             If the ``update`` is a :class:`pandas.DataFrame`, it can contain a subset
             of the view's columns but no extra columns. If it's a :class:`pandas.Series`
             it must have a name that matches one of this view's columns unless the

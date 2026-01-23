@@ -139,7 +139,7 @@ class PopulationManager(Manager):
         Critically, the private columns dataframe not only contains all private
         columns created for the simulation, but also serves as the simulant
         index for the entire population. Even if no private columns are created,
-        this dataframe will exist and all simulants will be represetned by its index.
+        this dataframe will exist and all simulants will be represented by its index.
         """
         if self._private_columns is None:
             raise PopulationError("Population has not been initialized.")
