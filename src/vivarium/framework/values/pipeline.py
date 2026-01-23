@@ -23,7 +23,10 @@ T = TypeVar("T")
 
 
 class ValueSource(Resource):
-    """A resource representing the source of a value pipeline."""
+    """A resource representing the source of a value pipeline.
+
+    If the source is a private column, use :class:`PrivateColumnValueSource` instead.
+    """
 
     def __init__(
         self,
@@ -63,7 +66,7 @@ class ValueSource(Resource):
 
 
 class PrivateColumnValueSource(ValueSource):
-    """A resource representing the source of a value pipeline that is a private column."""
+    """A resource representing private column source of a value pipeline."""
 
     def __init__(
         self,
@@ -99,7 +102,7 @@ class PrivateColumnValueSource(ValueSource):
 
 
 class AttributesValueSource(ValueSource):
-    """A resource representing the source of an attribute pipeline that is a list of attributes."""
+    """A resource representing the list of attributes source of an attribute pipeline."""
 
     def __init__(
         self,
@@ -175,6 +178,12 @@ class Pipeline(Resource):
     need a source or to be configured. This might occur when writing
     generic components that create a set of pipeline modifiers for
     values that won't be used in the particular simulation.
+
+    Notes
+    -----
+    Pipelines are highy generic and can be used to calculate values of any type
+    through a simulation. *Most* pipelines are intended to calculate simulant
+    attributes; for those, use :class:`~vivarium.framework.values.pipeline.AttributePipeline`.
     """
 
     def __init__(self, name: str, component: Component | None = None) -> None:
@@ -274,7 +283,7 @@ class Pipeline(Resource):
     def get_value_modifier(
         self, modifier: Callable[..., Any], component: Component | Manager
     ) -> ValueModifier:
-        """Add a value modifier to the pipeline and return it.
+        """Adds a value modifier to the pipeline and returns it.
 
         Parameters
         ----------
@@ -296,7 +305,7 @@ class Pipeline(Resource):
         manager: ValuesManager,
     ) -> None:
         """
-        Add a source, combiner, post-processor, and manager to a pipeline.
+        Adds a source, combiner, post-processor, and manager to a pipeline.
 
         Parameters
         ----------
@@ -327,8 +336,8 @@ class AttributePipeline(Pipeline):
     """A type of value pipeline for calculating simulant attributes.
 
     An attribute pipeline is a specific type of :class:`~vivarium.framework.values.pipeline.Pipeline`
-    where the source and callable must take a pd.Index of integers and return a pd.Series or
-    pd.DataFrame that has that same index.
+    where the source and callable must take a pd.Index of integers and return a pd.Series
+    or pd.DataFrame that has that same index.
 
     """
 
@@ -352,7 +361,7 @@ class AttributePipeline(Pipeline):
     def __call__(  # type: ignore[override]
         self, index: pd.Index[int], skip_post_processor: bool = False
     ) -> pd.Series[Any] | pd.DataFrame:
-        """Generates the attributes dataframe represented by this pipeline.
+        """Generates the attributes represented by this pipeline.
 
         Arguments
         ---------

@@ -27,7 +27,7 @@ class RandomnessInterface(Interface):
     ) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
-        ``vivarium`` provides a framework for Common Random Numbers which
+        Vivarium provides a Common Random Number framework which
         allows for variance reduction when modeling counter-factual scenarios.
         Users interested in causal analysis and comparisons between simulation
         scenarios should be careful to use randomness streams provided by the
@@ -48,31 +48,31 @@ class RandomnessInterface(Interface):
 
         Returns
         -------
-            An entry point into the Common Random Number generation framework.
+            An entry point into the Common Random Number framework.
             The stream provides vectorized access to random numbers and a few
             other utilities.
         """
         return self._manager.get_randomness_stream(decision_point, initializes_crn_attributes)
 
     def get_seed(self, decision_point: str) -> int:
-        """Get a randomly generated seed for use with external randomness tools.
+        """Gets a randomly generated seed for use with external randomness tools.
 
         Parameters
         ----------
-        decision_point :
-            A unique identifier for a stream of random numbers.  Typically
+        decision_point
+            A unique identifier for a stream of random numbers. Typically
             represents a decision that needs to be made each time step like
             'moves_left' or 'gets_disease'.
 
         Returns
         -------
             A seed for a random number generation that is linked to Vivarium's
-            common random number framework.
+            Common Random Number framework.
         """
         return self._manager.get_seed(decision_point)
 
     def register_simulants(self, simulants: pd.DataFrame) -> None:
-        """Registers simulants with the Common Random Number Framework.
+        """Registers simulants with the Common Random Number framework.
 
         Parameters
         ----------

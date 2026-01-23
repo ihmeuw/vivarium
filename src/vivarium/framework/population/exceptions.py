@@ -3,7 +3,7 @@
 Population Management Exceptions
 ================================
 
-Errors related to the mishandling of the simulation state table.
+Errors related to the mishandling of the population state table.
 """
 
 from vivarium.exceptions import VivariumError

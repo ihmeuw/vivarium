@@ -36,7 +36,7 @@ from vivarium.manager import Interface, Manager
 
 
 class SimulationClock(Manager):
-    """A base clock that includes global clock and a pandas series of clocks for each simulant"""
+    """A time manager that includes a global clock and simulant-specific clocks."""
 
     @property
     def name(self) -> str:
@@ -262,7 +262,7 @@ def get_time_stamp(time: dict[str, int]) -> pd.Timestamp:
 
 
 class DateTimeClock(SimulationClock):
-    """A date-time based simulation clock."""
+    """A time manager that uses a date-time based simulation clock."""
 
     CONFIGURATION_DEFAULTS = {
         "time": {
@@ -303,6 +303,8 @@ class DateTimeClock(SimulationClock):
 
 
 class TimeInterface(Interface):
+    """Public interface for the simulation time management system."""
+
     def __init__(self, manager: SimulationClock) -> None:
         self._manager = manager
 
