@@ -47,7 +47,7 @@ def build_model_specification(
 
 
 def validate_model_specification_file(file_path: str | Path) -> None:
-    """Ensures the provided file is a yaml file"""
+    """Ensures the provided file is a yaml file."""
     file_path = Path(file_path)
     if not file_path.exists():
         raise ConfigurationError(

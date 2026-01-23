@@ -33,9 +33,8 @@ def rescale_post_processor(
 ) -> pd.Series[float] | pd.DataFrame:
     """Rescales annual rates to time-step appropriate rates.
 
-    This should only be used with a simulation using a
-    :class:`~vivarium.framework.time.DateTimeClock` or another implementation
-    of a clock that traffics in pandas date-time objects.
+    This should only be used with a simulation using a :class:`~vivarium.framework.time.DateTimeClock`
+    or another implementation of a clock that traffics in pandas date-time objects.
 
     Parameters
     ----------
@@ -86,8 +85,7 @@ def union_post_processor(
     """Computes a probability on the union of the sample spaces in the values.
 
     Given a list of values where each value is a probability of an independent
-    event, this post processor computes the probability of the union of the
-    events.
+    event, this post processor computes the probability of the union of the events.
 
     .. list-table::
        :width: 100%
@@ -105,9 +103,8 @@ def union_post_processor(
     Parameters
     ----------
     values
-        A list of independent proportions or probabilities, either
-        as numbers or as a something we can broadcast addition and
-        multiplication over.
+        A list of independent proportions or probabilities, either as numbers or
+        as a something we can broadcast addition and multiplication over.
 
     Returns
     -------

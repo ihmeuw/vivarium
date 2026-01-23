@@ -326,7 +326,7 @@ def test_get_population_column_ordering(include_duplicates: bool, query: str | N
 def test_get_population_raises_missing_attributes(
     attributes: list[str], pies_and_cubes_pop_mgr: PopulationManager
 ) -> None:
-    with pytest.raises(PopulationError, match="not in population table"):
+    with pytest.raises(PopulationError, match="not in population state table"):
         pies_and_cubes_pop_mgr.get_population(attributes)
 
 

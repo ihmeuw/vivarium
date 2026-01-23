@@ -116,7 +116,7 @@ corresponding column names which are used to query an internal
 when the table itself is called. This means the lookup table only needs to be
 called with a population index -- it gathers the population information it
 needs itself. It also means the data must be available in the
-:term:`population state table <State Table>` with the same column name.
+:term:`population state table <Population State Table>` with the same column name.
 
 In the table below is an example of (unrealistic) data that could be
 used to create a lookup table for a quantity of interest about a population,

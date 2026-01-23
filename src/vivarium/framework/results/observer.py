@@ -50,7 +50,7 @@ class Observer(Component, ABC):
         }
 
     def get_configuration_name(self) -> str:
-        """Return the name of a concrete observer for use in the configuration"""
+        """Returns the name of a concrete observer for use in the configuration"""
         return self.name.split("_observer")[0]
 
     def get_configuration(self, builder: Builder) -> LayeredConfigTree:
@@ -60,17 +60,17 @@ class Observer(Component, ABC):
 
     @abstractmethod
     def register_observations(self, builder: Builder) -> None:
-        """(Required). Register observations with within each observer."""
+        """Registers observations with within each observer."""
         pass
 
     def setup_component(self, builder: Builder) -> None:
-        """Set up the observer component."""
+        """Sets up the observer component."""
         super().setup_component(builder)
         self.register_observations(builder)
         self.set_results_dir(builder)
 
     def set_results_dir(self, builder: Builder) -> None:
-        """Define the results directory from the configuration."""
+        """Defines the results directory from the configuration."""
         self.results_dir = (
             builder.configuration.to_dict()
             .get("output_data", {})

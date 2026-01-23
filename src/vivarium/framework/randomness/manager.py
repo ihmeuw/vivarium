@@ -124,7 +124,7 @@ class RandomnessManager(Manager):
 
         Returns
         -------
-            An entry point into the Common Random Number generation framework.
+            An entry point into the Common Random Number framework.
             The stream provides vectorized access to random numbers and a few
             other utilities.
 
@@ -209,7 +209,7 @@ class RandomnessManager(Manager):
         return stream
 
     def get_seed(self, decision_point: str) -> int:
-        """Get a randomly generated seed for use with external randomness tools.
+        """Gets a randomly generated seed for use with external randomness tools.
 
         Parameters
         ----------
@@ -221,7 +221,7 @@ class RandomnessManager(Manager):
         Returns
         -------
             A seed for a random number generation that is linked to Vivarium's
-            common random number framework.
+            Common Random Number framework.
         """
         return get_hash("_".join([decision_point, str(self._clock()), str(self._seed)]))
 
@@ -231,7 +231,7 @@ class RandomnessManager(Manager):
         Parameters
         ----------
         simulants
-            A table with state data representing the new simulants.  Each
+            A table with state data representing the new simulants. Each
             simulant should pass through this function exactly once.
 
         Raises
