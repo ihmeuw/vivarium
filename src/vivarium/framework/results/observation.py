@@ -90,7 +90,7 @@ class Observation(ABC):
         df: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str, bool],
         stratifications: tuple[str, ...] | None,
     ) -> pd.DataFrame:
-        """Gather the results of the observation.
+        """Gathers the results of the observation.
 
         Parameters
         ----------
@@ -183,7 +183,7 @@ class UnstratifiedObservation(Observation):
 
     @staticmethod
     def create_empty_df() -> pd.DataFrame:
-        """Initialize an empty dataframe.
+        """Initializes an empty dataframe.
 
         Returns
         -------
@@ -262,7 +262,7 @@ class StratifiedObservation(Observation):
         df: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str, bool],
         stratifications: tuple[str, ...] | None,
     ) -> pd.DataFrame:
-        """Gather the results of the observation.
+        """Gathers the results of the observation.
 
         Parameters
         ----------
@@ -290,7 +290,7 @@ class StratifiedObservation(Observation):
                 results.index.rename(get_original_col_name(idx_name), inplace=True)
 
     def create_expanded_df(self) -> pd.DataFrame:
-        """Initialize a dataframe of 0s with complete set of stratifications as the index.
+        """Initializes a dataframe of 0s with complete set of stratifications as the index.
 
         Returns
         -------
@@ -336,7 +336,7 @@ class StratifiedObservation(Observation):
         pop_groups: DataFrameGroupBy[str, bool],
         stratifications: tuple[str, ...],
     ) -> pd.DataFrame:
-        """Gather results for this observation.
+        """Gathers results for this observation.
 
         Parameters
         ----------
@@ -362,9 +362,7 @@ class StratifiedObservation(Observation):
         aggregator_sources: list[str] | None,
         aggregator: Callable[[pd.DataFrame], float | pd.Series[float]],
     ) -> pd.Series[float] | pd.DataFrame:
-        """Apply the `aggregator` to the population groups and their
-        `aggregator_sources` columns.
-        """
+        """Applies the provided aggregator to the popoulation groups."""
         aggregates = (
             pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)  # type: ignore [arg-type]
             if aggregator_sources
@@ -374,9 +372,7 @@ class StratifiedObservation(Observation):
 
     @staticmethod
     def _format(aggregates: pd.Series[float] | pd.DataFrame) -> pd.DataFrame:
-        """Convert the results to a pandas DataFrame if necessary and ensure the
-        results column name is 'value'.
-        """
+        """Converts the results to a dataframe and ensures the results column name is 'value'."""
         df = pd.DataFrame(aggregates) if isinstance(aggregates, pd.Series) else aggregates
         if df.shape[1] == 1:
             df.rename(columns={df.columns[0]: "value"}, inplace=True)
@@ -384,7 +380,7 @@ class StratifiedObservation(Observation):
 
     @staticmethod
     def _expand_index(aggregates: pd.DataFrame) -> pd.DataFrame:
-        """Include all stratifications in the results by filling missing values with 0."""
+        """Includes all stratifications in the results by filling missing values with 0."""
         full_idx = (
             pd.MultiIndex.from_product(aggregates.index.levels)
             if isinstance(aggregates.index, pd.MultiIndex)
@@ -456,7 +452,7 @@ class AddingObservation(StratifiedObservation):
     def add_results(
         existing_results: pd.DataFrame, new_observations: pd.DataFrame
     ) -> pd.DataFrame:
-        """Add newly-observed results to the existing results.
+        """Adds newly-observed results to the existing results.
 
         Parameters
         ----------
@@ -543,7 +539,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
     def concatenate_results(
         existing_results: pd.DataFrame, new_observations: pd.DataFrame
     ) -> pd.DataFrame:
-        """Concatenate the existing results with the new observations.
+        """Concatenates the existing results with the new observations.
 
         Parameters
         ----------

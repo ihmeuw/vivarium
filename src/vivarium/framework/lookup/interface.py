@@ -20,7 +20,7 @@ from vivarium.types import LookupTableData
 
 
 class LookupTableInterface(Interface):
-    """The lookup table management system.
+    """The interface to the lookup table management system.
 
     Simulations tend to require a large quantity of data to run. ``vivarium``
     provides the :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`

@@ -3,11 +3,11 @@
 The Population View
 ===================
 
-The :class:`PopulationView` is a user-facing abstraction that manages read and write access
-to the underlying simulation :term:`state table`. It has two primary responsibilities:
+The :class:`PopulationView` is a user-facing abstraction that manages read and write 
+access to the underlying :term:`population state table <Population State Table>`.
+It has two primary responsibilities:
 
-    1. To provide user access to subsets of the simulation state table
-       when it is safe to do so.
+    1. To provide user access to subsets of the state table when it is safe to do so.
     2. To allow the user to update private data in a controlled way.
 
 """
@@ -26,11 +26,11 @@ if TYPE_CHECKING:
 
 
 class PopulationView:
-    """A read/write manager for the simulation private data.
+    """A read/write manager for the population state table.
 
     It can be used to both read and update the state of the population. While a
-    PopulationView can read any columns, it can only write those columns that the
-    component it is attached to created.
+    PopulationView can read any column, it can only write those columns that the
+    component it is attached to created (i.e. that component's private columns).
 
     Attempts to update non-existent columns are ignored except during
     simulant creation when new columns are allowed to be created.
@@ -70,7 +70,11 @@ class PopulationView:
 
     @property
     def private_columns(self) -> list[str]:
-        """The private columns managed by this PopulationView."""
+        """The names of private columns managed by this PopulationView.
+
+        These private columns are those that were created by the component
+        that created this view.
+        """
         if self._component is None:
             raise PopulationError(
                 "This PopulationView is read-only, so it doesn't have access to private_columns."
@@ -83,6 +87,9 @@ class PopulationView:
 
     def set_default_query(self, query: str) -> None:
         """Sets the default query for this population view.
+
+        This is the query that is applied to all data requests made through this
+        population view unless the caller explicitly opts out of including it.
 
         Parameters
         ----------
@@ -136,19 +143,21 @@ class PopulationView:
         include_untracked: bool = False,
         skip_post_processor: Literal[True, False] = False,
     ) -> Any:
-        """Get a specific subset of this ``PopulationView``.
+        """Gets a specific subset of the population state table.
 
         For the rows in ``index``, return the ``attributes`` (i.e. columns) from the
-        simulation's population. The resulting rows may be further filtered by the
-        view's ``query`` and only return a subset of the population represented by the index.
+        state table. The resulting rows may be further filtered by the call's ``query``
+        and whether or not to include this ``PopulationView``'s default query and/or
+        untracked simulants.
 
         Parameters
         ----------
         index
-            Index of the population to get.
+            Index of the population to get. This may be further filtered by various
+            query conditions.
         attributes
-            The columns to retrieve. If a single column is passed in via a string, the
-            result will be attempted to be squeezed to a Series.
+            The attributes to retrieve. If a single attribute is passed in via a
+            string, the result will be squeezed to a Series if possible.
         query
             Additional conditions used to filter the index. If ``include_default_query``
             is True, it will be combined with this PopulationView's query property.
@@ -168,9 +177,9 @@ class PopulationView:
 
         Returns
         -------
-            The attribute(s) requested subset to the ``index`` and ``query``.
-            If ``skip_post_processor`` is False, will return a Series if a single
-            column is requested or a Dataframe otherwise.
+            The attribute(s) requested subset to the ``index`` and filtered using
+            the various optional queries. If ``skip_post_processor`` is False, will
+            return a Series if a single attribute is requested or a Dataframe otherwise.
 
         Raises
         ------
@@ -204,18 +213,19 @@ class PopulationView:
         include_default_query: bool = True,
         include_untracked: bool = False,
     ) -> pd.DataFrame:
-        """Get a single attribute as a DataFrame.
+        """Gets a single attribute as a DataFrame.
 
         For the rows in ``index``, return the ``attributes`` (i.e. columns) from the
-        simulation's population. The resulting rows may be further filtered by the
-        view's ``query`` and only return a subset of the population represented by the index.
+        state table. The resulting rows may be further filtered by the call's ``query``
+        and whether or not to include this ``PopulationView``'s default query and/or
+        untracked simulants.
 
         Parameters
         ----------
         index
             Index of the population to get.
         attribute
-            The attribute to retrieve. This attribute may contain a one or more columns.
+            The attribute to retrieve. This attribute may contain one or more columns.
         query
             Additional conditions used to filter the index. If ``include_default_query``
             is True, it will be combined with this PopulationView's query property.
@@ -228,18 +238,18 @@ class PopulationView:
         -----
         The difference between this method and ``get_attributes`` is subtle. This
         method always returns a dataframe even if the requested attribute contains
-        only a single column. Further, in the event the value has a multi-index
-        column, it will be squeezed to only the inner columns.
+        a single column. Further, in the event the attribute has multi-level columns,
+        it will be squeezed to only return the inner columns.
 
         Calling ``get_attributes`` to request a list of a single attribute seems
-        identical to this, but in that case the underlying value
-        would not be squeezed at all, i.e. a dataframe with multi-index columns
-        would also return the outer column.
+        identical to this, but in that case the underlying data would not be squeezed
+        at all, i.e. a dataframe with multi-level columns would also return the
+        outer columns.
 
         Returns
         -------
-            The attribute requested subset to the ``index`` and ``query``. Will always
-            return a DataFrame.
+            The attribute requested subset to the ``index`` and filtered using
+            the various optional queries. Will always return a DataFrame.
 
         """
         return pd.DataFrame(
@@ -291,11 +301,12 @@ class PopulationView:
         include_default_query: bool = True,
         include_untracked: bool = False,
     ) -> pd.Series[Any] | pd.DataFrame:
-        """Get a specific subset of this ``PopulationView's`` private columns.
+        """Gets a specific subset of this ``PopulationView's`` private columns.
 
         For the rows in ``index``, return the requested ``private_columns``. The
-        resulting rows may be further filtered by the view's ``query`` and only
-        return a subset of the data represented by the index.
+        resulting rows may be further filtered by the call's ``query`` and whether
+        or not to include this ``PopulationView``'s default query and/or untracked
+        simulants.
 
         Parameters
         ----------
@@ -314,8 +325,15 @@ class PopulationView:
 
         Returns
         -------
-            The private column(s) requested subset to the ``index`` and ``query``. Will return
-            a Series if a single column is requested or a Dataframe otherwise.
+            The private column(s) requested subset to the ``index`` and filtered
+            using the various optional queries. Will return a Series if a single
+            column is requested or a Dataframe otherwise.
+
+        Raises
+        ------
+        PopulationError
+            If there is no component attached to this view (indicating that this
+            view is to be read-only and thus cannot access private columns).
         """
 
         if self._component is None:
@@ -339,9 +357,11 @@ class PopulationView:
         include_default_query: bool = True,
         include_untracked: bool = False,
     ) -> pd.Index[int]:
-        """Get a specific index of the population.
+        """Gets a specific index of the population.
 
-        The requested index may be further filtered by the view's ``query``.
+        The requested index may be further filtered by the call's ``query`` and
+        whether or not to include this ``PopulationView's`` default query and/or
+        untracked simulants.
 
         Parameters
         ----------
@@ -369,28 +389,33 @@ class PopulationView:
         ).index
 
     def update(self, update: pd.Series[Any] | pd.DataFrame) -> None:
-        """Updates the private data with the provided data.
+        """Updates private columns with the provided data.
 
         Parameters
         ----------
         update
-            The data which should be copied into the simulation's private data. If
-            the update is a :class:`pandas.DataFrame`, it can contain a subset
-            of the view's columns but no extra columns. If ``pop`` is a
-            :class:`pandas.Series` it must have a name that matches one of
-            this view's columns unless the view only has one column in which
-            case the Series will be assumed to refer to that regardless of its
-            name.
+            The data which should be copied into the simulation's private columns.
+            If the ``update`` is a :class:`pandas.DataFrame`, it can contain a subset
+            of the view's columns but no extra columns. If it's a :class:`pandas.Series`
+            it must have a name that matches one of this view's columns unless the
+            view only has one column in which case the Series will be assumed to
+            refer to that regardless of its name.
 
         Raises
         ------
         PopulationError
-            - If the ``component`` attribute is set to None (indicating that this
-            view is to be read-only and thus cannot be updated).
-            - If the provided update name or columns do not match columns that this
-            view manages.
-            - If the view is being updated with a data type inconsistent with the
-            original data.
+            - If there is no component attached to this view (indicating that this
+              view is to be read-only and thus cannot be updated).
+            - If the update has simulants that are not in the existing private data.
+            - If the update is missing simulants during initial population creation.
+            - If this view manages multiple private columns but the update is an
+              unnamed :class:`pandas.Series`.
+            - If the update contains columns not managed by this view.
+            - If the update is empty.
+            - If the update includes different dtypes than the existing data (unless
+              new simulants are being added).
+        TypeError
+            If the update is not a :class:`pandas.Series` or a :class:`pandas.DataFrame`.
         """
 
         if self._component is None:
@@ -458,18 +483,15 @@ class PopulationView:
 
             1. The update is a DataFrame or a Series.
             2. If it is a series, it is nameless and this view manages a single column
-               or it is named and it's name matches a column in this PopulationView.
+               or it is named and its name matches a column in this PopulationView.
             3. The update matches at least one column in this PopulationView.
             4. The update columns are a subset of the columns managed by this
                PopulationView.
             5. The update index is a subset of the existing private data index.
                PopulationViews don't make rows, they just fill them in.
 
-        For initial population creation additional preconditions are documented in
-        :meth:`PopulationView._ensure_coherent_initialization`. Outside population
-        initialization, we require that all columns in the update to be present in
-        the existing private data. When new simulants are added in the middle of the
-        simulation, we require that only one component provide updates to a column.
+        Note that except during population initialization, we require that all columns
+        in the update to be present in the existing private data.
 
         Parameters
         ----------
@@ -489,16 +511,6 @@ class PopulationView:
         Returns
         -------
             The input data formatted as a DataFrame.
-
-        Raises
-        ------
-        TypeError
-            If the population update is not a :class:`pandas.Series` or a
-            :class:`pandas.DataFrame`.
-        PopulationError
-            If the update violates any preconditions relevant to the context in which
-            the update is provided (initial population creation, population creation on
-            time steps, or population state changes on time steps).
 
         """
         assert not creating_initial_population or adding_simulants
@@ -528,7 +540,7 @@ class PopulationView:
         update: pd.Series[Any] | pd.DataFrame,
         private_columns: list[str],
     ) -> pd.DataFrame:
-        """Coerce all population updates to a :class:`pandas.DataFrame` format.
+        """Coerces all population updates to a :class:`pandas.DataFrame` format.
 
         Parameters
         ----------
@@ -540,16 +552,6 @@ class PopulationView:
         Returns
         -------
             The input data formatted as a DataFrame.
-
-        Raises
-        ------
-        TypeError
-            If the population update is not a :class:`pandas.Series` or a
-            :class:`pandas.DataFrame`.
-        PopulationError
-            If the input data is a :class:`pandas.Series` and this :class:`PopulationView`
-            manages multiple columns or if the population update contains columns not
-            managed by this view.
         """
         if not isinstance(update, (pd.Series, pd.DataFrame)):
             raise TypeError(
@@ -591,9 +593,9 @@ class PopulationView:
         existing: pd.Series[Any],
         adding_simulants: bool,
     ) -> pd.Series[Any]:
-        """Build the updated private data column with an appropriate dtype.
+        """Builds the updated private column with an appropriate dtype.
 
-        This method updates any existing column values with their corresponding
+        This method updates any existing private column values with their corresponding
         new values from the update; existing values not in the update are preserved.
         It also ensures that the resulting column has a dtype consistent with the
         original column (unless new simulants are being added).
@@ -603,7 +605,7 @@ class PopulationView:
         update
             The new column values for a subset of the existing index.
         existing
-            The existing column values for all simulants in the private data.
+            The existing column values for all simulants.
         adding_simulants
             Whether new simulants are currently being initialized.
 

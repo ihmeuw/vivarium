@@ -30,14 +30,16 @@ if TYPE_CHECKING:
 
 
 ResultsUpdater = Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
-"""This is a Callable that takes existing results and new observations and returns updated results."""
+"""A Callable that takes existing results and new observations and returns updated results."""
 ResultsFormatter = Callable[[str, pd.DataFrame], pd.DataFrame]
-"""This is a Callable that takes a measure as a string and a DataFrame of observation results and returns formatted results."""
+"""A Callable that takes a measure as a string and a DataFrame of observation results
+and returns formatted results."""
 ResultsGathererInput = Union[
     pd.DataFrame, DataFrameGroupBy, tuple[str, ...], None  # type: ignore [type-arg]
 ]
 ResultsGatherer = Callable[[ResultsGathererInput], pd.DataFrame]
-"""This is a Callable that optionally takes a possibly stratified population and returns new observation results."""
+"""A Callable that optionally takes a possibly stratified population and returns
+new observation results."""
 
 
 def _required_function_placeholder(
@@ -46,21 +48,24 @@ def _required_function_placeholder(
     | tuple[str, pd.DataFrame],
     **kwargs: Any,
 ) -> pd.DataFrame:
-    """Placeholder function to indicate that a required function is missing."""
+    """Returns and empty dataframe.
+
+    Placeholder function to indicate that a required function is missing.
+    """
     return pd.DataFrame()
 
 
 def _default_stratified_observation_formatter(
     measure: str, results: pd.DataFrame
 ) -> pd.DataFrame:
-    """Default formatter for stratified observations."""
+    """Resets the results index."""
     return results.reset_index()
 
 
 def _default_unstratified_observation_formatter(
     measure: str, results: pd.DataFrame
 ) -> pd.DataFrame:
-    """Default formatter for unstratified observations."""
+    """Returns the results unchanged."""
     return results
 
 

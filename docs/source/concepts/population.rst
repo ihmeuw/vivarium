@@ -21,10 +21,10 @@ The State Table
 ---------------
 
 The core representation of simulants and their state information in ``Vivarium``
-is a :class:`pandas.DataFrame` known as the state table. Under this
-representation rows represent simulants while columns correspond to state
-attributes like age, sex or systolic blood pressure. These columns represent one
-of several important resources within ``Vivarium`` that other components can
+is a :class:`pandas.DataFrame` known as the population state table (or just "state 
+table"). Under this representation rows represent simulants while columns correspond 
+to state attributes like age, sex or systolic blood pressure. These columns represent 
+one of several important resources within ``Vivarium`` that other components can
 draw on. Each of the actions we need to be able to take correspond to a
 manipulation of this state table. The addition of new simulants is the creation
 of rows, the creation of new state attributes is the creation of columns, and
