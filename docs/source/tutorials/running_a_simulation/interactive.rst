@@ -11,7 +11,7 @@ Running a simulation in this way is useful for a variety of reasons, foremost
 for debugging and validation work. It allows for changing simulation
 :term:`configuration <Configuration>` programmatically, stepping through a
 simulation in a controlled fashion, and examining the
-:term:`state <State Table>` of the simulation itself.
+:term:`state <Population State Table>` of the simulation itself.
 
 
 For the following tutorial, we will assume you have set up an environment and

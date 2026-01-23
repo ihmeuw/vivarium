@@ -115,7 +115,7 @@ the simulation components will have their ``setup`` method called with
 the simulation :ref:`builder <builder_concept>` as an argument.  The
 builder allows the components to request services like
 :ref:`randomness <crn_concept>` or views into the
-:term:`population state table <State Table>` or to register themselves
+:term:`state table <Population State Table>` or to register themselves
 with various simulation subsystems. Setting up components may also involve
 loading data, registering or getting :ref:`pipelines <values_concept>`,
 creating :ref:`lookup tables <lookup_concept>`, and registering
@@ -173,7 +173,7 @@ the state transitions by emitting a series of events for each
    simulation outputs.
 
 By listening for these events, individual components can perform actions,
-including manipulating the :ref:`state table <population_concept>`. This
+including manipulating the :ref:`population state table <population_concept>`. This
 sequence of events is repeated until the simulation clock passes the
 simulation end time.
 

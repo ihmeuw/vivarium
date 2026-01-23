@@ -65,7 +65,7 @@ class Mortality(Component):
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """Called by the simulation whenever new simulants are added.
 
-        This component is responsible for creating and filling the 'alive' column
+        This component is responsible for creating and filling the 'is_alive' column
         in the population state table.
 
         Parameters

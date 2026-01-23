@@ -8,7 +8,7 @@ import re
 
 
 def extract_columns_from_query(query: str) -> set[str]:
-    """Extract column names required by a query string."""
+    """Extracts the column names required by a query string."""
 
     # Extract columns with backticks
     columns = re.findall(r"`([^`]*)`", query)

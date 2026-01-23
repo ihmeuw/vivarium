@@ -5,7 +5,7 @@ The Values System
 =================
 
 The values system provides an interface to an alternative representation of
-:term:`state <State Table>` in the simulation: pipelines.
+:term:`state <Population State Table>` in the simulation: pipelines.
 :class:`Pipelines <vivarium.framework.values.pipeline.Pipeline>` are dynamically
 calculated values that can be constructed across multiple
 :ref:`components <components_concept>`. This ability for multiple
