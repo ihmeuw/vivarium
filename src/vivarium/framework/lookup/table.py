@@ -44,8 +44,8 @@ class LookupTable(ABC, Resource, Generic[T]):
 
     Notes
     -----
-    These should not be created directly. Use the `lookup` method on the builder
-    during setup.
+    These should not be created directly. Use the :attr:`~vivarium.framework.engine.Builder.lookup`
+    attribute on the :class:`~vivarium.framework.engine.Builder` class during setup.
 
     """
 
@@ -110,10 +110,7 @@ class LookupTable(ABC, Resource, Generic[T]):
         return "LookupTable()"
 
     @staticmethod
-    def get_name(
-        component_name: str,
-        table_name: str,
-    ) -> str:
+    def get_name(component_name: str, table_name: str) -> str:
         """Get the fully qualified name for a lookup table.
 
         Parameters
@@ -241,8 +238,7 @@ class InterpolatedTable(LookupTable[T]):
 
 
 class CategoricalTable(LookupTable[T]):
-    """
-    A callable that selects values from a table based on categorical parameters
+    """A callable that selects values from a table based on categorical parameters
     across an index.
 
     Notes
@@ -333,6 +329,7 @@ class ScalarTable(LookupTable[T]):
     -----
     These should not be created directly. Use the `lookup` interface on the
     builder during setup.
+
     """
 
     def __init__(
@@ -362,7 +359,6 @@ class ScalarTable(LookupTable[T]):
         -------
             A table with a column for each of the scalar values for the
             population requested.
-
         """
         if not isinstance(self.data, (list, tuple)):
             values_series: pd.Series[Any] = pd.Series(
