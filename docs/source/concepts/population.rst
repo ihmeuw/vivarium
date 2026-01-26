@@ -35,13 +35,14 @@ and updating of state is reading and updating the dataframe itself.
 Attributes
 ----------
 
-Attributes are the fundamental unit of state in the population state table. They
-are a particular type of :term:`values <Value>` that are produced by on-demand by
-:term:`attribute pipelines <Attribute Pipeline>`. When a component the state table
-(or some subset of it), each attribute requested is calculated via its corresponding
-attribute pipeline and returned in tabular form. For example, when a component requests 
-the entire population's age, the "age" attribute pipeline calculates the age of
-all simulants and returns a ``pandas.Series`` of age values.
+Attributes are the fundamental characteristics of a population and are represented
+by columns in the population state table. They are a particular type of :term:`values <Value>`
+that are produced by on-demand by :term:`attribute pipelines <Attribute Pipeline>`.
+When a component requires the state table (or some subset of it), each attribute
+requested is calculated via its corresponding attribute pipeline and returned in
+tabular form. For example, when a component requests the entire population's age,
+the "age" attribute pipeline calculates the age of all simulants and returns a
+``pandas.Series`` of age values.
 
 .. note::
    The population system is distinct from the :ref:`values system documentation <values_concept>`
@@ -55,11 +56,10 @@ Population Views
 As mentioned above, columns in the state table are dynamically generated via attribute
 pipelines as needed. The population manager holds this logic and tightly controls
 read and write access to it through a structure it provides known as a "population
-view". A population view itself represents a subset of columns and rows from the
-state table as well as any :term:`private columns <Private Column>` it has access
-to, i.e. any private columns created by the component the view is attached to.
-Through a view, components can read, update, or, under the right circumstances,
-create new state in the state table.
+view". A population view itself provides access to a subset of columns and rows
+from the state table as well as any :term:`private columns <Private Column>` created
+by the component the view is attached to. Through a view, components can read, update,
+or, under the right circumstances, create new state in the state table.
 
 Views are created for components in a simulation by specifying the component
 needing it and an optional query string to the population manager interface. All
@@ -82,8 +82,8 @@ There are three types of filtering that can be applied when using a population v
 to get attributes or private columns.
 
 First, after a population view has been created on a component, that component can
-call :meth:`vivarium.framework.population.population_view.PopulationView.set_default_query` to
-set a query that will be used by default every time that view is used to access
+call :meth:`vivarium.framework.population.population_view.PopulationView.set_default_query`
+to set a query that will be used by default every time that view is used to access
 data. There is an optional ``include_default_query`` argument that defaults to True
 that can be used to bypass default query filtering if desired.
 
