@@ -70,7 +70,7 @@ source data for attributes, e.g. updating all simulants' ages on every time step
 
 There are several methods on a population view that facilitate working with the
 state table, including ones to get the population index, attributes, or private
-columns. There is also an :meth:`~ <vivarium.framework.population.poulation_view.update>`
+columns. There is also an :meth:`~vivarium.framework.population.population_view.PopulationView.update`
 method that accepts a dataframe and replaces private column data according to column
 and index. This method is also used at simulant initialization time to create initial
 state.
@@ -82,7 +82,7 @@ There are three types of filtering that can be applied when using a population v
 to get attributes or private columns.
 
 First, after a population view has been created on a component, that component can
-call :meth:`<vivarium.framework.population.population_view.set_default_query>` to
+call :meth:`vivarium.framework.population.population_view.PopulationView.set_default_query` to
 set a query that will be used by default every time that view is used to access
 data. There is an optional ``include_default_query`` argument that defaults to True
 that can be used to bypass default query filtering if desired.
@@ -109,7 +109,7 @@ a simulant allows for automatic filtering of those simulants from population vie
 so that components can ignore them. This is useful to reduce computational overhead
 when simulants are no longer relevant to the simulation, e.g. deceased individuals
 or those who have aged beyond the scope of interest. A component can register a
-tracked query via :meth:`<vivarium.framework.population.interface.register_tracked_query>`.
+tracked query via :meth:`vivarium.framework.population.interface.PopulationInterface.register_tracked_query`.
 
 .. note::
 
@@ -185,8 +185,8 @@ all components.
 
 Not all attributes use a private column as their source, however. A component can
 also register an attribute pipeline explicitly during its setup phase by calling
-the population manager interface's :meth:`~ <vivarium.frameowrk.population.interface.register_attribute_producer>` 
-or :meth:`~ <vivarium.frameowrk.population.interface.register_rate_producer>` methods.
+the values manager interface's :meth:`~vivarium.framework.values.interface.ValuesInterface.register_attribute_producer` 
+or :meth:`~vivarium.framework.values.interface.ValuesInterface.register_rate_producer` methods.
 
 Creating Simulants
 ------------------
@@ -210,7 +210,7 @@ initialization state during the setup phase, and the main event loop.
 
 The simulant creator function first adds rows to the state table. It then loops
 through a set of functions that have been registered to it as population
-initializers via :meth:`~ <vivarium.framework.population.interface.register_initializer>`,
+initializers via :meth:`~vivarium.framework.population.interface.PopulationInterface.register_initializer`,
 passing in the index of the newly created simulants. These functions generally proceed
 by using population views to dictate the state of the newly created simulants they
 are responsible for. It is the only time creating columns in the state table is

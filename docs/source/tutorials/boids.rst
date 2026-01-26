@@ -290,10 +290,10 @@ to their velocity.
 To get population attributes such as ``acceleration`` inside on_time_step,
 we leverage a :class:`~vivarium.framework.population.population_view.PopulationView`
 which provides a handful of methods designed to get when you need. In this case, 
-we call :meth:`~vivarium.framework.population.population_view.get_attribute_frame` 
+we call :meth:`~vivarium.framework.population.population_view.PopulationView.get_attribute_frame` 
 to get the acceleration attribute. We pass in the ``event.index`` which is the set 
 of simulants affected by the event (in this case, all of them). Note that there is
-also available a :meth:`~vivarium.framework.population.population_view.get_attributes`
+also available a :meth:`~vivarium.framework.population.population_view.PopulationView.get_attributes`
 method which is similar to ``get_attribute_frame`` but can request multiple attributes
 at once and does not necessarily return a dataframe.
 
@@ -308,7 +308,7 @@ at once and does not necessarily return a dataframe.
 
 We also make a call to the population view's ``get_private_columns`` method to get
 all the private columns created by this component (``x``, ``y``, ``vx``, and ``vy``).
-A :term:`private column <private_column>` is one that acts as a *source* of an
+A :term:`private column <Private Column>` is one that acts as a *source* of an
 attribute. 
 
 .. note::

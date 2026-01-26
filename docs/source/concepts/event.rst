@@ -146,7 +146,7 @@ another row to our dataframe tracking the number of affected simulants.
 
 .. note::
 
-   If a new component is being created that inherits from :class:`vivarium.framework.component.Component`,
+   If a new component is being created that inherits from :class:`vivarium.component.Component`,
    listeners are registered automatically if the component defines methods named
    ``on_<event_name>``, where ``<event_name>`` is one of the lifecycle names
    (e.g. ``time_step``, ``collect_metrics``, etc.).

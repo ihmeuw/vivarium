@@ -293,7 +293,7 @@ and 'age' columns (with ``age_randomness`` as a dependency) and the
 
    When we talk about columns in the context of Vivarium, we are typically
    talking about simulant :term:`attributes <attribute>`. All attributes for all
-   simulants can be represented by a single `pandas DataFrame`__ where each simulant
+   simulants can be represented by a single ``pandas.DataFrame`` where each simulant
    is a row and each attribute is a column. This dataframe is referred to as the 
    :term:`population state table` (or simply "state table").
 
