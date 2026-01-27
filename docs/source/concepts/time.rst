@@ -32,7 +32,7 @@ Discrete time simulations assume that all changes to a simulant's state vector h
 at the end of the time step, that is, the current clock time *plus* the step size.
 :mod:`vivarium` explicates this important distinction and labels this quantity the
 *event time*. `Events <events_concept>` that correspond to (potential) state changes
-are mediated through the :class:`Event Manager <vivarium.framework.event.EventManager>`,
+are mediated through the :class:`Event Manager <vivarium.framework.event.manager.EventManager>`,
 which propagates events to :ref:`components <components_concept>` subscribed to
 them during particuar phases of the simulation lifecycle. The Event Manager uses
 the event time when calculating time-related outcomes, for example, age- or year-dependent
