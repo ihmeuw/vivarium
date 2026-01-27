@@ -1,7 +1,7 @@
 """
-======================
-The Population Manager
-======================
+==================
+Population Manager
+==================
 
 """
 from __future__ import annotations
