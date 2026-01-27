@@ -1,7 +1,7 @@
 """
-===================
-The Logging Manager
-===================
+===============
+Logging Manager
+===============
 
 """
 from __future__ import annotations

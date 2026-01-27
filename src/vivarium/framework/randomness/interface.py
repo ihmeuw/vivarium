@@ -1,7 +1,7 @@
 """
-===================
-Component Interface
-===================
+====================
+Randomness Interface
+====================
 
 This module provides an interface to the :class:`RandomnessManager <vivarium.framework.randomness.manager.RandomnessManager>`.
 
