@@ -1,7 +1,7 @@
 """
-====================
-The Artifact Manager
-====================
+================
+Artifact Manager
+================
 
 This module contains the :class:`ArtifactManager`, a ``vivarium`` plugin
 for handling complex data bound up in a data artifact.
