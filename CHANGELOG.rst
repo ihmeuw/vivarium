@@ -1,3 +1,50 @@
+**4.0.0 - TBD TBD TBD**
+
+  - Population management system refactor 
+    - attribute pipelines
+    - get_attribute in addition to get_value
+    - column names as source to AttributePipelines
+    - AttributePipelines is_simple property
+    - Break reliance of individual clocks on population views
+    - utilize attribute pipelines in 'get_population'
+    - Replace population view subviews and 'get' method with 'get_attributes', 'get_attribute_frame', and 'get_private_columns'
+      - You must make an explicit request when getting attributes
+    - PopulationView.get_filtered_index()
+    - Replace untracked column with tracking query feature and 'include_untracked' argument
+    - Refactor population view default queries to use new 'set_default_query' method and 'include_default_query' argument
+    - remove columns_required property
+    - Restrict writing to only private columns
+    - PopulationView.get_private_columns()
+    - Allow specific column request to 'get_population'
+    - Ensure union_post_processor always returns a Series or DataFrame
+    - Stop returning AttributePipelines (previously Pipelines) when registering them
+    - Implement 'skip_post_processor' argument pop manager 'get_population' and pop view 'get_attributes'
+    - Support attribute names as source and/or modifiers to AttributePipelines
+    - Require explicit initializer method registration (supports multiple initializers)
+    - Implement interactive context 'get_columns' method to get all attribute names
+    - Change 'alive' string column to 'is_alive' boolean column in disease model example and various tests
+    - Update documentation
+    - Make Mortality a sub-component of BasePopulation component in disease model example (so that is_alive column is available for querying)
+    - Interactive context: 'get_population' will error if requesting an attribute that doesn't exist
+
+  - split interfaces into own modules
+  - 'filter_for_probability': only get random draws for non-zero and non-1 probabilities
+  - replace 'requires_columns' and 'requires_values' with 'requires_attributes' throughout
+  - fix mypy error in setup.py
+  - Create a Component.logger property for better type-checking
+  - Better type-hint LookupTables
+  - Require component to be passed in when creating resources
+  - Register LookupTables as resources
+  - Fix mypy errors in disease model example
+  - Properly set pipeline source dependencies
+  - Warn if unused LookupTables are registered
+  - Infer component when creating a Resource
+  - Clean up Resource registration 
+  - Clean up ComponentManager
+  - Change default behavior of 'allow_self_transitions' to True
+  - Change 'dependencies' arguments to 'required_resources' throughout
+
+
 **3.6.6 - 01/06/26**
 
   - Fail deployment if changelog date is not current date
