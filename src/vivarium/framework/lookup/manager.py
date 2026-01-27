@@ -1,7 +1,7 @@
 """
-=============
-Lookup Tables
-=============
+====================
+Lookup Table Manager
+====================
 
 Simulations tend to require a large quantity of data to run.  :mod:`vivarium`
 provides the :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`

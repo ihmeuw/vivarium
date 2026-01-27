@@ -17,7 +17,7 @@ a means of coordinating across various components in a simulation.
 What is an Event?
 -----------------
 
-An :class:`Event <vivarium.framework.event.Event>` is a simple container for a
+An :class:`~ <vivarium.framework.event.manager.Event>` is a simple container for a
 group of class attributes that provide all the necessary information to respond to
 the event. Each Event contains the following:
 
@@ -89,14 +89,14 @@ these phases.
 Interacting with Events
 -----------------------
 
-The :class:`EventInterface <vivarium.framework.event.EventInterface>` is
+The :class:`~ <vivarium.framework.event.interface.EventInterface>` is
 available off the :ref:`Builder <builder_concept>` and provides two options for
 interacting with the event system:
 
-1. :func:`register_listener <vivarium.framework.event.EventInterface.register_listener()>` to add a
+1. :func:`~ <vivarium.framework.event.interface.EventInterface.register_listener()>` to add a
 listener to a given event to be called on emission
 
-2. :func:`get_emitter <vivarium.framework.event.EventInterface.get_emitter()>`
+2. :func:`~ <vivarium.framework.event.interface.EventInterface.get_emitter()>`
 to retrieve a callable emitter for a given event
 
 Although methods for both getting emitters and registering listeners are
@@ -109,9 +109,9 @@ Registering Listeners
 
 In order to register a listener to an event to respond when that event is
 emitted, we can use the
-:func:`register_listener <vivarium.framework.event.EventInterface.register_listener()>`. The listener
+:func:`~ <vivarium.framework.event.interface.EventInterface.register_listener()>`. The listener
 itself should be a callable function that takes as its only argument
-the :class:`Event <vivarium.framework.event.Event>` that is emitted.
+the :class:`~ <vivarium.framework.event.manager.Event>` that is emitted.
 
 Suppose we wish to track how many simulants are affected each time step. We
 could do this by creating an observer component with an ``on_time_step`` method
@@ -155,7 +155,7 @@ another row to our dataframe tracking the number of affected simulants.
 Emitting Events
 +++++++++++++++
 
-The :func:`get_emitter <vivarium.framework.event.EventInterface.get_emitter()>`
+The :func:`~ <vivarium.framework.event.interface.EventInterface.get_emitter()>`
 provides a way to get a callable emitter for a given named event. It can be
 used as follows:
 

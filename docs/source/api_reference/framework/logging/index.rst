@@ -1,3 +1,7 @@
+==================
+Logging Management
+==================
+
 .. automodule:: vivarium.framework.logging
 
 .. toctree::
