@@ -18,8 +18,8 @@ What is an Event?
 -----------------
 
 An :class:`Event <vivarium.framework.event.Event>` is a simple container for a
-group of attributes that provide all the necessary information to respond to
-the event.  Events have the following attributes:
+group of class attributes that provide all the necessary information to respond to
+the event. Each Event contains the following:
 
 .. list-table:: **Event Attributes**
    :header-rows: 1
@@ -28,7 +28,7 @@ the event.  Events have the following attributes:
    * - Name
      - Description
    * - | index
-     - | An index into the population table that contains all
+     - | An index into the population state table that contains all
        | individuals that may respond to the event.
    * - | time
      - | The time at which the event will resolve.  The current simulation
@@ -143,6 +143,13 @@ another row to our dataframe tracking the number of affected simulants.
    obey the Markov property as they transform the state table: the state of the
    simulation at the beginning of the next time step should only depend on the
    current state of the system.
+
+.. note::
+
+   If a new component is being created that inherits from :class:`vivarium.component.Component`,
+   listeners are registered automatically if the component defines methods named
+   ``on_<event_name>``, where ``<event_name>`` is one of the lifecycle names
+   (e.g. ``time_step``, ``collect_metrics``, etc.).
 
 
 Emitting Events

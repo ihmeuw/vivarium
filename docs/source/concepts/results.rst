@@ -211,7 +211,7 @@ Here is an example of how you might register a "current_year" and "sex" as strat
   method.
 
 Just because you've *registered* a stratification doesn't mean that the results will
-actually *use* it. In order to use the stratification, you must add it to the 
+actually *use* it. In order to use the stratification, you can add it to the 
 :ref:`model specification <model_specification_concept>` configuration block 
 using the "stratification" key. You can provide "default" stratifications which 
 will be used by all observations as well as observation-specific "include" and 
@@ -234,6 +234,15 @@ observations and then customize "deaths" observations to also include
 
 .. note::
     All stratifications must be included as a list, even if there is only one.
+
+Another way to include and exclude stratifications from different observations
+(besides via the model specification as shown above) is to provide them via the
+``additional_stratifications`` and ``excluded_stratifications`` arguments when
+registering an observation. Note that not all observation registration methods
+support these arguments, e.g. registering an unstratified observation by definition
+does not support stratifying results and so the 
+:meth:`~ <vivarium.framework.results.interface.ResultsInterface.register_unstratified_observation>`
+method does not support these arguments.
 
 Excluding Categories from Results
 +++++++++++++++++++++++++++++++++
@@ -259,6 +268,9 @@ For example, to exclude "stillbirth" as a pregnancy outcome during results proce
           exclude: ['age_group']
       excluded_categories:
         pregnancy_outcome: ['stillbirth']
+
+Alternatively, categories can be excluded from results stratifications by providing
+an "excluded_categories" argument when registering a stratification.
 
 Observers
 ---------
