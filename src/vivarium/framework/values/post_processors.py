@@ -33,7 +33,7 @@ def rescale_post_processor(
 ) -> pd.Series[float] | pd.DataFrame:
     """Rescales annual rates to time-step appropriate rates.
 
-    This should only be used with a simulation using a :class:`~vivarium.framework.time.DateTimeClock`
+    This should only be used with a simulation using a :class:`~vivarium.framework.time.manager.DateTimeClock`
     or another implementation of a clock that traffics in pandas date-time objects.
 
     Parameters
