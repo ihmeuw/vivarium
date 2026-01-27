@@ -11,17 +11,17 @@ Thinking about Time in the Simulation
 
 The Simulation Clock
 --------------------
-The :class:`SimulationClock <vivarium.framework.time.SimulationClock>` plugin manages
+The :class:`~vivarium.framework.time.manager.SimulationClock` plugin manages
 the progression of time throughout the simulation. Fundamentally, that means it
 keeps track of the current time (beginning at the *start time*), provides a mechanism
 to advance the simulation time by some duration (the *step size*), and determines
 when the simulation is complete via a configured *end time*. The simplest implementation
-of a Clock is the :class:`SimpleClock <vivarium.framework.time.SimpleClock>` object,
+of a Clock is the :class:`~vivarium.framework.time.manager.SimpleClock` object,
 which is little more than an integer counter that is incremented by a fixed step
 size until it reaches the end time. Modeling real-world events is often dependent
 on data that are tied to particular years or rates, where the desired step size
 is not necessarily known in advance. Therefore, it is common to use the
-:class:`DateTimeClock <vivarium.framework.time.DateTimeClock>`, which uses datetime-like
+:class:`~vivarium.framework.time.manager.DateTimeClock`, which uses datetime-like
 objects (specifically :class:`~pandas.Timestamp` and :class:`~pandas.Timedelta`)
 as the temporal units. The DateTimeClock can more easily facilitate the conversion
 rates to particular increments of time.
@@ -41,7 +41,7 @@ rates of morbidity and mortality.
 Time Interface
 --------------
 The Time plugin provides, via the :ref:`Builder <builder_concept>`, an
-:class:`interface <vivarium.framework.time.TimeInterface>` to access several clock
+:class:`interface <vivarium.framework.time.interface.TimeInterface>` to access several clock
 methods that might be needed by other managers or components. In particular, components
 can access the current time and step size (and, implicitly, the event time).
 
@@ -66,7 +66,7 @@ In effect, if there are no simulants to be updated in a duration comprising seve
 minimum timesteps, those "minimum timesteps" are skipped.
 
 The Time Interface provides a method to modify a simulant's step size based on some
-criteria, :func:`builder.time.register_step_size_modifier() <vivarium.framework.time.TimeInterface.register_step_size_modifier>`.
+criteria, :func:`builder.time.register_step_size_modifier() <vivarium.framework.time.interface.TimeInterface.register_step_size_modifier>`.
 If there are multiple modifiers to the same simulant simultaneously, the time manager
 chooses the smallest one (bounded by the global minimum step size). If a simulant
 has no step modifier, it is given a default value, either the global minimum or
