@@ -1,7 +1,7 @@
 """
-============================
-The Component Manager System
-============================
+=================
+Component Manager
+=================
 
 The :mod:`vivarium` component manager system is responsible for maintaining a
 reference to all of the managers and components in a simulation, providing an

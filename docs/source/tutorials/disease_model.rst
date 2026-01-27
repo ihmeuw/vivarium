@@ -470,7 +470,7 @@ method ``on_time_step``.
    :end-before: # docs-end: on_time_step
    :dedent: 4
 
-This method takes in an :class:`~vivarium.framework.event.Event` argument
+This method takes in an :class:`~ <vivarium.framework.event.manager.Event>` argument
 provided by the simulation. This is very similar to the ``SimulantData``
 argument provided to initializer methods. It carries around
 some information about what's happening in the event.

@@ -1,1 +1,0 @@
-.. automodule:: vivarium.framework.time

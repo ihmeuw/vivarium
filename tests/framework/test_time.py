@@ -14,7 +14,7 @@ from tests.helpers import Listener, MockComponentA, MockComponentB, MockGenericC
 from vivarium.component import Component
 from vivarium.framework.engine import Builder, SimulationContext
 from vivarium.framework.event import Event
-from vivarium.framework.time import SimulationClock, get_time_stamp
+from vivarium.framework.time.manager import SimulationClock, get_time_stamp
 from vivarium.framework.utilities import from_yearly
 from vivarium.framework.values import ValuesManager, rescale_post_processor
 from vivarium.types import ClockStepSize
