@@ -19,7 +19,7 @@ Breaking changes:
     - Population interface: Require explicit initializer method registration instead 
       of inferring from methods named 'on_initialize_simulants()'. Supports multiple
       initializer methods per component.
-      - Remove columns_required property throughout.
+      - Remove columns_created and initialization_requirements properties throughout.
     - Population manager: 'get_population()' now requires an explicit attribute request ("all" is allowed)
     - Stop returning AttributePipelines (previously Pipelines) when registering them
   Miscellaneous:
