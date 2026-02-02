@@ -57,5 +57,3 @@ Outline
   - All builder interfaces follow a pattern.  ``builder.SYSTEM.METHOD(*args, **kwargs)`` -> either None or
   special simulation object whose interface is effectively to be a callable or similar (Randomness streams,
   lookup tables, population views, pipelines, etc.)
-
-Check out this doc only commit!
