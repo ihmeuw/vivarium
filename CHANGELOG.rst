@@ -1,5 +1,5 @@
 **4.0.0 - TBD TBD TBD**
-=======================
+-----------------------
 
 This release introduces breaking changes due to a major refactor of the population
 management system as well as various other miscellaneous changes.
