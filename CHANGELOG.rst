@@ -58,7 +58,7 @@ Population management system refactor
 - InteractiveContext: Implement new 'get_columns()' method to get all attribute names.
 - Population views: Implement new 'get_filtered_index()' method.
 - Stop using population views inappropriately when using individualized clocks.
-- Implement 'skip_post_processor' argument population view 'get_attributes()'
+- Implement 'skip_post_processor' argument to population view 'get_attributes()'
   and population manager 'get_population()' methods.
 - Ensure Pipeline 'union_post_processor' always returns a Series or DataFrame.
 - Change 'alive' string column to 'is_alive' boolean column in disease model example and various tests.
