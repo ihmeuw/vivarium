@@ -4,7 +4,9 @@ This release introduces breaking changes due to a major refactor of the populati
 management system as well as various other miscellaneous changes.
 
 Breaking changes:
+
   Population management system refactor:
+
     - Interactive context: 'get_population()' will now error if requesting an attribute that doesn't exist.
     - Population views: Replace subviews and 'get()' method with 'get_attributes()',
       'get_attribute_frame()', and 'get_private_columns()'.
@@ -22,19 +24,25 @@ Breaking changes:
       - Remove columns_created, columns_required, and initialization_requirements properties throughout.
     - Population manager: 'get_population()' now requires an explicit attribute request ("all" is allowed).
     - Stop returning AttributePipelines (previously Pipelines) when registering them.
+
   Miscellaneous:
+
     - Split managers and their corresponding interfaces into separate modules.
     - Replace 'requires_columns' and 'requires_values' arguments with 'requires_attributes' throughout.
     - Replace 'dependencies' arguments with 'required_resources' throughout.
     - Change default behavior of state machine 'allow_self_transition' to True.
 
 Major changes:
+
   Population management system refactor:
+
     - Replace all Pipelines with AttributePipelines throughout.
     - Support attribute names as source and/or modifiers to AttributePipelines.
 
 Other changes:
+
   Population management system refactor:
+
     - InteractiveContext: Allow specific column request to 'get_population()'.
     - InteractiveContext: Implement new 'get_columns()' method to get all attribute names.
     - Population views: Implement new 'get_filtered_index()' method.
@@ -45,7 +53,9 @@ Other changes:
     - Change 'alive' string column to 'is_alive' boolean column in disease model example and various tests.
     - Make Mortality a sub-component of BasePopulation component in disease model example.
     - Update documentation.
+
   Miscellaneous:
+
     - LookupTables: Improve type hinting.
     - LookupTables: Register tables as resources.
     - LookupTables: Warn if unused tables are registered.
