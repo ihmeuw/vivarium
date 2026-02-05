@@ -20,43 +20,43 @@ Breaking changes:
       of inferring from methods named 'on_initialize_simulants()'. Supports multiple
       initializer methods per component.
       - Remove columns_created, columns_required, and initialization_requirements properties throughout.
-    - Population manager: 'get_population()' now requires an explicit attribute request ("all" is allowed)
-    - Stop returning AttributePipelines (previously Pipelines) when registering them
+    - Population manager: 'get_population()' now requires an explicit attribute request ("all" is allowed).
+    - Stop returning AttributePipelines (previously Pipelines) when registering them.
   Miscellaneous:
-    - Split managers and their corresponding interfaces into separate modules
-    - Replace 'requires_columns' and 'requires_values' arguments with 'requires_attributes' throughout
-    - Replace 'dependencies' arguments with 'required_resources' throughout
-    - Change default behavior of state machine 'allow_self_transition' to True
+    - Split managers and their corresponding interfaces into separate modules.
+    - Replace 'requires_columns' and 'requires_values' arguments with 'requires_attributes' throughout.
+    - Replace 'dependencies' arguments with 'required_resources' throughout.
+    - Change default behavior of state machine 'allow_self_transition' to True.
 
 Major changes:
   Population management system refactor:
-    - Replace all Pipelines with AttributePipelines throughout
-    - Support attribute names as source and/or modifiers to AttributePipelines
+    - Replace all Pipelines with AttributePipelines throughout.
+    - Support attribute names as source and/or modifiers to AttributePipelines.
 
 Other changes:
   Population management system refactor:
-    - InteractiveContext: Allow specific column request to 'get_population()'
-    - InteractiveContext: Implement new 'get_columns()' method to get all attribute names
-    - Population views: Implement new 'get_filtered_index()' method
-    - Stop using population views inappropriately when using individualized clocks
+    - InteractiveContext: Allow specific column request to 'get_population()'.
+    - InteractiveContext: Implement new 'get_columns()' method to get all attribute names.
+    - Population views: Implement new 'get_filtered_index()' method.
+    - Stop using population views inappropriately when using individualized clocks.
     - Implement 'skip_post_processor' argument population view 'get_attributes()'
-      and population manager 'get_population()' methods
-    - Ensure Pipeline 'union_post_processor' always returns a Series or DataFrame
-    - Change 'alive' string column to 'is_alive' boolean column in disease model example and various tests
-    - Make Mortality a sub-component of BasePopulation component in disease model example
-    - Update documentation
+      and population manager 'get_population()' methods.
+    - Ensure Pipeline 'union_post_processor' always returns a Series or DataFrame.
+    - Change 'alive' string column to 'is_alive' boolean column in disease model example and various tests.
+    - Make Mortality a sub-component of BasePopulation component in disease model example.
+    - Update documentation.
   Miscellaneous:
-    - LookupTables: Improve type hinting
-    - LookupTables: Register tables as resources
-    - LookupTables: Warn if unused tables are registered
-    - Properly set Pipeline source dependencies
-    - Infer component when creating a Resource
-    - Clean up Resource registration 
-    - Clean up ComponentManager
-    - Only get random draws for non-0 and non-1 probabilities when calling 'filter_for_probability()'
-    - Fix mypy error in setup.py
-    - Fix mypy errors in disease model example
-    - Create a Component.logger property for better type-checking
+    - LookupTables: Improve type hinting.
+    - LookupTables: Register tables as resources.
+    - LookupTables: Warn if unused tables are registered.
+    - Properly set Pipeline source dependencies.
+    - Infer component when creating a Resource.
+    - Clean up Resource registration.
+    - Clean up ComponentManager.
+    - Only get random draws for non-0 and non-1 probabilities when calling 'filter_for_probability()'.
+    - Fix mypy error in setup.py.
+    - Fix mypy errors in disease model example.
+    - Create a Component.logger property for better type-checking.
 
 **3.6.6 - 01/06/26**
 
