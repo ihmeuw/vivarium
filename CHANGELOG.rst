@@ -1,13 +1,14 @@
 **4.0.0 - TBD TBD TBD**
+=======================
 
 This release introduces breaking changes due to a major refactor of the population
 management system as well as various other miscellaneous changes.
 
 Breaking changes
-================
+----------------
 
 Population management system refactor
--------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Interactive context: 'get_population()' will now error if requesting an attribute that doesn't exist.
 - Population views: Replace subviews and 'get()' method with 'get_attributes()',
@@ -32,7 +33,7 @@ Population management system refactor
 - Stop returning AttributePipelines (previously Pipelines) when registering them.
 
 Miscellaneous
--------------
+~~~~~~~~~~~~~
 
 - Split managers and their corresponding interfaces into separate modules.
 - Replace 'requires_columns' and 'requires_values' arguments with 'requires_attributes' throughout.
@@ -40,19 +41,19 @@ Miscellaneous
 - Change default behavior of state machine 'allow_self_transition' to True.
 
 Major changes
-=============
+-------------
 
 Population management system refactor
--------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Replace all Pipelines with AttributePipelines throughout.
 - Support attribute names as source and/or modifiers to AttributePipelines.
 
 Other changes
-=============
+-------------
 
 Population management system refactor
--------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - InteractiveContext: Allow specific column request to 'get_population()'.
 - InteractiveContext: Implement new 'get_columns()' method to get all attribute names.
@@ -66,7 +67,7 @@ Population management system refactor
 - Update documentation.
 
 Miscellaneous
--------------
+~~~~~~~~~~~~~
 
 - LookupTables: Improve type hinting.
 - LookupTables: Register tables as resources.
