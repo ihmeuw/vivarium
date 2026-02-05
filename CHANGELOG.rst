@@ -10,9 +10,11 @@ Breaking changes:
     - Interactive context: 'get_population()' will now error if requesting an attribute that doesn't exist.
     - Population views: Replace subviews and 'get()' method with 'get_attributes()',
       'get_attribute_frame()', and 'get_private_columns()'.
+
       - You must now explicitly request which attributes you want to retrieve.
       - Write access (via the 'update()' method) is now restricted to private Columns
         created by the component the view is attached to.
+
     - Population views: Refactor default queries to use new 'set_default_query()'
       method and 'include_default_query' argument.
     - Population interface: Replace the 'tracked' column and corresponding auto-filter
@@ -21,7 +23,9 @@ Breaking changes:
     - Population interface: Require explicit initializer method registration instead 
       of inferring from methods named 'on_initialize_simulants()'. Supports multiple
       initializer methods per component.
+
       - Remove columns_created, columns_required, and initialization_requirements properties throughout.
+
     - Population manager: 'get_population()' now requires an explicit attribute request ("all" is allowed).
     - Stop returning AttributePipelines (previously Pipelines) when registering them.
 
