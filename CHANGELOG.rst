@@ -25,7 +25,7 @@ Breaking changes:
   Miscellaneous:
     - Split managers and their corresponding interfaces into separate modules
     - Replace 'requires_columns' and 'requires_values' arguments with 'requires_attributes' throughout
-    - Replace 'dependencies' arguments to 'required_resources' throughout
+    - Replace 'dependencies' arguments with 'required_resources' throughout
     - Change default behavior of state machine 'allow_self_transition' to True
 
 Major changes:
