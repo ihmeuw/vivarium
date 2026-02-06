@@ -1,8 +1,8 @@
 **4.0.0 - TBD TBD TBD**
 -----------------------
 
-This release introduces breaking changes due to a major refactor of the population
-management system as well as various other miscellaneous changes.
+This release introduces a major refactor of the population management system as well 
+as various other miscellaneous changes.
 
 Breaking changes
 ----------------
@@ -15,7 +15,7 @@ Population management system refactor
   'get_attribute_frame()', and 'get_private_columns()'.
 
   - You must now explicitly request which attributes you want to retrieve.
-  - Write access (via the 'update()' method) is now restricted to private Columns
+  - Write access (via the 'update()' method) is now restricted to private columns
     created by the component the view is attached to.
 
 - Population views: Refactor default queries to use new 'set_default_query()'
@@ -42,9 +42,6 @@ Miscellaneous
 
 Major changes
 -------------
-
-Population management system refactor
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Replace all Pipelines with AttributePipelines throughout.
 - Support attribute names as source and/or modifiers to AttributePipelines.
