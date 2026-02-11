@@ -102,7 +102,7 @@ def test_artifact_creation(
     assert a.filter_terms is None
     assert a._cache == {}
     assert a.keys == keys_mock
-    hdf_mock.load.called_once_with("metadata.keyspace")
+    hdf_mock.load.assert_called_once_with(artifact_path, "metadata.keyspace", None, None)
 
     a = Artifact(artifact_path, filter_terms)
 
@@ -110,7 +110,7 @@ def test_artifact_creation(
     assert a.filter_terms == filter_terms
     assert a._cache == {}
     assert a.keys == keys_mock
-    hdf_mock.load.called_once_with("metadata.keyspace")
+    hdf_mock.load.assert_called_with(artifact_path, "metadata.keyspace", None, None)
 
 
 def test_artifact_load_missing_key(hdf_mock: MagicMock, artifact_path: Path) -> None:
@@ -118,7 +118,7 @@ def test_artifact_load_missing_key(hdf_mock: MagicMock, artifact_path: Path) -> 
     key = "not.a_real.key"
 
     a = Artifact(artifact_path, filter_terms)
-    hdf_mock.load.called_once_with("metadata.keyspace")
+    hdf_mock.load.assert_called_once_with(artifact_path, "metadata.keyspace", None, None)
     hdf_mock.load.reset_mock()
     with pytest.raises(ArtifactException) as err_info:
         a.load(key)
@@ -140,7 +140,7 @@ def test_artifact_load_key_has_no_data(hdf_mock: MagicMock, artifact_path: Path)
     assert f"Data for {key} is not available. Check your model specification." == str(
         err_info.value
     )
-    assert hdf_mock.load.called_once_with(artifact_path, key, filter_terms)
+    hdf_mock.load.assert_called_with(artifact_path, key, filter_terms, ["draw_10", "value"])
     assert a._cache == {}
 
 
@@ -163,7 +163,9 @@ def test_artifact_load(
 
         result = a.load(key)
 
-        assert hdf_mock.load.called_once_with(artifact_path, key, filter_terms)
+        hdf_mock.load.assert_called_with(
+            artifact_path, key, filter_terms, ["draw_10", "value"]
+        )
         assert key in a._cache
         assert a._cache[key] == "data"
         assert result == "data"
@@ -205,7 +207,6 @@ def test_artifact_write_duplicate_key(
     assert f"{key} already in artifact." == str(err_info.value)
     assert key in art
     assert key not in art._cache
-    hdf_mock.write.called_once_with(artifact_path, "metadata.keyspace", ["metadata.keyspace"])
     hdf_mock.remove.assert_not_called()
     assert art.keys == initial_keys
 
@@ -224,7 +225,6 @@ def test_artifact_write_no_data(hdf_mock: MagicMock, artifact_path: Path) -> Non
 
     assert key not in a
     assert key not in a._cache
-    hdf_mock.write.called_once_with(artifact_path, "metadata.keyspace", ["metadata.keyspace"])
     hdf_mock.remove.assert_not_called()
     assert a.keys == initial_keys
 
@@ -272,7 +272,9 @@ def test_artifact_write_and_load_with_different_key_types(
 
         a.load(load_key)
 
-        assert hdf_mock.load.called_once_with(artifact_path, load_key, filter_terms)
+        hdf_mock.load.assert_called_with(
+            artifact_path, load_key, filter_terms, ["draw_10", "value"]
+        )
         assert load_key in a._cache
 
         hdf_mock.load.reset_mock()
@@ -298,7 +300,7 @@ def test_artifact_write_and_reopen_then_load_with_entity_key(
 
     a_again.load(key)
 
-    assert hdf_mock.load.called_once_with(artifact_path, key, filter_terms)
+    hdf_mock.load.assert_called_with(artifact_path, key, filter_terms, ["draw_10", "value"])
     assert key in a_again._cache
 
     hdf_mock.load.reset_mock()
@@ -321,7 +323,6 @@ def test_remove_bad_key(hdf_mock: MagicMock, artifact_path: Path) -> None:
     assert key not in a
     assert key not in a._cache
     hdf_mock.remove.assert_not_called()
-    hdf_mock.write.called_once_with(artifact_path, "metadata.keyspace", ["metadata.keyspace"])
     assert a.keys == initial_keys
 
 
@@ -445,7 +446,6 @@ def test_replace_nonexistent_key(hdf_mock: MagicMock, artifact_path: Path) -> No
     key = "new.key"
 
     a = Artifact(artifact_path, filter_terms=filter_terms)
-    hdf_mock.called_once_with(key)
     assert key not in a
 
     hdf_mock.reset_mock()
