@@ -30,6 +30,7 @@ from vivarium.framework.lookup.table import (
     CategoricalTable,
     InterpolatedTable,
     LookupTable,
+    NewLookupTable,
     ScalarTable,
 )
 from vivarium.manager import Manager
@@ -150,9 +151,18 @@ class LookupTableManager(Manager):
             data = pd.DataFrame(data)
 
         value_columns_ = value_columns if value_columns else DEFAULT_VALUE_COLUMN
-        validate_build_table_parameters(data, value_columns_)
+        _validate_build_table_parameters(data, value_columns_)
 
-        table: LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]
+        # todo figure out the table's return type based on the number of value columns
+        return_type = pd.Series[Any]
+        table = NewLookupTable(
+            name=name,
+            component=component,
+            data=data,
+            value_columns=value_columns_,
+            return_type=return_type,
+            validate=self._validate,
+        )
         if isinstance(data, pd.DataFrame):
             parameter_columns, key_columns = self._get_columns(value_columns_, data)
             if parameter_columns:
@@ -220,7 +230,7 @@ class LookupTableManager(Manager):
         return parameter_columns, key_columns
 
 
-def validate_build_table_parameters(
+def _validate_build_table_parameters(
     data: LookupTableData,
     value_columns: list[str] | tuple[str, ...] | str,
 ) -> None:

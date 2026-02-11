@@ -12,7 +12,7 @@ from pytest_mock import MockerFixture
 from tests.helpers import LookupCreator
 from vivarium import Component, InteractiveContext
 from vivarium.framework.lifecycle import lifecycle_states
-from vivarium.framework.lookup import validate_build_table_parameters
+from vivarium.framework.lookup import _validate_build_table_parameters
 from vivarium.framework.lookup.manager import LookupTableManager
 from vivarium.framework.lookup.table import InterpolatedTable
 from vivarium.testing_utilities import TestPopulation, build_table
@@ -352,7 +352,7 @@ class TestValidateBuildTableParameters:
     )
     def test_no_data(self, data: LookupTableData) -> None:
         with pytest.raises(ValueError, match="supply some data"):
-            validate_build_table_parameters(data, [])
+            _validate_build_table_parameters(data, [])
 
     @pytest.mark.parametrize(
         "data, val_cols, match",
@@ -366,21 +366,21 @@ class TestValidateBuildTableParameters:
         self, data: LookupTableData, val_cols: str | list[str], match: str
     ) -> None:
         with pytest.raises(ValueError, match=match):
-            validate_build_table_parameters(data, val_cols)
+            _validate_build_table_parameters(data, val_cols)
 
     @pytest.mark.parametrize("data", ["FAIL", pd.Interval(5, 10), "2019-05-17"])
     def test_validate_parameters_fail_other_data(self, data: LookupTableData) -> None:
         with pytest.raises(TypeError, match="only allowable types"):
-            validate_build_table_parameters(data, [])
+            _validate_build_table_parameters(data, [])
 
     def test_validate_parameters_pass_scalar_data(self) -> None:
-        validate_build_table_parameters([1, 2, 3], ["a", "b", "c"])
+        _validate_build_table_parameters([1, 2, 3], ["a", "b", "c"])
 
     def test_validate_parameters_pass_dataframe_data(self) -> None:
         data = pd.DataFrame(
             {"a": [1, 2], "b_start": [0, 5], "b_end": [5, 10], "c": [100, 150]}
         )
-        validate_build_table_parameters(data, ["c"])
+        _validate_build_table_parameters(data, ["c"])
 
 
 def test__build_table_from_dict(base_config: LayeredConfigTree) -> None:

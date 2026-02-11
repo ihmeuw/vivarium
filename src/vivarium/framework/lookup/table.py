@@ -25,12 +25,147 @@ from vivarium.component import Component
 from vivarium.framework.lookup.interpolation import Interpolation
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.framework.resource import Resource
-from vivarium.types import ClockTime, ScalarValue
+from vivarium.types import ClockTime, ScalarValue, LookupTableData
 
 T = TypeVar("T", pd.Series, pd.DataFrame)  # type: ignore [type-arg]
 
 
 DEFAULT_VALUE_COLUMN = "value"
+
+
+class NewLookupTable(Resource, Generic[T]):
+    """A callable to produces values for a population index.
+
+    In :mod:`vivarium` simulations, the index is synonymous with the simulated
+    population.  The lookup system allows the user to provide different kinds
+    of data and strategies for using that data.  When the simulation is
+    running, then, components can lookup parameter values based solely on
+    the population index.
+
+    Notes
+    -----
+    These should not be created directly. Use the :attr:`~vivarium.framework.engine.Builder.lookup`
+    attribute on the :class:`~vivarium.framework.engine.Builder` class during setup.
+
+    """
+
+    def __init__(
+        self,
+        component: Component,
+        data: LookupTableData,
+        name: str,
+        value_columns: list[str] | tuple[str, ...] | str,
+        return_type: type[T],
+        validate: bool = True,
+    ):
+        super().__init__("lookup_table", self.get_name(component.name, name), component)
+        
+        self.data = data
+        """The data this table will use to produce values."""
+        self.key_columns = ()
+        """Column names to be used as categorical parameters in Interpolation
+        to select between interpolation functions."""
+        self.parameter_columns = ()
+        """Column names to be used as continuous parameters in Interpolation."""
+        self.value_columns = (
+            list(value_columns) if not isinstance(value_columns, str) else [value_columns]
+        )
+        """Names of value columns to be interpolated over."""
+        self.return_type: type[T] = return_type
+        """The type of data returned by the lookup table (pd.Series or pd.DataFrame)."""
+        self.validate = validate
+        """Whether to validate the data before building the LookupTable."""
+
+        if isinstance(data, pd.DataFrame):
+            self.parameter_columns, self.key_columns = self._get_columns(self.value_columns, data)
+            if self.parameter_columns:
+                # TODO do the stuff that happens in InterpolatedTable's init
+                raise NotImplementedError("NewLookupTable does not yet support interpolation.")
+            else:
+                # TODO do the stuff that happens in CategoricalTable's init
+                raise NotImplementedError("NewLookupTable does not yet support categorical lookups.")
+        else:
+            # TODO do the stuff that happens in ScalarTable's init
+            raise NotImplementedError("NewLookupTable does not yet support scalar lookups.")
+
+    @property
+    def required_resources(self) -> list[str]:
+        lookup_columns = list(self.key_columns) + list(self.parameter_columns)
+        return [col for col in lookup_columns if col != "year"]
+
+    def __call__(self, index: pd.Index[int]) -> T:
+        """Get the mapped values for the given index.
+
+        Parameters
+        ----------
+        index
+            Index for population view.
+
+        Returns
+        -------
+            pandas.Series if only one value_column, pandas.DataFrame if multiple
+            columns
+
+        """
+        mapped_values = self.call(index).squeeze(axis=1)
+        if not isinstance(mapped_values, self.return_type):
+            raise TypeError(
+                f"LookupTable expected to return {self.return_type}, "
+                f"but got {type(mapped_values)}"
+            )
+        return mapped_values
+
+    @abstractmethod
+    def call(self, index: pd.Index[int]) -> pd.DataFrame:
+        """Private method to allow LookupManager to add constraints."""
+        pass
+
+    def __repr__(self) -> str:
+        return "LookupTable()"
+
+    @staticmethod
+    def get_name(component_name: str, table_name: str) -> str:
+        """Get the fully qualified name for a lookup table.
+
+        Parameters
+        ----------
+        component_name
+            Name of the component the lookup table belongs to.
+        table_name
+            Name of the lookup table.
+
+        Returns
+        -------
+            Fully qualified name for the lookup table.
+
+        """
+        return f"{component_name}.{table_name}"
+
+    @staticmethod
+    def _get_columns(
+        value_columns: list[str], data: pd.DataFrame
+    ) -> tuple[list[str], list[str]]:
+        all_columns = list(data.columns)
+
+        potential_parameter_columns = [
+            str(col).removesuffix("_start")
+            for col in all_columns
+            if str(col).endswith("_start")
+        ]
+        parameter_columns = []
+        bin_edge_columns = []
+        for column in potential_parameter_columns:
+            if f"{column}_end" in all_columns:
+                parameter_columns.append(column)
+                bin_edge_columns += [f"{column}_start", f"{column}_end"]
+
+        key_columns = [
+            col
+            for col in all_columns
+            if col not in value_columns and col not in bin_edge_columns
+        ]
+
+        return parameter_columns, key_columns
 
 
 class LookupTable(ABC, Resource, Generic[T]):
