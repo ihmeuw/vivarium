@@ -342,12 +342,20 @@ class Order0Interp:
         Parameters
         ----------
         interpolants
-            Data frame containing the parameters to interpolate..
+            Data frame containing the parameters to interpolate.
 
         Returns
         -------
             A table with the interpolated values for the given interpolants.
         """
+        if not self.parameter_bins:
+            # No continuous parameters — just broadcast the data values.
+            # With only categorical parameters, each sub-table has a single row.
+            return pd.DataFrame(
+                {col: self.data[col].iloc[0] for col in self.value_columns},
+                index=interpolants.index,
+            )
+
         # build a dataframe where we have the start of each parameter bin for each interpolant
         interpolant_bins = pd.DataFrame(index=interpolants.index)
 

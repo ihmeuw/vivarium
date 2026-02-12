@@ -13,19 +13,17 @@ that index. See the :ref:`lookup concept note <lookup_concept>` for more.
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Generic, TypeVar
 
-import numpy as np
 import pandas as pd
 
 from vivarium.component import Component
 from vivarium.framework.lookup.interpolation import Interpolation
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.framework.resource import Resource
-from vivarium.types import ClockTime, ScalarValue, LookupTableData
+from vivarium.types import ClockTime, LookupTableData
 
 T = TypeVar("T", pd.Series, pd.DataFrame)  # type: ignore [type-arg]
 
@@ -93,41 +91,27 @@ class LookupTable(Resource, Generic[T]):
             self.parameter_columns, self.key_columns = self._get_columns(
                 self.value_columns, data
             )
-            if self.parameter_columns:
-                parameter_columns_with_edges = []
-                for p in self.parameter_columns:
-                    parameter_columns_with_edges += [(p, f"{p}_start", f"{p}_end")]
-
-                required_cols = {
-                    *self.key_columns,
-                    *{col for p in parameter_columns_with_edges for col in p},
-                    *self.value_columns
-                }
-                if extra_columns := list(data.columns.difference(list(required_cols))):
-                    raise ValueError(
-                        f"Data contains extra columns not in "
-                        f"key_columns, parameter_columns, or value_columns: {extra_columns}"
-                    )
-
-                self.interpolation = Interpolation(
-                    data,
-                    self.key_columns,
-                    parameter_columns_with_edges,
-                    self.value_columns,
-                    order=self.interpolation_order,
-                    extrapolate=self.extrapolate,
-                    validate=self.validate,
+            parameter_columns_with_edges = [(p, f"{p}_start", f"{p}_end") for p in self.parameter_columns]
+            required_cols = {
+                *self.key_columns,
+                *{col for p in parameter_columns_with_edges for col in p},
+                *self.value_columns
+            }
+            if extra_columns := list(data.columns.difference(list(required_cols))):
+                raise ValueError(
+                    f"Data contains extra columns not in "
+                    f"key_columns, parameter_columns, or value_columns: {extra_columns}"
                 )
-            else:
-                if extra_columns := list(
-                    data.columns.difference(
-                        list(set(self.key_columns) | set(self.value_columns))
-                    )
-                ):
-                    raise ValueError(
-                        f"Data contains extra columns not in "
-                        f"key_columns or value_columns: {extra_columns}"
-                    )
+
+            self.interpolation = Interpolation(
+                data,
+                self.key_columns,
+                parameter_columns_with_edges,
+                self.value_columns,
+                order=self.interpolation_order,
+                extrapolate=self.extrapolate,
+                validate=self.validate,
+            )
 
     @property
     def required_resources(self) -> list[str]:
@@ -148,7 +132,7 @@ class LookupTable(Resource, Generic[T]):
             columns
 
         """
-        mapped_values = self.call(index).squeeze(axis=1)
+        mapped_values = self._call(index).squeeze(axis=1)
         if not isinstance(mapped_values, self.return_type):
             raise TypeError(
                 f"LookupTable expected to return {self.return_type}, "
@@ -156,51 +140,26 @@ class LookupTable(Resource, Generic[T]):
             )
         return mapped_values
 
-    def call(self, index: pd.Index[int]) -> pd.DataFrame:
+    def _call(self, index: pd.Index[int]) -> pd.DataFrame:
         """Private method to allow LookupManager to add constraints."""
-        if isinstance(self.data, pd.DataFrame):
-            if self.parameter_columns:
-                return self._call_interpolated(index)
-            else:
-                return self._call_categorical(index)
+        if not isinstance(self.data, pd.DataFrame):
+            return self._broadcast_scalar(index)
         else:
-            return self._call_scalar(index)
+            return self._lookup_values(index)
 
-    def _call_scalar(self, index: pd.Index[int]) -> pd.DataFrame:
+    def _broadcast_scalar(self, index: pd.Index[int]) -> pd.DataFrame:
         if not isinstance(self.data, (list, tuple)):
             values_series: pd.Series[Any] = pd.Series(
                 self.data,
                 index=index,
-                name=self.value_columns[0] if self.value_columns else None,
+                name=self.value_columns[0]
             )
             return pd.DataFrame(values_series)
         else:
             values_list: list[pd.Series[Any]] = [pd.Series(v, index=index) for v in self.data]
             return pd.DataFrame(dict(zip(self.value_columns, values_list)))
 
-    def _call_categorical(self, index: pd.Index[int]) -> pd.DataFrame:
-        pop = pd.DataFrame(
-            self.population_view.get_attributes(
-                index, list(self.key_columns) + list(self.parameter_columns)
-            )
-        )
-        result = pd.DataFrame(index=pop.index, columns=self.value_columns, dtype=np.float64)
-        sub_tables = pop.groupby(list(self.key_columns))
-        for key, sub_table in list(sub_tables):
-            if sub_table.empty:
-                continue
-            category_masks: list[pd.Series[bool]] = [
-                self.data[self.key_columns[i]] == category
-                for i, category in enumerate(key)
-            ]
-            joint_mask = pd.Series(True, index=self.data.index)
-            for category_mask in category_masks:
-                joint_mask = joint_mask & category_mask
-            values = self.data.loc[joint_mask, self.value_columns].values
-            result.loc[sub_table.index, self.value_columns] = values
-        return result
-
-    def _call_interpolated(self, index: pd.Index[int]) -> pd.DataFrame:
+    def _lookup_values(self, index: pd.Index[int]) -> pd.DataFrame:
         requested_columns = [
             col
             for col in list(self.key_columns) + list(self.parameter_columns)

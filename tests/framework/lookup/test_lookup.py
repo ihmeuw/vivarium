@@ -55,7 +55,7 @@ def test_build_table_calls_methods_correctly(mocker: MockerFixture) -> None:
     # Assert correct constraint have been set on table.call
     manager._add_constraint.assert_called_once()  # type: ignore[attr-defined]
     call_args = manager._add_constraint.call_args  # type: ignore[attr-defined]
-    assert call_args[0][0] == mock_table.call
+    assert call_args[0][0] == mock_table._call
     assert call_args[1]["restrict_during"] == [
         lifecycle_states.INITIALIZATION,
         lifecycle_states.SETUP,

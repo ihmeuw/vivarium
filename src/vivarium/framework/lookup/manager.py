@@ -122,7 +122,7 @@ class LookupTableManager(Manager):
         table = self._build_table(component, data, name, value_columns)
         self._add_resources(component, table, table.required_resources)
         self._add_constraint(
-            table.call,
+            table._call,
             restrict_during=[
                 lifecycle_states.INITIALIZATION,
                 lifecycle_states.SETUP,
