@@ -176,6 +176,7 @@ class PopulationManager(Manager):
         self._get_current_component_or_manager = (
             builder.components.get_current_component_or_manager
         )
+        self._get_current_state = builder.lifecycle.current_state()
 
         builder.lifecycle.add_constraint(
             self.get_view,
