@@ -82,6 +82,9 @@ class LookupTable(Resource, Generic[T]):
         """The manager that created this lookup table."""
         self.population_view = population_view
         """PopulationView to use to get attributes for interpolation or categorization."""
+        self.interpolation: Interpolation | None = None
+        """Interpolation object to use when data is a DataFrame. Will be None if data is
+        a scalar or list of scalars."""
 
         if isinstance(data, pd.DataFrame):
             self.parameter_columns, self.key_columns = self._get_columns(
@@ -140,7 +143,7 @@ class LookupTable(Resource, Generic[T]):
 
     def _call(self, index: pd.Index[int]) -> pd.DataFrame:
         """Private method to allow LookupManager to add constraints."""
-        if not isinstance(self.data, pd.DataFrame):
+        if self.interpolation is None:
             return self._broadcast_scalar(index)
         else:
             return self._lookup_values(index)
