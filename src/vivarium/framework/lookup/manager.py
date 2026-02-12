@@ -27,8 +27,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.lookup.table import (
     DEFAULT_VALUE_COLUMN,
-    LookupTable,
-    NewLookupTable,
+    LookupTable
 )
 from vivarium.manager import Manager
 from vivarium.types import LookupTableData
@@ -150,7 +149,7 @@ class LookupTableManager(Manager):
         value_columns_ = value_columns if value_columns else DEFAULT_VALUE_COLUMN
         _validate_build_table_parameters(data, value_columns_)
 
-        table = NewLookupTable(
+        table = LookupTable(
             name=name,
             component=component,
             data=data,

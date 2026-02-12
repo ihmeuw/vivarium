@@ -14,7 +14,7 @@ from vivarium import Component, InteractiveContext
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.lookup import _validate_build_table_parameters
 from vivarium.framework.lookup.manager import LookupTableManager
-from vivarium.framework.lookup.table import NewLookupTable
+from vivarium.framework.lookup.table import LookupTable
 from vivarium.testing_utilities import TestPopulation, build_table
 from vivarium.types import LookupTableData, ScalarValue
 
@@ -397,7 +397,7 @@ def test__build_table_from_dict(base_config: LayeredConfigTree) -> None:
     # this test is really going to just ensure we don't error out when we pass in a dict and
     # we get the expected return type from _build_table
     table = manager._build_table(component, data, "", value_columns=["c"])  # type: ignore [arg-type]
-    assert isinstance(table, NewLookupTable)
+    assert isinstance(table, LookupTable)
     assert table.key_columns == ["b"]
     assert table.parameter_columns == ["a"]
     assert table.value_columns == ["c"]

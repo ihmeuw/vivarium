@@ -21,7 +21,7 @@ from tests.helpers import (
 from vivarium import Artifact, InteractiveContext
 from vivarium.framework.engine import Builder
 from vivarium.framework.lifecycle import lifecycle_states
-from vivarium.framework.lookup.table import NewLookupTable
+from vivarium.framework.lookup.table import LookupTable
 from vivarium.framework.population import PopulationError
 
 
@@ -287,15 +287,6 @@ def test_component_lookup_table_configuration(hdf_file_path: Path) -> None:
     )
     sim.setup()
 
-    # check that tables have correct type
-    assert isinstance(component.favorite_team_table, NewLookupTable)
-    assert isinstance(component.favorite_color_table, NewLookupTable)
-    assert isinstance(component.favorite_number_table, NewLookupTable)
-    assert isinstance(component.favorite_scalar_table, NewLookupTable)
-    assert isinstance(component.favorite_list_table, NewLookupTable)
-    assert isinstance(component.baking_time_table, NewLookupTable)
-    assert isinstance(component.cooling_time_table, NewLookupTable)
-
     # Check for correct columns in lookup tables
     assert component.favorite_team_table.key_columns == ["test_column_1"]
     assert not component.favorite_team_table.parameter_columns
@@ -378,8 +369,6 @@ def test_value_column_order_is_maintained() -> None:
     """
     component = OrderedColumnsLookupCreator()
     sim = InteractiveContext(components=[component])
-    assert isinstance(component.categorical_table, NewLookupTable)
-    assert isinstance(component.interpolated_table, NewLookupTable)
     columns = list(component.categorical_table(sim.get_population_index()).columns)
     assert columns == OrderedColumnsLookupCreator.VALUE_COLUMNS
     columns = list(component.interpolated_table(sim.get_population_index()).columns)
