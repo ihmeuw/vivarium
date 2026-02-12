@@ -131,6 +131,11 @@ class PopulationManager(Manager):
     }
 
     @property
+    def name(self) -> str:
+        """The name of this component."""
+        return "population_manager"
+
+    @property
     def private_columns(self) -> pd.DataFrame:
         """The dataframe of all population private columns.
 
@@ -144,6 +149,94 @@ class PopulationManager(Manager):
         if self._private_columns is None:
             raise PopulationError("Population has not been initialized.")
         return self._private_columns
+
+    ############################
+    # Normal Component Methods #
+    ############################
+
+    def __init__(self) -> None:
+        self._private_columns: pd.DataFrame | None = None
+        self._private_column_metadata: defaultdict[str, list[str]] = defaultdict(list)
+        self._initializer_components = InitializerComponentSet()
+        self.creating_initial_population = False
+        self.adding_simulants = False
+        self._last_id = -1
+        self.tracked_queries: list[str] = []
+
+    def setup(self, builder: Builder) -> None:
+        """Registers the population manager with other vivarium systems."""
+        super().setup(builder)
+        self.logger = builder.logging.get_logger(self.name)
+        self.clock = builder.time.clock()
+        self.step_size = builder.time.step_size()
+        self.resources = builder.resources
+        self._add_constraint = builder.lifecycle.add_constraint
+        self._get_attribute_pipelines = builder.value.get_attribute_pipelines()
+        self._register_attribute_producer = builder.value.register_attribute_producer
+        self._get_current_component_or_manager = (
+            builder.components.get_current_component_or_manager
+        )
+
+        builder.lifecycle.add_constraint(
+            self.get_view,
+            allow_during=[
+                lifecycle_states.SETUP,
+                lifecycle_states.POST_SETUP,
+                lifecycle_states.POPULATION_CREATION,
+                lifecycle_states.SIMULATION_END,
+                lifecycle_states.REPORT,
+            ],
+        )
+        builder.lifecycle.add_constraint(
+            self.get_simulant_creator, allow_during=[lifecycle_states.SETUP]
+        )
+        builder.lifecycle.add_constraint(
+            self.register_initializer, allow_during=[lifecycle_states.SETUP]
+        )
+        self._add_constraint(
+            self.get_population,
+            restrict_during=[
+                lifecycle_states.SETUP,
+                lifecycle_states.POST_SETUP,
+            ],
+        )
+
+        builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
+
+    def on_post_setup(self, event: Event) -> None:
+        # All pipelines are registered during setup and so exist at this point.
+        self._attribute_pipelines = self._get_attribute_pipelines()
+
+    def __repr__(self) -> str:
+        return "PopulationManager()"
+
+    ###########################
+    # Builder API and helpers #
+    ###########################
+
+    def register_tracked_query(self, query: str) -> None:
+        """Updates list of registered tracked queries with the provided query.
+
+        Parameters
+        ----------
+        query
+            The new query to add to the running list of tracked queries.
+
+        Notes
+        -----
+        While we log a warning if the same query is registered multiple times,
+        we make no attempt to de-duplicate functionally-equivalent queries that
+        are syntactically different, e.g. "x > 5" and "5 < x". In such cases,
+        duplicate queries will be applied which is not optimal but will not
+        affect correctness.
+        """
+        if query in self.tracked_queries:
+            self.logger.warning(
+                f"The tracked query '{query}' has already been registered. "
+                "Duplicate registrations are ignored."
+            )
+            return
+        self.tracked_queries.append(query)
 
     def get_private_column_names(self, component_name: str) -> list[str]:
         """Gets the names of private columns created by a given component.
@@ -256,99 +349,6 @@ class PopulationManager(Manager):
         if squeeze:
             private_columns = private_columns.squeeze(axis=1)
         return private_columns.loc[index] if index is not None else private_columns
-
-    def __init__(self) -> None:
-        self._private_columns: pd.DataFrame | None = None
-        self._private_column_metadata: defaultdict[str, list[str]] = defaultdict(list)
-        self._initializer_components = InitializerComponentSet()
-        self.creating_initial_population = False
-        self.adding_simulants = False
-        self._last_id = -1
-        self.tracked_queries: list[str] = []
-
-    def register_tracked_query(self, query: str) -> None:
-        """Updates list of registered tracked queries with the provided query.
-
-        Parameters
-        ----------
-        query
-            The new query to add to the running list of tracked queries.
-
-        Notes
-        -----
-        While we log a warning if the same query is registered multiple times,
-        we make no attempt to de-duplicate functionally-equivalent queries that
-        are syntactically different, e.g. "x > 5" and "5 < x". In such cases,
-        duplicate queries will be applied which is not optimal but will not
-        affect correctness.
-        """
-        if query in self.tracked_queries:
-            self.logger.warning(
-                f"The tracked query '{query}' has already been registered. "
-                "Duplicate registrations are ignored."
-            )
-            return
-        self.tracked_queries.append(query)
-
-    ############################
-    # Normal Component Methods #
-    ############################
-
-    @property
-    def name(self) -> str:
-        """The name of this component."""
-        return "population_manager"
-
-    def setup(self, builder: Builder) -> None:
-        """Registers the population manager with other vivarium systems."""
-        super().setup(builder)
-        self.logger = builder.logging.get_logger(self.name)
-        self.clock = builder.time.clock()
-        self.step_size = builder.time.step_size()
-        self.resources = builder.resources
-        self._add_constraint = builder.lifecycle.add_constraint
-        self._get_attribute_pipelines = builder.value.get_attribute_pipelines()
-        self._register_attribute_producer = builder.value.register_attribute_producer
-        self._get_current_component_or_manager = (
-            builder.components.get_current_component_or_manager
-        )
-
-        builder.lifecycle.add_constraint(
-            self.get_view,
-            allow_during=[
-                lifecycle_states.SETUP,
-                lifecycle_states.POST_SETUP,
-                lifecycle_states.POPULATION_CREATION,
-                lifecycle_states.SIMULATION_END,
-                lifecycle_states.REPORT,
-            ],
-        )
-        builder.lifecycle.add_constraint(
-            self.get_simulant_creator, allow_during=[lifecycle_states.SETUP]
-        )
-        builder.lifecycle.add_constraint(
-            self.register_initializer, allow_during=[lifecycle_states.SETUP]
-        )
-        self._add_constraint(
-            self.get_population,
-            restrict_during=[
-                lifecycle_states.SETUP,
-                lifecycle_states.POST_SETUP,
-            ],
-        )
-
-        builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
-
-    def on_post_setup(self, event: Event) -> None:
-        # All pipelines are registered during setup and so exist at this point.
-        self._attribute_pipelines = self._get_attribute_pipelines()
-
-    def __repr__(self) -> str:
-        return "PopulationManager()"
-
-    ###########################
-    # Builder API and helpers #
-    ###########################
 
     def get_population_index(self) -> pd.Index[int]:
         """Gets the index of the current population."""
