@@ -91,11 +91,13 @@ class LookupTable(Resource, Generic[T]):
             self.parameter_columns, self.key_columns = self._get_columns(
                 self.value_columns, data
             )
-            parameter_columns_with_edges = [(p, f"{p}_start", f"{p}_end") for p in self.parameter_columns]
+            parameter_columns_with_edges = [
+                (p, f"{p}_start", f"{p}_end") for p in self.parameter_columns
+            ]
             required_cols = {
                 *self.key_columns,
                 *{col for p in parameter_columns_with_edges for col in p},
-                *self.value_columns
+                *self.value_columns,
             }
             if extra_columns := list(data.columns.difference(list(required_cols))):
                 raise ValueError(
@@ -150,9 +152,7 @@ class LookupTable(Resource, Generic[T]):
     def _broadcast_scalar(self, index: pd.Index[int]) -> pd.DataFrame:
         if not isinstance(self.data, (list, tuple)):
             values_series: pd.Series[Any] = pd.Series(
-                self.data,
-                index=index,
-                name=self.value_columns[0]
+                self.data, index=index, name=self.value_columns[0]
             )
             return pd.DataFrame(values_series)
         else:

@@ -25,10 +25,7 @@ from layered_config_tree import LayeredConfigTree
 
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
-from vivarium.framework.lookup.table import (
-    DEFAULT_VALUE_COLUMN,
-    LookupTable
-)
+from vivarium.framework.lookup.table import DEFAULT_VALUE_COLUMN, LookupTable
 from vivarium.manager import Manager
 from vivarium.types import LookupTableData
 
