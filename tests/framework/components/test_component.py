@@ -287,6 +287,14 @@ def test_component_lookup_table_configuration(hdf_file_path: Path) -> None:
     )
     sim.setup()
 
+    # Check that lookup table backing data is of the correct type
+    assert isinstance(component.favorite_team_table.data, pd.DataFrame)
+    assert isinstance(component.favorite_color_table.data, pd.DataFrame)
+    assert isinstance(component.favorite_number_table.data, pd.DataFrame)
+    assert isinstance(component.favorite_scalar_table.data, float)
+    assert isinstance(component.favorite_list_table.data, list)
+    assert isinstance(component.cooling_time_table.data, pd.DataFrame)
+
     # Check for correct columns in lookup tables
     assert component.favorite_team_table.key_columns == ["test_column_1"]
     assert not component.favorite_team_table.parameter_columns

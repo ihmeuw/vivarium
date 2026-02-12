@@ -63,24 +63,24 @@ class LookupTable(Resource, Generic[T]):
         super().__init__("lookup_table", self.get_name(component.name, name), component)
         self._validate_data_inputs(data, value_columns)
 
-        self.data = data
+        self.data: LookupTableData = data
         """The data this table will use to produce values."""
         self.return_type: type[T] = (
             pd.Series if isinstance(value_columns, str) else pd.DataFrame
         )
         """The type of data returned by the lookup table (pd.Series or pd.DataFrame)."""
-        self.key_columns = []
+        self.key_columns: list[str] = []
         """Column names to be used as categorical parameters in Interpolation
         to select between interpolation functions."""
-        self.parameter_columns = []
+        self.parameter_columns: list[str] = []
         """Column names to be used as continuous parameters in Interpolation."""
-        self.value_columns = (
+        self.value_columns: list[str] = (
             list(value_columns) if not isinstance(value_columns, str) else [value_columns]
         )
         """Names of value columns that will be returned by the lookup table."""
-        self._manager = manager
+        self._manager: LookupTableManager = manager
         """The manager that created this lookup table."""
-        self.population_view = population_view
+        self.population_view: PopulationView = population_view
         """PopulationView to use to get attributes for interpolation or categorization."""
         self.interpolation: Interpolation | None = None
         """Interpolation object to use when data is a DataFrame. Will be None if data is
@@ -90,7 +90,7 @@ class LookupTable(Resource, Generic[T]):
             self.parameter_columns, self.key_columns = self._get_columns(
                 self.value_columns, data
             )
-            parameter_columns_with_edges = [
+            parameter_columns_with_edges: list[tuple[str, str, str]] = [
                 (p, f"{p}_start", f"{p}_end") for p in self.parameter_columns
             ]
             required_cols = {
@@ -144,39 +144,40 @@ class LookupTable(Resource, Generic[T]):
     def _call(self, index: pd.Index[int]) -> pd.DataFrame:
         """Private method to allow LookupManager to add constraints."""
         if self.interpolation is None:
-            return self._broadcast_scalar(index)
-        else:
-            return self._lookup_values(index)
-
-    def _broadcast_scalar(self, index: pd.Index[int]) -> pd.DataFrame:
-        if not isinstance(self.data, (list, tuple)):
-            values_series: pd.Series[Any] = pd.Series(
-                self.data, index=index, name=self.value_columns[0]
-            )
-            return pd.DataFrame(values_series)
-        else:
-            values_list: list[pd.Series[Any]] = [pd.Series(v, index=index) for v in self.data]
-            return pd.DataFrame(dict(zip(self.value_columns, values_list)))
-
-    def _lookup_values(self, index: pd.Index[int]) -> pd.DataFrame:
-        requested_columns = [
-            col
-            for col in list(self.key_columns) + list(self.parameter_columns)
-            if col != "year"
-        ]
-        pop = pd.DataFrame(self.population_view.get_attributes(index, requested_columns))
-        if "year" in self.parameter_columns:
-            current_time = self._manager.clock()
-            if isinstance(current_time, pd.Timestamp) or isinstance(current_time, datetime):
-                fractional_year = float(current_time.year)
-                fractional_year += current_time.timetuple().tm_yday / 365.25
-                pop["year"] = fractional_year
-            else:
-                raise ValueError(
-                    "You cannot use the column 'year' in a simulation unless "
-                    "your simulation uses a DateTimeClock."
+            # Broadcast scalar or list of scalars to the index.
+            if not isinstance(self.data, (list, tuple)):
+                values_series: pd.Series[Any] = pd.Series(
+                    self.data, index=index, name=self.value_columns[0]
                 )
-        return self.interpolation(pop)
+                return pd.DataFrame(values_series)
+            else:
+                values_list: list[pd.Series[Any]] = [
+                    pd.Series(v, index=index) for v in self.data
+                ]
+                return pd.DataFrame(dict(zip(self.value_columns, values_list)))
+        else:
+            # Interpolate continuous parameters and categorize categorical parameters based on
+            # the population attributes.
+            requested_columns = [
+                col
+                for col in list(self.key_columns) + list(self.parameter_columns)
+                if col != "year"
+            ]
+            pop = pd.DataFrame(self.population_view.get_attributes(index, requested_columns))
+            if "year" in self.parameter_columns:
+                current_time = self._manager.clock()
+                if isinstance(current_time, pd.Timestamp) or isinstance(
+                    current_time, datetime
+                ):
+                    fractional_year = float(current_time.year)
+                    fractional_year += current_time.timetuple().tm_yday / 365.25
+                    pop["year"] = fractional_year
+                else:
+                    raise ValueError(
+                        "You cannot use the column 'year' in a simulation unless "
+                        "your simulation uses a DateTimeClock."
+                    )
+            return self.interpolation(pop)
 
     def __repr__(self) -> str:
         return "LookupTable()"
