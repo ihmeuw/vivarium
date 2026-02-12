@@ -93,16 +93,3 @@ class LookupTableInterface(Interface):
             LookupTable
         """
         return self._manager.build_table(data, name, value_columns)
-    
-
-    def update_table_data(self, name: str, data: LookupTableData) -> None:
-        """Update the data of an existing table.
-
-        Parameters
-        ----------
-        name
-            The name of the table to update.
-        data
-            The new data for the table.
-        """
-        self._manager.update_table_data(name, data)
