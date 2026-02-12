@@ -13,9 +13,10 @@ that index. See the :ref:`lookup concept note <lookup_concept>` for more.
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from datetime import datetime
-from typing import Any, Generic, TypeVar
+from datetime import datetime, timedelta
+from typing import TYPE_CHECKING, Any, Generic
+from typing import SupportsFloat as Numeric
+from typing import TypeVar
 
 import pandas as pd
 
@@ -23,7 +24,10 @@ from vivarium.component import Component
 from vivarium.framework.lookup.interpolation import Interpolation
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.framework.resource import Resource
-from vivarium.types import ClockTime, LookupTableData
+from vivarium.types import LookupTableData
+
+if TYPE_CHECKING:
+    from vivarium.framework.lookup.manager import LookupTableManager
 
 T = TypeVar("T", pd.Series, pd.DataFrame)  # type: ignore [type-arg]
 
@@ -53,13 +57,11 @@ class LookupTable(Resource, Generic[T]):
         data: LookupTableData,
         name: str,
         value_columns: list[str] | tuple[str, ...] | str,
+        manager: LookupTableManager,
         population_view: PopulationView,
-        clock: Callable[[], ClockTime] | None = None,
-        interpolation_order: int = 0,
-        extrapolate: bool = True,
-        validate: bool = True,
     ):
         super().__init__("lookup_table", self.get_name(component.name, name), component)
+        self._validate_data_inputs(data, value_columns)
 
         self.data = data
         """The data this table will use to produce values."""
@@ -75,17 +77,11 @@ class LookupTable(Resource, Generic[T]):
         self.value_columns = (
             list(value_columns) if not isinstance(value_columns, str) else [value_columns]
         )
-        """Names of value columns to be interpolated over."""
+        """Names of value columns that will be returned by the lookup table."""
+        self._manager = manager
+        """The manager that created this lookup table."""
         self.population_view = population_view
         """PopulationView to use to get attributes for interpolation or categorization."""
-        self.clock = clock
-        """Callable for current time in simulation, used if interpolation over time is needed."""
-        self.interpolation_order = interpolation_order
-        """The order of interpolation to use if this is an interpolated table."""
-        self.extrapolate = extrapolate
-        """Whether to extrapolate values outside the range of the data."""
-        self.validate = validate
-        """Whether to validate the data before building the LookupTable."""
 
         if isinstance(data, pd.DataFrame):
             self.parameter_columns, self.key_columns = self._get_columns(
@@ -110,9 +106,9 @@ class LookupTable(Resource, Generic[T]):
                 self.key_columns,
                 parameter_columns_with_edges,
                 self.value_columns,
-                order=self.interpolation_order,
-                extrapolate=self.extrapolate,
-                validate=self.validate,
+                order=self._manager.interpolation_order,
+                extrapolate=self._manager.extrapolate,
+                validate=self._manager.validate_interpolation,
             )
 
     @property
@@ -167,7 +163,7 @@ class LookupTable(Resource, Generic[T]):
         ]
         pop = pd.DataFrame(self.population_view.get_attributes(index, requested_columns))
         if "year" in self.parameter_columns:
-            current_time = self.clock()
+            current_time = self._manager.clock()
             if isinstance(current_time, pd.Timestamp) or isinstance(current_time, datetime):
                 fractional_year = float(current_time.year)
                 fractional_year += current_time.timetuple().tm_yday / 365.25
@@ -225,3 +221,39 @@ class LookupTable(Resource, Generic[T]):
         ]
 
         return parameter_columns, key_columns
+
+    @staticmethod
+    def _validate_data_inputs(
+        data: LookupTableData,
+        value_columns: list[str] | tuple[str, ...] | str,
+    ) -> None:
+        """Makes sure the data format agrees with the provided column layout."""
+        if (
+            data is None
+            or (isinstance(data, pd.DataFrame) and data.empty)
+            or (isinstance(data, (list, tuple)) and not data)
+        ):
+            raise ValueError("Must supply some data")
+
+        acceptable_types = (Numeric, datetime, timedelta, list, tuple, pd.DataFrame)
+        if not isinstance(data, acceptable_types):
+            raise TypeError(
+                f"The only allowable types for data are {acceptable_types}. "
+                f"You passed {type(data)}."
+            )
+
+        if isinstance(data, (list, tuple)):
+            if isinstance(value_columns, str):
+                raise ValueError(
+                    "When supplying multiple values, value_columns must be a list or tuple of strings."
+                )
+            if len(value_columns) != len(data):
+                raise ValueError(
+                    "The number of value columns must match the number of values."
+                    f"You supplied values: {data} and value_columns: {value_columns}"
+                )
+        elif not isinstance(data, pd.DataFrame):
+            if not isinstance(value_columns, str):
+                raise ValueError(
+                    "When supplying a single value, value_columns must be a string if provided."
+                )

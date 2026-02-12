@@ -15,10 +15,7 @@ the individuals represented by that index. See the
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any
-from typing import SupportsFloat as Numeric
-from typing import overload
+from typing import TYPE_CHECKING, Any, overload
 
 import pandas as pd
 from layered_config_tree import LayeredConfigTree
@@ -59,11 +56,11 @@ class LookupTableManager(Manager):
     def setup(self, builder: Builder) -> None:
         self._logger = builder.logging.get_logger(self.name)
         self._configuration = builder.configuration
-        self._pop_view_builder = builder.population.get_view
+        self._get_view = builder.population.get_view
         self.clock = builder.time.clock()
-        self._interpolation_order = builder.configuration.interpolation.order
-        self._extrapolate = builder.configuration.interpolation.extrapolate
-        self._validate = builder.configuration.interpolation.validate
+        self.interpolation_order = builder.configuration.interpolation.order
+        self.extrapolate = builder.configuration.interpolation.extrapolate
+        self.validate_interpolation = builder.configuration.interpolation.validate
         self._add_resources = builder.resources.add_resources
         self._add_constraint = builder.lifecycle.add_constraint
         self._get_current_component = builder.components.get_current_component
@@ -144,18 +141,14 @@ class LookupTableManager(Manager):
             data = pd.DataFrame(data)
 
         value_columns_ = value_columns if value_columns else DEFAULT_VALUE_COLUMN
-        _validate_build_table_parameters(data, value_columns_)
 
         table = LookupTable(
             name=name,
             component=component,
             data=data,
             value_columns=value_columns_,
-            validate=self._validate,
-            population_view=self._pop_view_builder(),
-            clock=self.clock,
-            interpolation_order=self._interpolation_order,
-            extrapolate=self._extrapolate,
+            manager=self,
+            population_view=self._get_view(),
         )
 
         self.tables[table.name] = table
@@ -164,39 +157,3 @@ class LookupTableManager(Manager):
 
     def __repr__(self) -> str:
         return "LookupTableManager()"
-
-
-def _validate_build_table_parameters(
-    data: LookupTableData,
-    value_columns: list[str] | tuple[str, ...] | str,
-) -> None:
-    """Makes sure the data format agrees with the provided column layout."""
-    if (
-        data is None
-        or (isinstance(data, pd.DataFrame) and data.empty)
-        or (isinstance(data, (list, tuple)) and not data)
-    ):
-        raise ValueError("Must supply some data")
-
-    acceptable_types = (Numeric, datetime, timedelta, list, tuple, pd.DataFrame)
-    if not isinstance(data, acceptable_types):
-        raise TypeError(
-            f"The only allowable types for data are {acceptable_types}. "
-            f"You passed {type(data)}."
-        )
-
-    if isinstance(data, (list, tuple)):
-        if isinstance(value_columns, str):
-            raise ValueError(
-                "When supplying multiple values, value_columns must be a list or tuple of strings."
-            )
-        if len(value_columns) != len(data):
-            raise ValueError(
-                "The number of value columns must match the number of values."
-                f"You supplied values: {data} and value_columns: {value_columns}"
-            )
-    elif not isinstance(data, pd.DataFrame):
-        if not isinstance(value_columns, str):
-            raise ValueError(
-                "When supplying a single value, value_columns must be a string if provided."
-            )
