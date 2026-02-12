@@ -145,10 +145,10 @@ def validate_parameters(
     if data.empty:
         raise ValueError("You must supply non-empty data to create the interpolation.")
 
-    if len(continuous_parameters) < 1:
-        raise ValueError(
-            "You must supply at least one continuous parameter over which to interpolate."
-        )
+    # if len(continuous_parameters) < 1:
+    #     raise ValueError(
+    #         "You must supply at least one continuous parameter over which to interpolate."
+    #     )
 
     for p in continuous_parameters:
         if not isinstance(p, (tuple, list)) or len(p) != 3:
@@ -160,7 +160,6 @@ def validate_parameters(
             )
 
     # break out the individual columns from binned column name lists
-    param_cols = [col for p in continuous_parameters for col in p]
     if not value_columns:
         raise ValueError(
             f"No non-parameter data. Available columns: {data.columns}, "

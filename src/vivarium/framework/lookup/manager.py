@@ -27,11 +27,8 @@ from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.lookup.table import (
     DEFAULT_VALUE_COLUMN,
-    CategoricalTable,
-    InterpolatedTable,
     LookupTable,
     NewLookupTable,
-    ScalarTable,
 )
 from vivarium.manager import Manager
 from vivarium.types import LookupTableData
@@ -63,7 +60,7 @@ class LookupTableManager(Manager):
         super().__init__()
         self.tables: dict[str, LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]] = {}
 
-    def setup(self, builder: "Builder") -> None:
+    def setup(self, builder: Builder) -> None:
         self._logger = builder.logging.get_logger(self.name)
         self._configuration = builder.configuration
         self._pop_view_builder = builder.population.get_view
@@ -153,45 +150,17 @@ class LookupTableManager(Manager):
         value_columns_ = value_columns if value_columns else DEFAULT_VALUE_COLUMN
         _validate_build_table_parameters(data, value_columns_)
 
-        # todo figure out the table's return type based on the number of value columns
-        return_type = pd.Series[Any]
         table = NewLookupTable(
             name=name,
             component=component,
             data=data,
             value_columns=value_columns_,
-            return_type=return_type,
             validate=self._validate,
+            population_view=self._pop_view_builder(),
+            clock=self.clock,
+            interpolation_order=self._interpolation_order,
+            extrapolate=self._extrapolate,
         )
-        if isinstance(data, pd.DataFrame):
-            parameter_columns, key_columns = self._get_columns(value_columns_, data)
-            if parameter_columns:
-                table = InterpolatedTable(
-                    name=name,
-                    component=component,
-                    data=data,
-                    population_view_builder=self._pop_view_builder,
-                    key_columns=key_columns,
-                    parameter_columns=parameter_columns,
-                    value_columns=value_columns_,
-                    interpolation_order=self._interpolation_order,
-                    clock=self.clock,
-                    extrapolate=self._extrapolate,
-                    validate=self._validate,
-                )
-            else:
-                table = CategoricalTable(
-                    name=name,
-                    component=component,
-                    data=data,
-                    population_view_builder=self._pop_view_builder,
-                    key_columns=key_columns,
-                    value_columns=value_columns_,
-                )
-        else:
-            table = ScalarTable(
-                name=name, component=component, data=data, value_columns=value_columns_
-            )
 
         self.tables[table.name] = table
 
@@ -199,35 +168,6 @@ class LookupTableManager(Manager):
 
     def __repr__(self) -> str:
         return "LookupTableManager()"
-
-    @staticmethod
-    def _get_columns(
-        value_columns: list[str] | tuple[str, ...] | str, data: pd.DataFrame
-    ) -> tuple[list[str], list[str]]:
-        if isinstance(value_columns, str):
-            value_columns = [value_columns]
-
-        all_columns = list(data.columns)
-
-        potential_parameter_columns = [
-            str(col).removesuffix("_start")
-            for col in all_columns
-            if str(col).endswith("_start")
-        ]
-        parameter_columns = []
-        bin_edge_columns = []
-        for column in potential_parameter_columns:
-            if f"{column}_end" in all_columns:
-                parameter_columns.append(column)
-                bin_edge_columns += [f"{column}_start", f"{column}_end"]
-
-        key_columns = [
-            col
-            for col in all_columns
-            if col not in value_columns and col not in bin_edge_columns
-        ]
-
-        return parameter_columns, key_columns
 
 
 def _validate_build_table_parameters(

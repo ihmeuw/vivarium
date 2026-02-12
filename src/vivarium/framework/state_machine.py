@@ -17,7 +17,6 @@ import numpy as np
 import pandas as pd
 
 from vivarium import Component
-from vivarium.framework.lookup.table import ScalarTable
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
@@ -252,7 +251,7 @@ class State(Component):
     def has_initialization_weights(self) -> bool:
         """Determines if state has explicitly defined initialization weights."""
         return not (
-            isinstance(self.initialization_weights_table, ScalarTable)
+            not isinstance(self.initialization_weights_table.data, pd.DataFrame)
             and self.initialization_weights_table.data == 0.0
         )
 
