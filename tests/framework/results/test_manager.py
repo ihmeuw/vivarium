@@ -590,7 +590,9 @@ def test_prepare_population(
         ).all()
 
 
-def test_prepare_population_all_untracked(prepare_population_sim: InteractiveContext) -> None:
+def test_prepare_population_all_untracked(
+    prepare_population_sim: InteractiveContext, mocker: pytest_mock.MockerFixture
+) -> None:
     mgr = prepare_population_sim._results
     observation1 = AddingObservation(
         name="familiar",
@@ -623,6 +625,8 @@ def test_prepare_population_all_untracked(prepare_population_sim: InteractiveCon
     # Add an untracking query
     pop_mgr = prepare_population_sim._population
     pop_mgr.tracked_queries = ['student_house != "slytherin"']
+    # Change lifecycle phase to ensure tracked queries are applied appropriately
+    mocker.patch.object(pop_mgr, "get_current_state", lambda: "on_time_step")
 
     # Check that the exclusion is not applied since one of the observers allows untracked
     private_columns = pop_mgr._private_columns
