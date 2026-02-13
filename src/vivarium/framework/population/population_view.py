@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any, Literal, overload
 import pandas as pd
 
 import vivarium.framework.population.utilities as pop_utils
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.population.exceptions import PopulationError
 
 if TYPE_CHECKING:
@@ -190,6 +191,9 @@ class PopulationView:
         squeeze: Literal[True, False] = isinstance(attributes, str)
         attributes = [attributes] if isinstance(attributes, str) else list(attributes)
 
+        include_default_query, include_untracked = self._set_query_args_if_initializing(
+            self._manager.get_current_state(), include_default_query, include_untracked
+        )
         population = self._manager.get_population(
             attributes=attributes,
             index=index,
@@ -252,6 +256,9 @@ class PopulationView:
             the various optional queries. Will always return a DataFrame.
 
         """
+        include_default_query, include_untracked = self._set_query_args_if_initializing(
+            self._manager.get_current_state(), include_default_query, include_untracked
+        )
         return pd.DataFrame(
             self._manager.get_population(
                 index=index,
@@ -380,6 +387,9 @@ class PopulationView:
             The requested and filtered population index.
         """
 
+        include_default_query, include_untracked = self._set_query_args_if_initializing(
+            self._manager.get_current_state(), include_default_query, include_untracked
+        )
         return self.get_attributes(
             index,
             attributes=[],
@@ -660,3 +670,17 @@ class PopulationView:
             self._default_query if include_default_query else "",
             self._manager.get_tracked_query() if not include_untracked else "",
         )
+
+    @staticmethod
+    def _set_query_args_if_initializing(
+        current_state: str, include_default_query: bool, include_untracked: bool
+    ) -> tuple[bool, bool]:
+        """Sets query arguments appropriately during initialization."""
+        if current_state in [
+            lifecycle_states.INITIALIZATION,
+            lifecycle_states.POPULATION_CREATION,
+        ]:
+            # Override query arguments to ensure we don't filter anything out during initialization
+            include_default_query = False
+            include_untracked = True
+        return include_default_query, include_untracked
