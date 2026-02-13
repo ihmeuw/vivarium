@@ -40,11 +40,7 @@ class PopulationInterface(Interface):
     def __init__(self, manager: PopulationManager):
         self._manager = manager
 
-    def get_view(
-        self,
-        component: Component | None = None,
-        query: str = "",
-    ) -> PopulationView:
+    def get_view(self, component: Component | None = None) -> PopulationView:
         """Gets a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
@@ -55,17 +51,12 @@ class PopulationInterface(Interface):
         component
             The component requesting this view. If None, the view will provide
             read-only access.
-        query
-            A filter on the population state. This filters out particular
-            simulants (rows in the state table) based on their current state.
-            The query should be provided in a way that is understood by the
-            :meth:`pandas.DataFrame.query` method.
 
         Returns
         -------
-            A filtered view of the requested columns of the population state table.
+            A view of the requested columns of the population state table.
         """
-        return self._manager.get_view(component, query)
+        return self._manager.get_view(component)
 
     def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
         """Gets a function that can generate new simulants.
@@ -115,12 +106,12 @@ class PopulationInterface(Interface):
         self._manager.register_initializer(initializer, columns, required_resources)
 
     def register_tracked_query(self, query: str) -> None:
-        """Updates the default query for all population views.
+        """Adds a new query to the population manager's tracked query string.
 
         Parameters
         ----------
         query
-            The new default query to apply to all population views.
+            The new query to be added to the population manager's tracked query string.
         """
         self._manager.register_tracked_query(query)
 
