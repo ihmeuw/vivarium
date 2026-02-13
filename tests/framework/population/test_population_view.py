@@ -24,6 +24,7 @@ from tests.framework.population.helpers import (
 from tests.helpers import AttributePipelineCreator, ColumnCreator, SingleColumnCreator
 from vivarium import InteractiveContext
 from vivarium.framework.engine import Builder
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.population import PopulationError, PopulationManager, PopulationView
 
 ##########################
@@ -901,6 +902,36 @@ def test__update_column_and_ensure_dtype_unmatched_dtype() -> None:
             existing,
             adding_simulants=False,
         )
+
+
+#################################
+# PopulationView.update helpers #
+##################################################
+# PopulationView._set_query_args_if_initializing #
+##################################################
+
+
+def test__set_query_args_if_initializing() -> None:
+    # lifecycle_states is not directly iterable so just look for constants manually
+    states = [state for state in dir(lifecycle_states) if not state.startswith("_")]
+    for current_state in states:
+        (
+            include_default_query,
+            include_untracked,
+        ) = PopulationView._set_query_args_if_initializing(
+            current_state=current_state,
+            include_default_query=True,
+            include_untracked=False,
+        )
+        if current_state in [
+            lifecycle_states.INITIALIZATION,
+            lifecycle_states.POPULATION_CREATION,
+        ]:
+            assert include_default_query is False
+            assert include_untracked is False
+        else:
+            assert include_default_query is True
+            assert include_untracked is False
 
 
 #########################
