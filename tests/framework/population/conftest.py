@@ -98,5 +98,5 @@ def pies_and_cubes_pop_mgr(mocker: MockerFixture) -> PopulationManager:
         },
     )
     # Change lifecycle phase to ensure tracked queries are applied appropriately
-    mocker.patch.object(mgr, "_get_current_state", lambda: "on_time_step")
+    mocker.patch.object(mgr, "get_current_state", lambda: "on_time_step")
     return mgr

@@ -192,7 +192,7 @@ class PopulationView:
         attributes = [attributes] if isinstance(attributes, str) else list(attributes)
 
         include_default_query, include_untracked = self._set_query_args_if_initializing(
-            self._manager._get_current_state(), include_default_query, include_untracked
+            self._manager.get_current_state(), include_default_query, include_untracked
         )
         population = self._manager.get_population(
             attributes=attributes,
@@ -257,7 +257,7 @@ class PopulationView:
 
         """
         include_default_query, include_untracked = self._set_query_args_if_initializing(
-            self._manager._get_current_state(), include_default_query, include_untracked
+            self._manager.get_current_state(), include_default_query, include_untracked
         )
         return pd.DataFrame(
             self._manager.get_population(
@@ -388,7 +388,7 @@ class PopulationView:
         """
 
         include_default_query, include_untracked = self._set_query_args_if_initializing(
-            self._manager._get_current_state(), include_default_query, include_untracked
+            self._manager.get_current_state(), include_default_query, include_untracked
         )
         return self.get_attributes(
             index,
