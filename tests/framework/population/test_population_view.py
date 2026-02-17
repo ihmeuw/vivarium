@@ -87,17 +87,6 @@ def query(request: pytest.FixtureRequest) -> str | None:
     return request.param
 
 
-@pytest.fixture(
-    params=[
-        None,
-        "pie != 'chocolate' and pi > 100",
-    ]
-)
-def pop_view_default_query(request: pytest.FixtureRequest) -> str | None:
-    assert isinstance(request.param, (str, type(None)))
-    return request.param
-
-
 @pytest.fixture(params=["pie != 'apple'"])
 def tracked_query(request: pytest.FixtureRequest) -> str:
     assert isinstance(request.param, str)
@@ -116,26 +105,11 @@ def test_initialization(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     assert pv._id == 0
     assert pv.name == f"population_view_{pv._id}"
     assert set(pv.private_columns) == expected_private_columns
-    assert pv._default_query == ""
 
-    q_string = "color == 'red'"
-    pv = pies_and_cubes_pop_mgr.get_view(component, default_query=q_string)
+    pv = pies_and_cubes_pop_mgr.get_view(component)
     assert pv._id == 1
     assert pv.name == f"population_view_{pv._id}"
     assert set(pv.private_columns) == expected_private_columns
-    assert pv._default_query == q_string
-
-
-####################################
-# PopulationView.set_default_query #
-####################################
-
-
-def test_set_default_query(mocker: MockerFixture) -> None:
-    pv = PopulationView(mocker.Mock(), mocker.Mock(), 0)
-    assert pv._default_query == ""
-    pv.set_default_query("foo == 'bar'")
-    assert pv._default_query == "foo == 'bar'"
 
 
 #################################
@@ -253,15 +227,12 @@ def test_get_attributes_skip_post_processor_with_query(
     assert call_args[1] == {"skip_post_processor": True}
 
 
-@pytest.mark.parametrize("include_default_query", [True, False])
 @pytest.mark.parametrize("register_tracked_query", [True, False])
 @pytest.mark.parametrize("include_untracked", [True, False])
 def test_get_attributes_combined_query(
-    include_default_query: bool,
     register_tracked_query: bool,
     include_untracked: bool,
     update_index: pd.Index[int],
-    pop_view_default_query: str | None,
     query: str | None,
     tracked_query: str,
     pies_and_cubes_pop_mgr: PopulationManager,
@@ -270,12 +241,8 @@ def test_get_attributes_combined_query(
 
     if register_tracked_query:
         pies_and_cubes_pop_mgr.register_tracked_query(tracked_query)
-    pv_kwargs, kwargs = _resolve_kwargs(
-        include_default_query, include_untracked, pop_view_default_query, query
-    )
+    kwargs = _resolve_kwargs(include_untracked, query)
     combined_query = _combine_queries(
-        include_default_query,
-        pop_view_default_query,
         include_untracked,
         pies_and_cubes_pop_mgr.tracked_queries,
         query,
@@ -285,7 +252,7 @@ def test_get_attributes_combined_query(
     if combined_query and "cube" in combined_query:
         col_request += ["cube"]
 
-    pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
     pop = pv.get_attributes(update_index, col_request, **kwargs)
     assert isinstance(pop, pd.DataFrame)
 
@@ -397,34 +364,27 @@ class TestGetAttributesReturnTypes:
 
 
 @pytest.mark.parametrize("private_columns", [None, PIE_COL_NAMES[1:]])
-@pytest.mark.parametrize("include_default_query", [True, False])
 @pytest.mark.parametrize("register_tracked_query", [True, False])
 @pytest.mark.parametrize("include_untracked", [True, False])
 def test_get_private_columns(
     private_columns: list[str] | None,
-    include_default_query: bool,
     register_tracked_query: bool,
     include_untracked: bool,
     update_index: pd.Index[int],
-    pop_view_default_query: str | None,
     query: str | None,
     tracked_query: str,
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
     if register_tracked_query:
         pies_and_cubes_pop_mgr.register_tracked_query(tracked_query)
-    pv_kwargs, kwargs = _resolve_kwargs(
-        include_default_query, include_untracked, pop_view_default_query, query
-    )
+    kwargs = _resolve_kwargs(include_untracked, query)
     if private_columns is not None:
         kwargs["private_columns"] = private_columns
 
-    pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
     pop = pv.get_private_columns(update_index, **kwargs)
     assert isinstance(pop, pd.DataFrame)
     combined_query = _combine_queries(
-        include_default_query,
-        pop_view_default_query,
         include_untracked,
         pies_and_cubes_pop_mgr.tracked_queries,
         query,
@@ -520,30 +480,23 @@ def test_get_private_columns_squeezing() -> None:
 #####################################
 
 
-@pytest.mark.parametrize("include_default_query", [True, False])
 @pytest.mark.parametrize("register_tracked_query", [True, False])
 @pytest.mark.parametrize("include_untracked", [True, False])
 def test_get_filtered_index(
-    include_default_query: bool,
     register_tracked_query: bool,
     include_untracked: bool,
     update_index: pd.Index[int],
-    pop_view_default_query: str | None,
     query: str | None,
     tracked_query: str,
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
     if register_tracked_query:
         pies_and_cubes_pop_mgr.register_tracked_query(tracked_query)
-    pv_kwargs, kwargs = _resolve_kwargs(
-        include_default_query, include_untracked, pop_view_default_query, query
-    )
-    pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
+    kwargs = _resolve_kwargs(include_untracked, query)
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
     pop_idx = pv.get_filtered_index(update_index, **kwargs)
 
     combined_query = _combine_queries(
-        include_default_query,
-        pop_view_default_query,
         include_untracked,
         pies_and_cubes_pop_mgr.tracked_queries,
         query,
@@ -907,31 +860,25 @@ def test__update_column_and_ensure_dtype_unmatched_dtype() -> None:
 #################################
 # PopulationView.update helpers #
 ##################################################
-# PopulationView._set_query_args_if_initializing #
+# PopulationView._build_query #
 ##################################################
 
 
-def test__set_query_args_if_initializing() -> None:
+def test__skip_tracked_query_if_initializing(
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    pies_and_cubes_pop_mgr.tracked_queries = ["one == 1"]
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
     # lifecycle_states is not directly iterable so just look for constants manually
     states = [state for state in dir(lifecycle_states) if not state.startswith("_")]
-    for current_state in states:
-        (
-            include_default_query,
-            include_untracked,
-        ) = PopulationView._set_query_args_if_initializing(
-            current_state=current_state,
-            include_default_query=True,
-            include_untracked=False,
-        )
-        if current_state in [
-            lifecycle_states.INITIALIZATION,
-            lifecycle_states.POPULATION_CREATION,
-        ]:
-            assert include_default_query is False
-            assert include_untracked is False
+    for state in states:
+        query = pv._build_query("", include_untracked=False)
+        if state in [lifecycle_states.INITIALIZATION, lifecycle_states.POPULATION_CREATION]:
+            # We DO include the untracked people here so make sure the query does
+            # NOT include the tracking query
+            assert query == ""
         else:
-            assert include_default_query is True
-            assert include_untracked is False
+            assert query == "(one == 1)"
 
 
 #########################
@@ -1069,22 +1016,15 @@ def test_population_view_update_time_step(
 
 
 def _resolve_kwargs(
-    include_default_query: bool,
     include_untracked: bool,
-    pop_view_default_query: str | None,
     query: str | None,
-) -> tuple[dict[str, Any], dict[str, Any]]:
+) -> dict[str, Any]:
     kwargs: dict[str, bool | str | list[str]] = {}
-    kwargs["include_default_query"] = include_default_query
     kwargs["include_untracked"] = include_untracked
-
-    pv_kwargs: dict[str, str] = {}
-    if pop_view_default_query is not None:
-        pv_kwargs["default_query"] = pop_view_default_query
     if query is not None:
         kwargs["query"] = query
 
-    return pv_kwargs, kwargs
+    return kwargs
 
 
 def _get_expected(update_index: pd.Index[int], combined_query: str | None) -> pd.DataFrame:
@@ -1099,15 +1039,11 @@ def _get_expected(update_index: pd.Index[int], combined_query: str | None) -> pd
 
 
 def _combine_queries(
-    include_default_query: bool,
-    pop_view_default_query: str | None,
     include_untracked: bool,
     tracked_queries: list[str],
     query: str | None,
 ) -> str:
     combined_query_parts = []
-    if include_default_query and pop_view_default_query is not None:
-        combined_query_parts.append(f"{pop_view_default_query}")
     if not include_untracked and tracked_queries:
         combined_query_parts += tracked_queries
     if query is not None:
