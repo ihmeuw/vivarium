@@ -95,13 +95,6 @@ def test_initializer_set() -> None:
         component_set.add(component.initializer, columns)
 
 
-@pytest.mark.parametrize("query", ["", "foo == True"])
-def test_setting_query_with_get_view(query: str) -> None:
-    manager = PopulationManager()
-    view = manager._get_view(component=None, default_query=query)
-    assert view._default_query == query
-
-
 @pytest.mark.parametrize("private_columns", [[], ["age", "sex"]])
 def test_setting_columns_with_get_view(
     private_columns: list[str], mocker: MockerFixture
@@ -110,7 +103,7 @@ def test_setting_columns_with_get_view(
     component = mocker.Mock()
     component.name = "test_component"
     manager._private_column_metadata["test_component"] = private_columns
-    view = manager._get_view(component=component, default_query="")
+    view = manager._get_view(component=component)
     assert view.private_columns == private_columns
 
 

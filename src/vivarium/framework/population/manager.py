@@ -355,11 +355,7 @@ class PopulationManager(Manager):
         """Gets the index of the current population."""
         return self.private_columns.index
 
-    def get_view(
-        self,
-        component: Component | None = None,
-        default_query: str = "",
-    ) -> PopulationView:
+    def get_view(self, component: Component | None = None) -> PopulationView:
         """Gets a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
@@ -370,19 +366,13 @@ class PopulationManager(Manager):
         component
             The component requesting this view. If None, the view will provide
             read-only access.
-        default_query
-            A filter on the population state. This filters out particular
-            simulants (rows in the state table) based on their current state.
-            The query should be provided in a way that is understood by the
-            :meth:`pandas.DataFrame.query` method and may reference any attributes
-            (not just those created by the ``component``).
 
         Returns
         -------
-            A filtered view of the requested private columns of the population state table.
+            A view of the requested private columns of the population state table.
 
         """
-        view = self._get_view(component, default_query)
+        view = self._get_view(component)
         self._add_constraint(
             view.get_attributes,
             restrict_during=[
@@ -403,14 +393,9 @@ class PopulationManager(Manager):
         )
         return view
 
-    def _get_view(
-        self,
-        component: Component | None,
-        default_query: str,
-    ) -> PopulationView:
+    def _get_view(self, component: Component | None) -> PopulationView:
         self._last_id += 1
         view = PopulationView(self, component, self._last_id)
-        view.set_default_query(default_query)
         return view
 
     def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
