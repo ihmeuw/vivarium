@@ -169,9 +169,6 @@ class PopulationView:
         squeeze: Literal[True, False] = isinstance(attributes, str)
         attributes = [attributes] if isinstance(attributes, str) else list(attributes)
 
-        include_untracked = self._skip_tracked_query_if_initializing(
-            self._manager.get_current_state(), include_untracked
-        )
         population = self._manager.get_population(
             attributes=attributes,
             index=index,
@@ -229,9 +226,6 @@ class PopulationView:
             the various optional queries. Will always return a DataFrame.
 
         """
-        include_untracked = self._skip_tracked_query_if_initializing(
-            self._manager.get_current_state(), include_untracked
-        )
         return pd.DataFrame(
             self._manager.get_population(
                 index=index,
@@ -346,9 +340,6 @@ class PopulationView:
             The requested and filtered population index.
         """
 
-        include_untracked = self._skip_tracked_query_if_initializing(
-            self._manager.get_current_state(), include_untracked
-        )
         return self.get_attributes(
             index,
             attributes=[],
@@ -620,21 +611,17 @@ class PopulationView:
 
         This combines the provided query with the population manager's tracked query
         as appropriate.
+
+        Notes
+        -----
+        We explicitly set 'include_untracked' to True during initialization and
+        population creation lifecycle phases.
         """
+        include_untracked = include_untracked or self._manager.get_current_state() in [
+            lifecycle_states.INITIALIZATION,
+            lifecycle_states.POPULATION_CREATION,
+        ]
         return pop_utils.combine_queries(
             query,
             self._manager.get_tracked_query() if not include_untracked else "",
         )
-
-    @staticmethod
-    def _skip_tracked_query_if_initializing(
-        current_state: str, include_untracked: bool
-    ) -> bool:
-        """Sets 'include_untracked' to True during initialization."""
-        if current_state in [
-            lifecycle_states.INITIALIZATION,
-            lifecycle_states.POPULATION_CREATION,
-        ]:
-            # Override include_untracked to ensure we don't filter anything out during initialization
-            include_untracked = True
-        return include_untracked

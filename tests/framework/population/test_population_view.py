@@ -860,25 +860,25 @@ def test__update_column_and_ensure_dtype_unmatched_dtype() -> None:
 #################################
 # PopulationView.update helpers #
 ##################################################
-# PopulationView._skip_tracked_query_if_initializing #
+# PopulationView._build_query #
 ##################################################
 
 
-def test__skip_tracked_query_if_initializing() -> None:
+def test__skip_tracked_query_if_initializing(
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    pies_and_cubes_pop_mgr.tracked_queries = ["one == 1"]
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
     # lifecycle_states is not directly iterable so just look for constants manually
     states = [state for state in dir(lifecycle_states) if not state.startswith("_")]
-    for current_state in states:
-        include_untracked = PopulationView._skip_tracked_query_if_initializing(
-            current_state=current_state,
-            include_untracked=False,
-        )
-        if current_state in [
-            lifecycle_states.INITIALIZATION,
-            lifecycle_states.POPULATION_CREATION,
-        ]:
-            assert include_untracked is False
+    for state in states:
+        query = pv._build_query("", include_untracked=False)
+        if state in [lifecycle_states.INITIALIZATION, lifecycle_states.POPULATION_CREATION]:
+            # We DO include the untracked people here so make sure the query does
+            # NOT include the tracking query
+            assert query == ""
         else:
-            assert include_untracked is False
+            assert query == "(one == 1)"
 
 
 #########################

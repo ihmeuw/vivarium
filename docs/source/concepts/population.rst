@@ -81,8 +81,12 @@ Filtering Simulants
 There are two types of filtering that can be applied when using a population view
 to get attributes or private columns.
 
-First, a ``query`` argument can be passed in to any population view ``get_`` data
-method to filter the simulants returned for that specific call.
+First, a ``query`` argument can be passed in to any of the population view's 
+:meth:`~vivarium.framework.population.population_view.PopulationView.get_attributes`, 
+:meth:`~vivarium.framework.population.population_view.PopulationView.get_attribute_frame`, 
+:meth:`~vivarium.framework.population.population_view.PopulationView.get_private_columns`, or
+:meth:`~vivarium.framework.population.population_view.PopulationView.get_filtered_index`
+to filter the simulants returned for that specific call.
 
 Second, if any components have registered an untracking query, untracked simulants
 will be automatically filtered out. There is an optional ``include_untracked`` argument 
