@@ -18,8 +18,7 @@ Population management system refactor
   - Write access (via the 'update()' method) is now restricted to private columns
     created by the component the view is attached to.
 
-- Population views: Refactor default queries to use new 'set_default_query()'
-  method and 'include_default_query' argument.
+- Population views: Remove support for population view default queries.
 - Population interface: Replace the 'tracked' column and corresponding auto-filter
   logic with a new 'register_tracked_query()' method and 'include_untracked' argument
   when getting attributes or private columns from a population view.
