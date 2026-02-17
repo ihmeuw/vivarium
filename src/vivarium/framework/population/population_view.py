@@ -59,7 +59,6 @@ class PopulationView:
         self._manager = manager
         self._component = component
         self._id = view_id
-        self._default_query = ""
 
     ##############
     # Properties #
@@ -86,26 +85,12 @@ class PopulationView:
     # Methods #
     ###########
 
-    def set_default_query(self, query: str) -> None:
-        """Sets the default query for this population view.
-
-        This is the query that is applied to all data requests made through this
-        population view unless the caller explicitly opts out of including it.
-
-        Parameters
-        ----------
-        query
-            The new default query to apply to this population view.
-        """
-        self._default_query = query
-
     @overload
     def get_attributes(
         self,
         index: pd.Index[int],
         attributes: str,
         query: str = "",
-        include_default_query: bool = True,
         include_untracked: bool = False,
         skip_post_processor: bool = False,
     ) -> pd.Series[Any]:
@@ -117,7 +102,6 @@ class PopulationView:
         index: pd.Index[int],
         attributes: list[str] | tuple[str, ...],
         query: str = "",
-        include_default_query: bool = True,
         include_untracked: bool = False,
         skip_post_processor: bool = False,
     ) -> pd.DataFrame:
@@ -129,7 +113,6 @@ class PopulationView:
         index: pd.Index[int],
         attributes: str | list[str] | tuple[str, ...],
         query: str = "",
-        include_default_query: bool = True,
         include_untracked: bool = False,
         skip_post_processor: bool = True,
     ) -> Any:
@@ -140,7 +123,6 @@ class PopulationView:
         index: pd.Index[int],
         attributes: str | list[str] | tuple[str, ...],
         query: str = "",
-        include_default_query: bool = True,
         include_untracked: bool = False,
         skip_post_processor: Literal[True, False] = False,
     ) -> Any:
@@ -148,8 +130,7 @@ class PopulationView:
 
         For the rows in ``index``, return the ``attributes`` (i.e. columns) from the
         state table. The resulting rows may be further filtered by the call's ``query``
-        and whether or not to include this ``PopulationView``'s default query and/or
-        untracked simulants.
+        and whether or not to include untracked simulants.
 
         Parameters
         ----------
@@ -160,10 +141,7 @@ class PopulationView:
             The attributes to retrieve. If a single attribute is passed in via a
             string, the result will be squeezed to a Series if possible.
         query
-            Additional conditions used to filter the index. If ``include_default_query``
-            is True, it will be combined with this PopulationView's query property.
-        include_default_query
-            Whether to combine this view's default query with the provided ``query``.
+            Additional conditions used to filter the index.
         include_untracked
             Whether to include untracked simulants.
         skip_post_processor
@@ -191,13 +169,10 @@ class PopulationView:
         squeeze: Literal[True, False] = isinstance(attributes, str)
         attributes = [attributes] if isinstance(attributes, str) else list(attributes)
 
-        include_default_query, include_untracked = self._set_query_args_if_initializing(
-            self._manager.get_current_state(), include_default_query, include_untracked
-        )
         population = self._manager.get_population(
             attributes=attributes,
             index=index,
-            query=self._build_query(query, include_default_query, include_untracked),
+            query=self._build_query(query, include_untracked),
             squeeze=squeeze,
             skip_post_processor=skip_post_processor,
         )
@@ -214,15 +189,13 @@ class PopulationView:
         index: pd.Index[int],
         attribute: str,
         query: str = "",
-        include_default_query: bool = True,
         include_untracked: bool = False,
     ) -> pd.DataFrame:
         """Gets a single attribute as a DataFrame.
 
         For the rows in ``index``, return the ``attributes`` (i.e. columns) from the
         state table. The resulting rows may be further filtered by the call's ``query``
-        and whether or not to include this ``PopulationView``'s default query and/or
-        untracked simulants.
+        and whether or not to include untracked simulants.
 
         Parameters
         ----------
@@ -231,10 +204,7 @@ class PopulationView:
         attribute
             The attribute to retrieve. This attribute may contain one or more columns.
         query
-            Additional conditions used to filter the index. If ``include_default_query``
-            is True, it will be combined with this PopulationView's query property.
-        include_default_query
-            Whether to combine this view's default query with the provided ``query``.
+            Additional conditions used to filter the index.
         include_untracked
             Whether to include untracked simulants.
 
@@ -256,14 +226,11 @@ class PopulationView:
             the various optional queries. Will always return a DataFrame.
 
         """
-        include_default_query, include_untracked = self._set_query_args_if_initializing(
-            self._manager.get_current_state(), include_default_query, include_untracked
-        )
         return pd.DataFrame(
             self._manager.get_population(
                 index=index,
                 attributes=[attribute],
-                query=self._build_query(query, include_default_query, include_untracked),
+                query=self._build_query(query, include_untracked),
             )
         )
 
@@ -273,7 +240,6 @@ class PopulationView:
         index: pd.Index[int],
         private_columns: str = ...,
         query: str = "",
-        include_default_query: bool = True,
         include_untracked: bool = False,
     ) -> pd.Series[Any]:
         ...
@@ -284,7 +250,6 @@ class PopulationView:
         index: pd.Index[int],
         private_columns: list[str] | tuple[str, ...] = ...,
         query: str = "",
-        include_default_query: bool = True,
         include_untracked: bool = False,
     ) -> pd.DataFrame:
         ...
@@ -295,7 +260,6 @@ class PopulationView:
         index: pd.Index[int],
         private_columns: None = None,
         query: str = "",
-        include_default_query: bool = True,
         include_untracked: bool = False,
     ) -> pd.Series[Any] | pd.DataFrame:
         ...
@@ -305,15 +269,13 @@ class PopulationView:
         index: pd.Index[int],
         private_columns: str | list[str] | tuple[str, ...] | None = None,
         query: str = "",
-        include_default_query: bool = True,
         include_untracked: bool = False,
     ) -> pd.Series[Any] | pd.DataFrame:
         """Gets a specific subset of this ``PopulationView's`` private columns.
 
         For the rows in ``index``, return the requested ``private_columns``. The
         resulting rows may be further filtered by the call's ``query`` and whether
-        or not to include this ``PopulationView``'s default query and/or untracked
-        simulants.
+        or not to include untracked simulants.
 
         Parameters
         ----------
@@ -323,10 +285,7 @@ class PopulationView:
             The private columns to retrieve. If None, all columns created by the
             component that created this view are included.
         query
-            Additional conditions used to filter the index. If ``include_default_query``
-            is True, it will be combined with this PopulationView's query property.
-        include_default_query
-            Whether to combine this view's default query with the provided ``query``.
+            Additional conditions used to filter the index.
         include_untracked
             Whether to include untracked simulants.
 
@@ -350,8 +309,7 @@ class PopulationView:
 
         index = self.get_filtered_index(
             index,
-            query=self._build_query(query, include_default_query, include_untracked),
-            include_default_query=False,
+            query=self._build_query(query, include_untracked),
             include_untracked=True,
         )
 
@@ -361,24 +319,19 @@ class PopulationView:
         self,
         index: pd.Index[int],
         query: str = "",
-        include_default_query: bool = True,
         include_untracked: bool = False,
     ) -> pd.Index[int]:
         """Gets a specific index of the population.
 
         The requested index may be further filtered by the call's ``query`` and
-        whether or not to include this ``PopulationView's`` default query and/or
-        untracked simulants.
+        whether or not to include untracked simulants.
 
         Parameters
         ----------
         index
             Index of the population to get.
         query
-            Additional conditions used to filter the index. If ``include_default_query``
-            is True, it will be combined with this PopulationView's query property.
-        include_default_query
-            Whether to combine this view's default query with the provided ``query``.
+            Additional conditions used to filter the index.
         include_untracked
             Whether to include untracked simulants.
 
@@ -387,14 +340,10 @@ class PopulationView:
             The requested and filtered population index.
         """
 
-        include_default_query, include_untracked = self._set_query_args_if_initializing(
-            self._manager.get_current_state(), include_default_query, include_untracked
-        )
         return self.get_attributes(
             index,
             attributes=[],
             query=query,
-            include_default_query=include_default_query,
             include_untracked=include_untracked,
         ).index
 
@@ -460,7 +409,7 @@ class PopulationView:
     def __repr__(self) -> str:
         name = self._component.name if self._component else "None"
         private_columns = self.private_columns if self._component else "N/A"
-        return f"PopulationView(_id={self._id}, _component={name}, private_columns={private_columns}, default_query={self._default_query})"
+        return f"PopulationView(_id={self._id}, _component={name}, private_columns={private_columns})"
 
     ##################
     # Helper methods #
@@ -657,30 +606,22 @@ class PopulationView:
         )
         return new_data
 
-    def _build_query(
-        self, query: str, include_default_query: bool, include_untracked: bool
-    ) -> str:
+    def _build_query(self, query: str, include_untracked: bool) -> str:
         """Builds the full query for this PopulationView.
 
-        This combines the provided query with the view's default query and the
-        population manager's tracked query as appropriate.
-        """
-        return pop_utils.combine_queries(
-            query,
-            self._default_query if include_default_query else "",
-            self._manager.get_tracked_query() if not include_untracked else "",
-        )
+        This combines the provided query with the population manager's tracked query
+        as appropriate.
 
-    @staticmethod
-    def _set_query_args_if_initializing(
-        current_state: str, include_default_query: bool, include_untracked: bool
-    ) -> tuple[bool, bool]:
-        """Sets query arguments appropriately during initialization."""
-        if current_state in [
+        Notes
+        -----
+        We explicitly set 'include_untracked' to True during initialization and
+        population creation lifecycle phases.
+        """
+        include_untracked = include_untracked or self._manager.get_current_state() in [
             lifecycle_states.INITIALIZATION,
             lifecycle_states.POPULATION_CREATION,
-        ]:
-            # Override query arguments to ensure we don't filter anything out during initialization
-            include_default_query = False
-            include_untracked = True
-        return include_default_query, include_untracked
+        ]
+        return pop_utils.combine_queries(
+            query,
+            self._manager.get_tracked_query() if not include_untracked else "",
+        )
