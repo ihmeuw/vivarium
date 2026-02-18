@@ -25,8 +25,7 @@ Note that updating the shared repo will take affect on the next pipeline invocat
 @Library("get_vbu_version@main") _
 
 // Load the full vivarium_build_utils library at the expected version
-// library("vivarium_build_utils@${get_vbu_version()}")
-library("vivarium_build_utils@albrja/support-python-3.13")
+library("vivarium_build_utils@${get_vbu_version()}")
 
 reusable_pipeline(
     scheduled_branches: [
