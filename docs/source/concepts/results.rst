@@ -83,15 +83,11 @@ to the existing number of people who have died from previous time steps.
         }
       }
 
-    @property
-    def columns_required(self) -> list[str] | None:
-      return ["age", "alive"]
-
     def register_observations(self, builder: Builder) -> None:
       builder.results.register_adding_observation(
         name="total_population_dead",
-        requires_columns=["alive"],
-        pop_filter='alive == "dead"',
+        requires_attributes=["is_alive"],
+        pop_filter='is_alive == True',
       )
 
 And here is an example of how you might create an observer that records new 
@@ -123,7 +119,7 @@ as well as adds a new one ("birth_date").
           f"and previous_pregnancy == 'pregnant' "
           f"and pregnancy == 'parturition'"
         ),
-        requires_columns=self.COLUMNS,
+        requires_attributes=self.COLUMNS,
         results_formatter=self.format,
       )
 
@@ -180,10 +176,10 @@ Here is an example of how you might register a "current_year" and "sex" as strat
         [str(year) for year in range(self.start_year, self.end_year + 1)],
         mapper=self.map_year,
         is_vectorized=True,
-        requires_columns=["current_time"],
+        requires_attributes=["current_time"],
       )
       builder.results.register_stratification(
-        "sex", ["Female", "Male"], requires_columns=["sex"]
+        "sex", ["Female", "Male"], requires_attributes=["sex"]
       )
 
     ###########
@@ -215,7 +211,7 @@ Here is an example of how you might register a "current_year" and "sex" as strat
   method.
 
 Just because you've *registered* a stratification doesn't mean that the results will
-actually *use* it. In order to use the stratification, you must add it to the 
+actually *use* it. In order to use the stratification, you can add it to the 
 :ref:`model specification <model_specification_concept>` configuration block 
 using the "stratification" key. You can provide "default" stratifications which 
 will be used by all observations as well as observation-specific "include" and 
@@ -238,6 +234,15 @@ observations and then customize "deaths" observations to also include
 
 .. note::
     All stratifications must be included as a list, even if there is only one.
+
+Another way to include and exclude stratifications from different observations
+(besides via the model specification as shown above) is to provide them via the
+``additional_stratifications`` and ``excluded_stratifications`` arguments when
+registering an observation. Note that not all observation registration methods
+support these arguments, e.g. registering an unstratified observation by definition
+does not support stratifying results and so the 
+:meth:`~ <vivarium.framework.results.interface.ResultsInterface.register_unstratified_observation>`
+method does not support these arguments.
 
 Excluding Categories from Results
 +++++++++++++++++++++++++++++++++
@@ -263,6 +268,9 @@ For example, to exclude "stillbirth" as a pregnancy outcome during results proce
           exclude: ['age_group']
       excluded_categories:
         pregnancy_outcome: ['stillbirth']
+
+Alternatively, categories can be excluded from results stratifications by providing
+an "excluded_categories" argument when registering a stratification.
 
 Observers
 ---------
@@ -315,9 +323,11 @@ abstract base class, which contains the common attributes between observation ty
   * - | :attr:`name <vivarium.framework.results.observation.Observation.name>`
     - | Name of the observation. It will also be the name of the output results file
       | for this particular observation.
-  * - | :attr:`pop_filter <vivarium.framework.results.observation.Observation.pop_filter>`
-    - | A Pandas query filter string to filter the population down to the simulants
-      | who should be considered for the observation.
+  * - | :attr:`population_filter <vivarium.framework.results.interface.PopulationFilter>`
+    - | A named tuple of population filtering details. The first item is a Pandas 
+      | query string to filter the population down to the simulants who should be 
+      | considered for the observation. The second item is a boolean indicating whether 
+      | to include untracked simulants from the observation.
   * - | :attr:`when <vivarium.framework.results.observation.Observation.when>`
     - | Name of the lifecycle phase the observation should happen. Valid values are:
       | "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -372,18 +382,16 @@ results of an observation:
     - Description
   * - | :attr:`name <vivarium.framework.results.stratification.Stratification.name>`
     - | Name of the stratification.
-  * - | :attr:`sources <vivarium.framework.results.stratification.Stratification.requires_columns>`
-    - | A list of the columns needed as input for the `mapper`.
-  * - | :attr:`requires_values <vivarium.framework.results.stratification.Stratification.requires_values>`
-    - | A list of value pipelines needed as input for the `mapper`.
+  * - | :attr:`requires_attributes <vivarium.framework.results.stratification.Stratification.requires_attributes>`
+    - | The population attributes needed as input for the `mapper`.
   * - | :attr:`categories <vivarium.framework.results.stratification.Stratification.categories>`
     - | Exhaustive list of all possible stratification values.
   * - | :attr:`excluded_categories <vivarium.framework.results.stratification.Stratification.excluded_categories>`
     - | List of possible stratification values to exclude from results processing.
       | If None (the default), will use exclusions as defined in the configuration.
   * - | :attr:`mapper <vivarium.framework.results.stratification.Stratification.mapper>`
-    - | A callable that maps the columns and value pipelines specified by the
-      | `requires_columns` and `requires_values` arguments to the stratification
+    - | A callable that maps the population attributes specified by the
+      | `requires_attributes` argument to the stratification
       | categories. It can either map the entire population or an individual
       | simulant. A simulation will fail if the `mapper` ever produces an invalid
       | value.
@@ -394,7 +402,7 @@ results of an observation:
 Each **Stratification** also contains the 
 :meth:`stratify <vivarium.framework.results.stratification.Stratification.stratify>`
 method which is called at each :ref:`event <event_concept>` and :ref:`time step <time_concept>` 
-to use the **mapper** to map values in the **sources** columns to **categories** 
+to use the **mapper** to map values in the **requires_attributes** columns to **categories** 
 (excluding any categories specified in **excluded_categories**).
 
 .. note::

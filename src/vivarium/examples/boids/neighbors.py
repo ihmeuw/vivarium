@@ -14,8 +14,6 @@ class Neighbors(Component):
     ##############
     configuration_defaults = {"neighbors": {"radius": 60}}
 
-    columns_required = ["x", "y"]
-
     #####################
     # Lifecycle methods #
     #####################
@@ -25,8 +23,13 @@ class Neighbors(Component):
 
         self.neighbors_calculated = False
         self._neighbors = pd.Series()
-        self.neighbors = builder.value.register_value_producer(
-            "neighbors", source=self.get_neighbors, required_resources=self.columns_required
+        builder.value.register_attribute_producer(
+            "neighbors", source=self.get_neighbors, required_resources=["x", "y"]
+        )
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns=None,
+            required_resources=[],
         )
 
     ########################
@@ -54,7 +57,7 @@ class Neighbors(Component):
 
     def _calculate_neighbors(self) -> None:
         # Reset our list of neighbors
-        pop = self.population_view.get(self._neighbors.index)
+        pop = self.population_view.get_attributes(self._neighbors.index, ["x", "y"])
         self._neighbors = pd.Series([[] for _ in range(len(pop))], index=pop.index)
 
         tree = spatial.KDTree(pop[["x", "y"]])

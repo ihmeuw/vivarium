@@ -6,7 +6,7 @@ Resource Management
 This module provides a tool to manage dependencies on resources within a
 :mod:`vivarium` simulation. These resources take the form of things that can
 be created and utilized by components, for example columns in the
-:mod:`state table <vivarium.framework.population>`
+:mod:`population state table <vivarium.framework.population>`
 or :mod:`named value pipelines <vivarium.framework.values>`.
 
 Because these resources need to be created before they can be used, they are
@@ -22,4 +22,4 @@ For more information, see the Resource Management
 
 from vivarium.framework.resource.interface import ResourceInterface
 from vivarium.framework.resource.manager import ResourceManager
-from vivarium.framework.resource.resource import Resource
+from vivarium.framework.resource.resource import Column, Resource

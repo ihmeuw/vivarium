@@ -1,4 +1,5 @@
-# mypy: ignore-errors
+from __future__ import annotations
+
 from typing import Any
 
 import numpy as np
@@ -7,13 +8,16 @@ import pandas as pd
 from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
+from vivarium.framework.population import SimulantData
 
 
 class Mortality(Component):
+
     ##############
     # Properties #
     ##############
 
+    # docs-start: configuration_defaults
     @property
     def configuration_defaults(self) -> dict[str, Any]:
         """A set of default configuration values for this component.
@@ -21,21 +25,15 @@ class Mortality(Component):
         These can be overwritten in the simulation model specification or by
         providing override values when constructing an interactive simulation.
         """
-        return {
-            "mortality": {
-                "mortality_rate": 0.01,
-            }
-        }
-
-    @property
-    def columns_required(self) -> list[str] | None:
-        return ["tracked", "alive"]
+        return {self.name: {"data_sources": {"mortality_rate": 0.01}}}
+    # docs-end: configuration_defaults
 
     #####################
     # Lifecycle methods #
     #####################
 
     # noinspection PyAttributeOutsideInit
+    # docs-start: setup
     def setup(self, builder: Builder) -> None:
         """Performs this component's simulation setup.
 
@@ -48,17 +46,41 @@ class Mortality(Component):
         builder
             Access to simulation tools and subsystems.
         """
-        self.config = builder.configuration.mortality
         self.randomness = builder.randomness.get_stream("mortality")
-
-        self.mortality_rate = builder.value.register_rate_producer(
-            "mortality_rate", source=self.base_mortality_rate
+        builder.value.register_rate_producer(
+            "mortality_rate", source=self.build_lookup_table(builder, "mortality_rate")
         )
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns="is_alive",
+            required_resources=[]
+        )
+    # docs-end: setup
 
     ########################
     # Event-driven methods #
     ########################
 
+    # docs-start: on_initialize_simulants
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+        """Called by the simulation whenever new simulants are added.
+
+        This component is responsible for creating and filling the 'is_alive' column
+        in the population state table.
+
+        Parameters
+        ----------
+        pop_data
+            A record containing the index of the new simulants, the
+            start of the time step the simulants are added on, the width
+            of the time step, and the age boundaries for the simulants to
+            generate.
+        """
+        self.population_view.update(pd.Series(True, index=pop_data.index, name="is_alive"))
+
+    # docs-end: on_initialize_simulants
+
+    # docs-start: on_time_step
     def on_time_step(self, event: Event) -> None:
         """Determines who dies each time step.
 
@@ -69,48 +91,11 @@ class Mortality(Component):
             representing the simulants affected by the event and timing
             information.
         """
-        effective_rate = self.mortality_rate(event.index)
+        effective_rate = self.population_view.get_attributes(event.index, "mortality_rate")
         effective_probability = 1 - np.exp(-effective_rate)
         draw = self.randomness.get_draw(event.index)
         affected_simulants = draw < effective_probability
-        self.population_view.subview("alive").update(
-            pd.Series("dead", index=event.index[affected_simulants])
+        self.population_view.update(
+            pd.Series(False, index=event.index[affected_simulants], name="is_alive")
         )
-
-    def on_time_step_prepare(self, event: Event) -> None:
-        """Untrack any simulants who died during the previous time step.
-
-        We do this after the previous time step because the mortality
-        observer needs to collect observations before updating.
-
-        Parameters
-        ----------
-        event
-            An event object emitted by the simulation containing an index
-            representing the simulants affected by the event and timing
-            information.
-        """
-        population = self.population_view.get(event.index)
-        population.loc[
-            (population["alive"] == "dead") & population["tracked"] == True, "tracked"
-        ] = False
-        self.population_view.update(population)
-
-    ##################################
-    # Pipeline sources and modifiers #
-    ##################################
-
-    def base_mortality_rate(self, index: pd.Index) -> pd.Series:
-        """Computes the base mortality rate for every individual.
-
-        Parameters
-        ----------
-        index
-            A representation of the simulants to compute the base mortality
-            rate for.
-
-        Returns
-        -------
-            The base mortality rate for all simulants in the index.
-        """
-        return pd.Series(self.config.mortality_rate, index=index)
+    # docs-end: on_time_step

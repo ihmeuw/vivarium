@@ -3,11 +3,12 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Protocol
 
+import numpy as np
 import pandas as pd
 
 from vivarium.framework.utilities import from_yearly
 from vivarium.framework.values.exceptions import DynamicValueError
-from vivarium.types import NumberLike
+from vivarium.types import NumberLike, NumericArray
 
 if TYPE_CHECKING:
     from vivarium.framework.values.manager import ValuesManager
@@ -18,19 +19,29 @@ class PostProcessor(Protocol):
         ...
 
 
-def rescale_post_processor(value: NumberLike, manager: ValuesManager) -> NumberLike:
+class AttributePostProcessor(Protocol):
+    """An attribute pipeline post-processor must return a pd.Series or pd.DataFrame."""
+
+    def __call__(
+        self, index: pd.Index[int], value: Any, manager: ValuesManager
+    ) -> pd.Series[Any] | pd.DataFrame:
+        ...
+
+
+def rescale_post_processor(
+    index: pd.Index[int], value: NumberLike, manager: ValuesManager
+) -> pd.Series[float] | pd.DataFrame:
     """Rescales annual rates to time-step appropriate rates.
 
-    This should only be used with a simulation using a
-    :class:`~vivarium.framework.time.DateTimeClock` or another implementation
-    of a clock that traffics in pandas date-time objects.
+    This should only be used with a simulation using a :class:`~vivarium.framework.time.manager.DateTimeClock`
+    or another implementation of a clock that traffics in pandas date-time objects.
 
     Parameters
     ----------
+    index
+        The index of the population for which the attribute is being produced.
     value
-        Annual rates, either as a number or something we can broadcast
-        multiplication over like a :mod:`numpy` array or :mod:`pandas`
-        data frame.
+        Annual rates.
     manager
         The ValuesManager for this simulation.
 
@@ -46,22 +57,35 @@ def rescale_post_processor(value: NumberLike, manager: ValuesManager) -> NumberL
             / (60 * 60 * 24 * 365.0),
             axis=0,
         )
-    else:
-        time_step = manager.step_size()
-        if not isinstance(time_step, (pd.Timedelta, timedelta)):
+    time_step = manager.step_size()
+    if not isinstance(time_step, (pd.Timedelta, timedelta)):
+        raise DynamicValueError(
+            "The rescale post processor requires a time step size that is a "
+            "datetime timedelta or pandas Timedelta object."
+        )
+    if isinstance(value, (int, float)):
+        return pd.Series(from_yearly(value, time_step), index=index)
+    elif isinstance(value, np.ndarray):
+        if value.ndim == 1:
+            return pd.Series(from_yearly(value, time_step), index=index)
+        elif value.ndim == 2:
+            return pd.DataFrame(from_yearly(value, time_step), index=index)
+        else:
             raise DynamicValueError(
-                "The rescale post processor requires a time step size that is a "
-                "datetime timedelta or pandas Timedelta object."
+                f"Numpy arrays with {value.ndim} dimensions are not supported. "
+                "Only 1D and 2D arrays are allowed."
             )
-        return from_yearly(value, time_step)
+    else:
+        raise NotImplementedError
 
 
-def union_post_processor(values: list[NumberLike], _: Any) -> NumberLike:
+def union_post_processor(
+    index: pd.Index[int], value: list[NumberLike], manager: ValuesManager
+) -> pd.Series[Any] | pd.DataFrame:
     """Computes a probability on the union of the sample spaces in the values.
 
     Given a list of values where each value is a probability of an independent
-    event, this post processor computes the probability of the union of the
-    events.
+    event, this post processor computes the probability of the union of the events.
 
     .. list-table::
        :width: 100%
@@ -79,23 +103,48 @@ def union_post_processor(values: list[NumberLike], _: Any) -> NumberLike:
     Parameters
     ----------
     values
-        A list of independent proportions or probabilities, either
-        as numbers or as a something we can broadcast addition and
-        multiplication over.
+        A list of independent proportions or probabilities, either as numbers or
+        as a something we can broadcast addition and multiplication over.
 
     Returns
     -------
         The probability over the union of the sample spaces represented
         by the original probabilities.
     """
-    # if there is only one value, return the value
-    if len(values) == 1:
-        return values[0]
+    if not isinstance(value, list):
+        raise DynamicValueError("The union post processor requires a list of values.")
 
-    # if there are multiple values, calculate the joint value
-    product: NumberLike = 1
-    for v in values:
-        new_value = 1 - v
-        product = product * new_value
-    joint_value = 1 - product
-    return joint_value
+    for v in value:
+        if not isinstance(v, (np.ndarray, pd.Series, pd.DataFrame, float, int)):
+            raise DynamicValueError(
+                "The union post processor only supports numeric types, "
+                f"pandas Series/DataFrames, and numpy ndarrays. "
+                f"You provided a value of type {type(v)}."
+            )
+
+    joint_value: NumericArray | pd.Series[float] | pd.DataFrame | float | int
+    if len(value) == 1:
+        # if there is only one value, return the value
+        joint_value = value[0]
+    else:
+        # if there are multiple values, calculate the joint value
+        product: NumberLike = 1
+        for v in value:
+            new_value = 1 - v
+            product = product * new_value
+        joint_value = 1 - product
+
+    if isinstance(joint_value, np.ndarray):
+        if joint_value.ndim == 1:
+            return pd.Series(joint_value, index=index)
+        elif joint_value.ndim == 2:
+            return pd.DataFrame(joint_value, index=index)
+        else:
+            raise DynamicValueError(
+                f"Numpy arrays with {joint_value.ndim} dimensions are not supported. "
+                "Only 1D and 2D arrays are allowed."
+            )
+    elif isinstance(joint_value, (float, int)):
+        return pd.Series(joint_value, index=index)
+    else:
+        return joint_value

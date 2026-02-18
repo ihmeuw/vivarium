@@ -1,34 +1,49 @@
 from datetime import datetime
 
 import pytest
+from pytest_mock import MockerFixture
 
-from tests.helpers import ColumnCreator, ColumnRequirer
+from tests.helpers import ColumnCreator
+from vivarium.framework.population.manager import SimulantData
 from vivarium.framework.randomness import RandomnessStream
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.resource.exceptions import ResourceError
 from vivarium.framework.resource.group import ResourceGroup
 from vivarium.framework.resource.resource import Column, NullResource, Resource
-from vivarium.framework.values import Pipeline, ValueModifier, ValueSource
+from vivarium.framework.values import AttributePipeline, Pipeline, ValueModifier, ValueSource
 
 
-def test_resource_group() -> None:
+@pytest.mark.parametrize("resource_type", ["column", "resource"])
+def test_resource_group(resource_type: str, mocker: MockerFixture) -> None:
     component = ColumnCreator()
-    resources = [Column(str(i), component) for i in range(5)]
-    r_dependencies = [
-        Column("an_interesting_column", None),
+    resources: list[Column] | Resource
+    if resource_type == "column":
+        resources = [Column(f"resource_{i}", component) for i in range(5)]
+    else:
+        resources = Resource("test", "some_resource", component)
+    r_required_resources = [
+        AttributePipeline("an_interesting_attribute", None),
         Pipeline("baz"),
-        RandomnessStream("bar", lambda: datetime.now(), 1, IndexMap()),
+        RandomnessStream("bar", lambda: datetime.now(), 1, IndexMap(), mocker.Mock()),
         ValueSource(Pipeline("foo"), lambda: 1, None),
     ]
 
-    rg = ResourceGroup(resources, r_dependencies)
+    rg = ResourceGroup(
+        initialized_resources=resources,
+        required_resources=r_required_resources,
+        initializer=component.on_initialize_simulants,
+    )
 
     assert rg.component == component
-    assert rg.type == "column"
-    assert rg.names == [f"column.{i}" for i in range(5)]
+    assert rg.type == "column" if resource_type == "column" else "test"
+    assert (
+        rg.names == [f"column.{res.name}" for res in resources]
+        if isinstance(resources, list)
+        else ["test.some_resource"]
+    )
     assert rg.initializer == component.on_initialize_simulants
-    assert rg.dependencies == [
-        "column.an_interesting_column",
+    assert rg.required_resources == [
+        "attribute.an_interesting_attribute",
         "value.baz",
         "stream.bar",
         "value_source.foo",
@@ -37,37 +52,49 @@ def test_resource_group() -> None:
 
 
 @pytest.mark.parametrize(
-    "resource, has_initializer",
+    "resource",
     [
-        (Pipeline("foo"), False),
-        (ValueSource(Pipeline("bar"), lambda: 1, ColumnCreator()), False),
-        (ValueModifier(Pipeline("baz"), lambda: 1, ColumnCreator()), False),
-        (Column("foo", ColumnCreator()), True),
-        (RandomnessStream("bar", lambda: datetime.now(), 1, IndexMap()), False),
-        (NullResource(0, ColumnCreator()), True),
+        Pipeline("foo", ColumnCreator()),
+        AttributePipeline("foo", ColumnCreator()),
+        ValueSource(Pipeline("bar", ColumnCreator()), lambda: 1, ColumnCreator()),
+        ValueModifier(Pipeline("baz", ColumnCreator()), lambda: 1, ColumnCreator()),
+        Column("foo", ColumnCreator()),
+        RandomnessStream("bar", lambda: datetime.now(), 1, IndexMap(), ColumnCreator()),
+        NullResource(0, ColumnCreator()),
     ],
 )
-def test_resource_group_is_initializer(resource: Resource, has_initializer: bool) -> None:
-    rg = ResourceGroup([resource], [Column("bar", None)])
-    assert rg.is_initialized == has_initializer
+@pytest.mark.parametrize("initialized", [True, False])
+def test_resource_group_is_initializer(resource: Resource, initialized: bool) -> None:
+    def some_initializer(pop_data: SimulantData) -> None:
+        pass
+
+    rg = ResourceGroup(
+        resource, [Resource("test", "bar", None)], some_initializer if initialized else None
+    )
+    assert rg.is_initialized == initialized
 
 
 def test_resource_group_with_no_resources() -> None:
     with pytest.raises(ResourceError, match="must have at least one resource"):
-        _ = ResourceGroup([], [Column("foo", None)])
+        _ = ResourceGroup([], [Resource("test", "foo", None)], None)
 
 
 def test_resource_group_with_multiple_components() -> None:
+    # This test is not terribly relevant since ResourceGroup now only accepts a list
+    # of Columns or a single Resource. We keep it around in case that changes.
     resources = [
-        ValueModifier(Pipeline("foo"), lambda: 1, ColumnCreator()),
-        ValueSource(Pipeline("bar"), lambda: 2, ColumnRequirer()),
+        Column("foo", ColumnCreator()),
+        Column("bar", ColumnCreator()),
     ]
 
     with pytest.raises(ResourceError, match="resources must have the same component"):
-        _ = ResourceGroup(resources, [])
+        _ = ResourceGroup(resources, [], None)
 
 
 def test_resource_group_with_multiple_resource_types() -> None:
+
+    # This test is not terribly relevant since ResourceGroup now only accepts a list
+    # of Columns or a single Resource. We keep it around in case that changes.
     component = ColumnCreator()
     resources = [
         ValueModifier(Pipeline("foo"), lambda: 1, component),
@@ -75,4 +102,29 @@ def test_resource_group_with_multiple_resource_types() -> None:
     ]
 
     with pytest.raises(ResourceError, match="resources must be of the same type"):
-        _ = ResourceGroup(resources, [])
+        _ = ResourceGroup(resources, [], None)  # type: ignore[arg-type]
+
+
+def test_set_required_resources(mocker: MockerFixture) -> None:
+    some_attribute = AttributePipeline("some_attribute", mocker.Mock())
+    some_other_attribute = AttributePipeline("some_other_attribute", mocker.Mock())
+    resource = Resource("test", "some_resource", mocker.Mock())
+    required_resources: list[AttributePipeline | str] = [
+        some_attribute,
+        "some_other_attribute",
+    ]
+
+    rg = ResourceGroup(
+        initialized_resources=resource,
+        required_resources=required_resources,
+        initializer=None,
+    )
+    assert rg._required_resources == [some_attribute, "some_other_attribute"]
+    # Mock the attribute pipelines dict
+    attribute_pipelines = {
+        "some_attribute": some_attribute,
+        "some_other_attribute": some_other_attribute,
+    }
+    rg.set_required_resources(attribute_pipelines)
+    # Check that the 'some_other_attribute' string has been replaced by the pipeline
+    assert rg._required_resources == [some_attribute, some_other_attribute]

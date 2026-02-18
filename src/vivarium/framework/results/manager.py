@@ -1,15 +1,14 @@
 """
-======================
-Results System Manager
-======================
+===============
+Results Manager
+===============
 
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
-from enum import Enum
-from typing import TYPE_CHECKING, Any, Iterable, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
 import pandas as pd
 
@@ -18,17 +17,12 @@ from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.observation import Observation
 from vivarium.framework.results.stratification import Stratification, get_mapped_col_name
-from vivarium.framework.values import Pipeline
 from vivarium.manager import Manager
 from vivarium.types import ScalarMapper, VectorMapper
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
-
-
-class SourceType(Enum):
-    COLUMN = 0
-    VALUE = 1
+    from vivarium.framework.results.interface import PopulationFilter
 
 
 class ResultsManager(Manager):
@@ -57,15 +51,7 @@ class ResultsManager(Manager):
         return self._name
 
     def get_results(self) -> dict[str, pd.DataFrame]:
-        """Return the measure-specific formatted results in a dictionary.
-
-        Notes
-        -----
-        self._results_context.observations is a list where each item is a dictionary
-        of the form {lifecycle_phase: {(pop_filter, stratification_names): List[Observation]}}.
-        We use a triple-nested for loop to iterate over only the list of Observations
-        (i.e. we do not need the lifecycle_phase, pop_filter, or stratification_names
-        for this method).
+        """Gets the measure-specific formatted results in a dictionary.
 
         Returns
         -------
@@ -80,11 +66,11 @@ class ResultsManager(Manager):
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: "Builder") -> None:
-        """Set up the results manager."""
+        """Sets up the results manager."""
         self._results_context.setup(builder)
 
         self.logger = builder.logging.get_logger(self.name)
-        self.population_view = builder.population.get_view([])
+        self.population_view = builder.population.get_view()
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
 
@@ -100,8 +86,6 @@ class ResultsManager(Manager):
             lifecycle_states.COLLECT_METRICS, self.on_collect_metrics
         )
 
-        self.get_value = builder.value.get_value
-
         self.set_default_stratifications(builder)
 
     def on_post_setup(self, _: Event) -> None:
@@ -111,30 +95,29 @@ class ResultsManager(Manager):
             self._raw_results[name] = observation.results_initializer()
 
     def on_time_step_prepare(self, event: Event) -> None:
-        """Define the listener callable for the time_step__prepare phase."""
+        """Defines the listener callable for the time_step__prepare phase."""
         self.gather_results(event)
 
     def on_time_step(self, event: Event) -> None:
-        """Define the listener callable for the time_step phase."""
+        """Defines the listener callable for the time_step phase."""
         self.gather_results(event)
 
     def on_time_step_cleanup(self, event: Event) -> None:
-        """Define the listener callable for the time_step__cleanup phase."""
+        """Defines the listener callable for the time_step__cleanup phase."""
         self.gather_results(event)
 
     def on_collect_metrics(self, event: Event) -> None:
-        """Define the listener callable for the collect_metrics phase."""
+        """Defines the listener callable for the collect_metrics phase."""
         self.gather_results(event)
 
     def gather_results(self, event: Event) -> None:
-        """Update existing results with any new results."""
+        """Updates existing results with any new results."""
         observations = self._results_context.get_observations(event)
         stratifications = self._results_context.get_stratifications(observations)
         if not observations or event.index.empty:
             return
 
         population = self._prepare_population(event, observations, stratifications)
-
         for results_group, measure, updater in self._results_context.gather_results(
             population, event.name, observations
         ):
@@ -145,7 +128,7 @@ class ResultsManager(Manager):
     ##########################
 
     def set_default_stratifications(self, builder: "Builder") -> None:
-        """Set the default stratifications for the results context.
+        """Sets the default stratifications for the results context.
 
         This passes the default stratifications from the configuration to the
         :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`
@@ -166,13 +149,11 @@ class ResultsManager(Manager):
         excluded_categories: list[str] | None,
         mapper: VectorMapper | ScalarMapper | None,
         is_vectorized: bool,
-        requires_columns: list[str] = [],
-        requires_values: list[str] = [],
+        requires_attributes: list[str] = [],
     ) -> None:
-        """Manager-level stratification registration.
+        """Registers a stratification that can be used by stratified observations.
 
-        Adds a stratification to the
-        :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`
+        Adds a stratification to the :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`
         as well as the stratification's required resources to this manager.
 
         Parameters
@@ -185,26 +166,21 @@ class ResultsManager(Manager):
             List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
-            A callable that maps the columns and value pipelines specified by the
-            `requires_columns` and `requires_values` arguments to the stratification
-            categories. It can either map the entire population or an individual
-            simulant. A simulation will fail if the `mapper` ever produces an invalid
-            value.
+            A callable that maps population attributes specified by the
+            `requires_attributes` argument to the stratification categories. It can
+            either map the entire population or an individual simulant. A simulation
+            will fail if the `mapper` ever produces an invalid value.
         is_vectorized
             True if the `mapper` function will map the entire population, and False
             if it will only map a single simulant.
-        requires_columns
+        requires_attributes
             A list of the state table columns that are required by the `mapper`
             to produce the stratification.
-        requires_values
-            A list of the value pipelines that are required by the `mapper` to
-            produce the stratification.
         """
         self.logger.debug(f"Registering stratification {name}")
         self._results_context.add_stratification(
             name=name,
-            requires_columns=requires_columns,
-            requires_values=[self.get_value(value) for value in requires_values],
+            requires_attributes=requires_attributes,
             categories=categories,
             excluded_categories=excluded_categories,
             mapper=mapper,
@@ -218,16 +194,14 @@ class ResultsManager(Manager):
         bin_edges: Sequence[int | float],
         labels: list[str],
         excluded_categories: list[str] | None,
-        target_type: str,
         **cut_kwargs: int | str | bool,
     ) -> None:
-        """Manager-level registration of a continuous `target` quantity to observe
-        into bins in a `binned_column`.
+        """Registers a continuous `target` quantity to observe into bins in a `binned_column`.
 
         Parameters
         ----------
         target
-            Name of the state table column or value pipeline to be binned.
+            Name of population attribute to be binned.
         binned_column
             Name of the (binned) stratification.
         bin_edges
@@ -239,9 +213,6 @@ class ResultsManager(Manager):
         excluded_categories
             List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
-        target_type
-            Type specification of the `target` to be binned. "column" if it's a
-            state table column or "value" if it's a value pipeline.
         **cut_kwargs
             Keyword arguments for :meth: pandas.cut.
         """
@@ -268,32 +239,25 @@ class ResultsManager(Manager):
                 f"match the number of labels ({len(labels)})"
             )
 
-        target_arg = "requires_columns" if target_type == "column" else "requires_values"
-        target_kwargs = {target_arg: [target]}
-
         self.register_stratification(
             name=binned_column,
             categories=labels,
             excluded_categories=excluded_categories,
             mapper=_bin_data,
             is_vectorized=True,
-            **target_kwargs,
+            requires_attributes=[target],
         )
 
     def register_observation(
         self,
         observation_type: type[Observation],
         name: str,
-        pop_filter: str,
+        population_filter: PopulationFilter,
         when: str,
-        requires_columns: list[str],
-        requires_values: list[str],
+        requires_attributes: list[str],
         **kwargs: Any,
     ) -> None:
-        """Manager-level observation registration.
-
-        Adds an observation to the
-        :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`.
+        """Registers an observation to the results system.
 
         Parameters
         ----------
@@ -302,28 +266,24 @@ class ResultsManager(Manager):
         name
             Name of the observation. It will also be the name of the output results file
             for this particular observation.
-        pop_filter
-            A Pandas query filter string to filter the population down to the simulants who should
-            be considered for the observation.
+        population_filter
+            A named tuple of population filtering details. The first item is a Pandas
+            query string to filter the population down to the simulants who should be
+            considered for the observation. The second item is a boolean indicating whether
+            to include untracked simulants from the observation.
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-        requires_columns
-            List of the state table columns that are required to compute the observation.
-        requires_values
-            List of the value pipelines that are required to compute the observation.
+        requires_attributes
+            The population attributes that are required to compute the observation.
         **kwargs
             Additional keyword arguments to be passed to the observation's constructor.
         """
         self.logger.debug(f"Registering observation {name}")
 
-        if any(not isinstance(column, str) for column in requires_columns):
+        if any(not isinstance(attribute, str) for attribute in requires_attributes):
             raise TypeError(
-                f"All required columns must be strings, but got {requires_columns} when registering observation {name}."
-            )
-        if any(not isinstance(value, str) for value in requires_values):
-            raise TypeError(
-                f"All required values must be strings, but got {requires_values} when registering observation {name}."
+                f"All required attributes must be strings, but got {requires_attributes} when registering observation {name}."
             )
 
         if observation_type.is_stratified():
@@ -341,10 +301,9 @@ class ResultsManager(Manager):
         self._results_context.register_observation(
             observation_type=observation_type,
             name=name,
-            pop_filter=pop_filter,
+            population_filter=population_filter,
             when=when,
-            requires_columns=requires_columns,
-            requires_values=[self.get_value(value) for value in requires_values],
+            requires_attributes=requires_attributes,
             stratifications=stratifications,
             **kwargs,
         )
@@ -359,7 +318,7 @@ class ResultsManager(Manager):
         additional_stratifications: list[str] = [],
         excluded_stratifications: list[str] = [],
     ) -> tuple[str, ...]:
-        """Resolve the stratifications required for the observation."""
+        """Resolves the stratifications required for the observation."""
         self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
 
         stratifications = list(
@@ -379,39 +338,43 @@ class ResultsManager(Manager):
         observations: list[Observation],
         stratifications: list[Stratification],
     ) -> pd.DataFrame:
-        """Prepare the population for results gathering."""
-        required_columns = self._results_context.get_required_columns(
+        """Prepares the population for results gathering."""
+        required_attributes = self._results_context.get_required_attributes(
             observations, stratifications
         )
-        required_values = self._results_context.get_required_values(
-            observations, stratifications
-        )
-        required_columns = required_columns.copy()
-        population = pd.DataFrame(index=event.index)
 
-        if "current_time" in required_columns:
-            population["current_time"] = self.clock()
-            required_columns.remove("current_time")
-        if "event_step_size" in required_columns:
-            population["event_step_size"] = event.step_size
-            required_columns.remove("event_step_size")
-        if "event_time" in required_columns:
-            population["event_time"] = self.clock() + event.step_size  # type: ignore [operator]
-            required_columns.remove("event_time")
-
-        for k, v in event.user_data.items():
-            if k in required_columns:
-                population[k] = v
-                required_columns.remove(k)
-
-        for pipeline in required_values:
-            population[pipeline.name] = pipeline(event.index)
-
-        if required_columns:
-            population = pd.concat(
-                [self.population_view.subview(required_columns).get(event.index), population],
-                axis=1,
+        attributes_to_get = [
+            attribute
+            for attribute in required_attributes
+            if attribute
+            not in ["current_time", "event_step_size", "event_time"]
+            + list(event.user_data.keys())
+        ]
+        if attributes_to_get:
+            # FIXME: (Inefficiency) In the event every single observation has some identical
+            # query string (e.g. 'is_alive == True'), we still calculate all attributes for
+            # the entire population and then apply the query downstream.
+            population = self.population_view.get_attributes(
+                event.index,
+                attributes_to_get,
+                include_untracked=any(
+                    obs.population_filter.include_untracked for obs in observations
+                ),
             )
+        else:
+            population = pd.DataFrame(index=event.index)
+
+        if "current_time" in required_attributes:
+            population["current_time"] = self.clock()
+        if "event_step_size" in required_attributes:
+            population["event_step_size"] = event.step_size
+        if "event_time" in required_attributes:
+            population["event_time"] = self.clock() + event.step_size  # type: ignore [operator]
+
+        for key, val in event.user_data.items():
+            if key in required_attributes:
+                population[key] = val
+
         for stratification in stratifications:
             new_column = get_mapped_col_name(stratification.name)
             if new_column in population.columns:
@@ -426,7 +389,7 @@ class ResultsManager(Manager):
     def _warn_check_stratifications(
         self, additional_stratifications: list[str], excluded_stratifications: list[str]
     ) -> None:
-        """Check additional and excluded stratifications if they'd not affect
+        """Checks additional and excluded stratifications if they'd not affect
         stratifications (i.e., would be NOP), and emit warning."""
         nop_additional = [
             s

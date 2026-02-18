@@ -1,6 +1,82 @@
-**3.6.7 - 02/11/26**
+**4.0.0 - TBD TBD TBD**
+-----------------------
 
-  - Add support for python 3.12 and 3.13
+This release introduces a major refactor of the population management system as well 
+as various other miscellaneous changes.
+
+Breaking changes
+----------------
+
+Population management system refactor
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Interactive context: 'get_population()' will now error if requesting an attribute that doesn't exist.
+- Population views: Replace subviews and 'get()' method with 'get_attributes()',
+  'get_attribute_frame()', and 'get_private_columns()'.
+
+  - You must now explicitly request which attributes you want to retrieve.
+  - Write access (via the 'update()' method) is now restricted to private columns
+    created by the component the view is attached to.
+
+- Population views: Remove support for population view default queries.
+- Population interface: Replace the 'tracked' column and corresponding auto-filter
+  logic with a new 'register_tracked_query()' method and 'include_untracked' argument
+  when getting attributes or private columns from a population view.
+- Population interface: Require explicit initializer method registration instead 
+  of inferring from methods named 'on_initialize_simulants()'. Supports multiple
+  initializer methods per component.
+
+  - Remove columns_created, columns_required, and initialization_requirements properties throughout.
+
+- Population manager: 'get_population()' now requires an explicit attribute request ("all" is allowed).
+- Stop returning AttributePipelines (previously Pipelines) when registering them.
+
+Miscellaneous
+~~~~~~~~~~~~~
+
+- Split managers and their corresponding interfaces into separate modules.
+- Replace 'requires_columns' and 'requires_values' arguments with 'requires_attributes' throughout.
+- Replace 'dependencies' arguments with 'required_resources' throughout.
+- Change default behavior of state machine 'allow_self_transition' to True.
+
+Major changes
+-------------
+
+- Replace all Pipelines with AttributePipelines throughout.
+- Support attribute names as source and/or modifiers to AttributePipelines.
+
+Other changes
+-------------
+- Add support for python 3.12 and 3.13
+
+Population management system refactor
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- InteractiveContext: Allow specific column request to 'get_population()'.
+- InteractiveContext: Implement new 'get_columns()' method to get all attribute names.
+- Population views: Implement new 'get_filtered_index()' method.
+- Stop using population views inappropriately when using individualized clocks.
+- Implement 'skip_post_processor' argument to population view 'get_attributes()'
+  and population manager 'get_population()' methods.
+- Ensure Pipeline 'union_post_processor' always returns a Series or DataFrame.
+- Change 'alive' string column to 'is_alive' boolean column in disease model example and various tests.
+- Make Mortality a sub-component of BasePopulation component in disease model example.
+- Update documentation.
+
+Miscellaneous
+~~~~~~~~~~~~~
+
+- LookupTables: Improve type hinting.
+- LookupTables: Register tables as resources.
+- LookupTables: Warn if unused tables are registered.
+- Properly set Pipeline source dependencies.
+- Infer component when creating a Resource.
+- Clean up Resource registration.
+- Clean up ComponentManager.
+- Only get random draws for non-0 and non-1 probabilities when calling 'filter_for_probability()'.
+- Fix mypy error in setup.py.
+- Fix mypy errors in disease model example.
+- Create a Component.logger property for better type-checking.
 
 **3.6.6 - 01/06/26**
 

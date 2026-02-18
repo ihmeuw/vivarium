@@ -11,23 +11,19 @@ simulations.
 from __future__ import annotations
 
 import re
-import warnings
 from abc import ABC
-from collections.abc import Callable, Sequence
-from datetime import datetime, timedelta
+from collections.abc import Sequence
 from importlib import import_module
 from inspect import signature
-from typing import TYPE_CHECKING, Any, Literal
-from typing import SupportsFloat as Numeric
-from typing import cast
+from typing import TYPE_CHECKING, Any, overload
 
 import pandas as pd
 from layered_config_tree import ConfigurationError, LayeredConfigTree
 
 from vivarium.framework.artifact import ArtifactException
-from vivarium.framework.lifecycle import lifecycle_states
+from vivarium.framework.lifecycle import LifeCycleError, lifecycle_states
 from vivarium.framework.population import PopulationError
-from vivarium.types import ScalarValue
+from vivarium.types import LookupTableData
 
 if TYPE_CHECKING:
     import loguru
@@ -35,8 +31,7 @@ if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
     from vivarium.framework.event import Event
     from vivarium.framework.lookup import LookupTable
-    from vivarium.framework.population import PopulationView, SimulantData
-    from vivarium.framework.resource import Resource
+    from vivarium.framework.population import PopulationView
     from vivarium.types import DataInput
 
 DEFAULT_EVENT_PRIORITY = 5
@@ -66,10 +61,6 @@ class Component(ABC):
 
     - :attr:`sub_components`
     - :attr:`configuration_defaults`
-    - :attr:`columns_created`
-    - :attr:`columns_required`
-    - :attr:`initialization_requirements`
-    - :attr:`population_view_query`
     - :attr:`post_setup_priority`
     - :attr:`time_step_prepare_priority`
     - :attr:`time_step_priority`
@@ -82,7 +73,6 @@ class Component(ABC):
 
     - :meth:`setup`
     - :meth:`on_post_setup`
-    - :meth:`on_initialize_simulants`
     - :meth:`on_time_step_prepare`
     - :meth:`on_time_step`
     - :meth:`on_time_step_cleanup`
@@ -108,28 +98,9 @@ class Component(ABC):
         self._repr: str = ""
         self._name: str = ""
         self._sub_components: Sequence["Component"] = []
-        self.logger: loguru.Logger | None = None
-        """A :class:`loguru.Logger` instance for this component.
-        
-        The logger is initialized during :meth:`setup_component` and can be used
-        to log messages specific to this component. The logger name is set to the
-        component's :attr:`name`.
-        """
-        self.get_value_columns: (
-            Callable[
-                [str | pd.DataFrame | dict[str, list[ScalarValue] | list[str]]], list[str]
-            ]
-            | None
-        ) = None
-        self.configuration: LayeredConfigTree | None = None
+        self._logger: loguru.Logger | None = None
+        self.configuration: LayeredConfigTree = LayeredConfigTree()
         self._population_view: PopulationView | None = None
-        self.lookup_tables: dict[str, LookupTable] = {}
-        """A dictionary of lookup tables built for this component, keyed by table name.
-        
-        Lookup tables are built automatically from the ``data_sources`` block in
-        :attr:`configuration_defaults` before the component's :meth:`setup` method
-        is called. Tables can be accessed by name, e.g., ``self.lookup_tables["my_table"]``.
-        """
 
     def __repr__(self) -> str:
         """Returns a string representation of the :meth:`__init__` call made to create
@@ -146,8 +117,7 @@ class Component(ABC):
 
         Returns
         -------
-            A string representation of the __init__ call made to create this
-            object.
+            A string representation of the __init__ call made to create this object.
         """
         if not self._repr:
             args = ", ".join(
@@ -169,7 +139,7 @@ class Component(ABC):
 
     @property
     def name(self) -> str:
-        """Returns the name of the component.
+        """The name of the component.
 
         By convention, these are in snake case with arguments of the :meth:`__init__`
         appended and separated by ``.``.
@@ -186,11 +156,6 @@ class Component(ABC):
         IMPORTANT: this property must not be accessed within the :meth:`__init__`
         functions of this component or its subclasses or its value may not be
         initialized correctly.
-
-        Returns
-        -------
-        str
-            The name of the component.
         """
         if not self._name:
             base_name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", type(self).__name__)
@@ -205,13 +170,24 @@ class Component(ABC):
         return self._name
 
     @property
-    def population_view(self) -> PopulationView:
-        """Provides the :class:`~vivarium.framework.population.PopulationView` for this component.
+    def logger(self) -> loguru.Logger:
+        """The logger for this component.
 
-        Returns
-        -------
-        PopulationView
-            The PopulationView for this component
+        Raises
+        ------
+        LifeCycleError
+            If the logger has not been initialized.
+        """
+        if self._logger is None:
+            raise LifeCycleError(
+                f"Logger for component '{self.name}' has not been initialized. "
+                "This is likely due to having called this prior to simulation setup."
+            )
+        return self._logger
+
+    @property
+    def population_view(self) -> PopulationView:
+        """The :class:`~vivarium.framework.population.PopulationView` for this component.
 
         Raises
         ------
@@ -220,151 +196,71 @@ class Component(ABC):
         """
         if self._population_view is None:
             raise PopulationError(
-                f"Component '{self.name}' does not have access to the state "
-                "table. This is likely due to a failure to set columns_required "
-                "or columns_created for this component."
+                f"Component '{self.name}' does not have access to the state table. "
+                "This is likely due to having called this prior to simulation setup."
             )
         return self._population_view
 
     @property
-    def sub_components(self) -> Sequence["Component"]:
-        """Provide components managed by this component.
+    def private_columns(self) -> list[str]:
+        """The list of private columns created by this component."""
+        return self.population_view.private_columns
 
-        Returns
-        -------
-        List[Component]
-            The sub-components that are managed by this component.
-        """
+    @property
+    def sub_components(self) -> Sequence["Component"]:
+        """The components managed by this component."""
         return self._sub_components
 
     @property
     def configuration_defaults(self) -> dict[str, Any]:
-        """Provides a dictionary containing the defaults for any configurations
-        managed by this component.
+        """The dictionary containing the defaults for any configurations managed
+        by this component.
 
         These default values will be stored at the ``component_configs`` layer of the
         simulation's :class:`~layered_config_tree.main.LayeredConfigTree`.
-
-        Returns
-        -------
-            A dictionary containing the defaults for any configurations managed by
-            this component.
         """
         return self.CONFIGURATION_DEFAULTS
 
     @property
-    def columns_created(self) -> list[str]:
-        """Provides names of columns created by the component.
-
-        Returns
-        -------
-            Names of the columns created by this component, or an empty list if
-            none.
-        """
-        return []
-
-    @property
-    def columns_required(self) -> list[str] | Literal["all"] | None:
-        """Provides names of columns required by the component.
-
-        Returns
-        -------
-            Names of required columns not created by this component. A string of
-            ``"all"`` means all available columns are needed. :obj:`None` means no
-            additional columns are necessary.
-        """
-        return None
-
-    @property
-    def initialization_requirements(
-        self,
-    ) -> list[str | Resource]:
-        """A list containing the columns, pipelines, and randomness streams
-        required by this component's simulant initializer."""
-        return []
-
-    @property
-    def population_view_query(self) -> str:
-        """Provides a query to use when filtering the component's :class:`~vivarium.framework.population.PopulationView`.
-
-        Returns
-        -------
-            A pandas query string for filtering the component's :class:`~vivarium.framework.population.PopulationView`.
-            Returns an empty string if no filtering is required.
-        """
-        return ""
+    def lookup_table_value_columns(self) -> dict[str, str | list[str]]:
+        """A mapping of lookup table names to their value columns."""
+        return {}
 
     @property
     def post_setup_priority(self) -> int:
-        """Provides the priority of this component's ``post_setup`` listener.
-
-        Returns
-        -------
-            The priority of this component's ``post_setup`` listener. This value
-            can range from 0 to 9, inclusive.
-        """
+        """The priority of this component's ``post_setup`` listener."""
         return DEFAULT_EVENT_PRIORITY
 
     @property
     def time_step_prepare_priority(self) -> int:
-        """Provides the priority of this component's ``time_step__prepare`` listener.
-
-        Returns
-        -------
-            The priority of this component's ``time_step__prepare`` listener. This value
-            can range from 0 to 9, inclusive.
-        """
+        """The priority of this component's ``time_step__prepare`` listener."""
         return DEFAULT_EVENT_PRIORITY
 
     @property
     def time_step_priority(self) -> int:
-        """Provides the priority of this component's ``time_step`` listener.
-
-        Returns
-        -------
-            The priority of this component's ``time_step`` listener. This value
-            can range from 0 to 9, inclusive.
-        """
+        """The priority of this component's ``time_step`` listener."""
         return DEFAULT_EVENT_PRIORITY
 
     @property
     def time_step_cleanup_priority(self) -> int:
-        """Provides the priority of this component's ``time_step__cleanup`` listener.
-
-        Returns
-        -------
-            The priority of this component's ``time_step__cleanup`` listener. This value
-            can range from 0 to 9, inclusive.
-        """
+        """The priority of this component's ``time_step__cleanup`` listener."""
         return DEFAULT_EVENT_PRIORITY
 
     @property
     def collect_metrics_priority(self) -> int:
-        """Provides the priority of this component's ``collect_metrics`` listener.
-
-        Returns
-        -------
-            The priority of this component's ``collect_metrics`` listener. This value
-            can range from 0 to 9, inclusive.
-        """
+        """The priority of this component's ``collect_metrics`` listener."""
         return DEFAULT_EVENT_PRIORITY
 
     @property
     def simulation_end_priority(self) -> int:
-        """Provides the priority of this component's ``simulation_end`` listener.
-
-        Returns
-        -------
-            The priority of this component's ``simulation_end`` listener. This value
-            can range from 0 to 9, inclusive.
-        """
+        """The priority of this component's ``simulation_end`` listener."""
         return DEFAULT_EVENT_PRIORITY
 
     #####################
     # Lifecycle methods #
     #####################
 
-    def setup_component(self, builder: "Builder") -> None:
+    def setup_component(self, builder: Builder) -> None:
         """Sets up the component for a Vivarium simulation.
 
         This method is run by Vivarium during the setup phase. It performs a series
@@ -380,14 +276,11 @@ class Component(ABC):
         builder
             The builder object used to set up the component.
         """
-        self.logger = builder.logging.get_logger(self.name)
-        self.get_value_columns = builder.data.value_columns()
+        self._logger = builder.logging.get_logger(self.name)
         self.configuration = self.get_configuration(builder)
-        self.build_all_lookup_tables(builder)
         self.setup(builder)
         self._set_population_view(builder)
         self._register_post_setup_listener(builder)
-        self._register_simulant_initializer(builder)
         self._register_time_step_prepare_listener(builder)
         self._register_time_step_listener(builder)
         self._register_time_step_cleanup_listener(builder)
@@ -427,25 +320,6 @@ class Component(ABC):
         ----------
         event
             The event object associated with the ``post_setup`` event.
-        """
-        pass
-
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        """
-        Method that vivarium will run during simulant initialization.
-
-        This method is intended to be overridden by subclasses if there are
-        operations they need to perform specifically during the simulant
-        initialization phase.
-
-        Parameters
-        ----------
-        pop_data : SimulantData
-            The data associated with the simulants being initialized.
-
-        Returns
-        -------
-        None
         """
         pass
 
@@ -542,7 +416,7 @@ class Component(ABC):
             if hasattr(self, parameter_name)
         }
 
-    def get_configuration(self, builder: "Builder") -> LayeredConfigTree | None:
+    def get_configuration(self, builder: Builder) -> LayeredConfigTree:
         """Retrieves the configuration for this component from the builder.
 
         This method retrieves the configuration for this component from the
@@ -556,61 +430,61 @@ class Component(ABC):
 
         Returns
         -------
-            The configuration for this component, or :obj:`None` if the component has
-            no configuration.
+            The configuration for this component, or a default empty configuration.
         """
 
         if self.name in builder.configuration:
             return builder.configuration.get_tree(self.name)
-        return None
+        return LayeredConfigTree({"data_sources": {}})
 
-    def build_all_lookup_tables(self, builder: "Builder") -> None:
-        """Builds all lookup tables for this component.
+    @overload
+    def build_lookup_table(
+        self,
+        builder: Builder,
+        name: str,
+        data_source: DataInput | None = None,
+        value_columns: str | None = None,
+    ) -> LookupTable[pd.Series[Any]]:
+        ...
 
-        This method builds lookup tables for this component based on the data
-        sources specified in the configuration. If no data sources are specified,
-        no lookup tables are built.
-
-        The created lookup tables are stored in the :attr:`lookup_tables` attribute of
-        the component, with the table name as the key.
-
-        Parameters
-        ----------
-        builder
-            The builder object used to set up the component.
-        """
-        if self.configuration and "data_sources" in self.configuration:
-            for table_name in self.configuration.data_sources.keys():
-                try:
-                    self.lookup_tables[table_name] = self.build_lookup_table(
-                        builder, self.configuration.data_sources[table_name]
-                    )
-                except ConfigurationError as e:
-                    raise ConfigurationError(
-                        f"Error building lookup table '{table_name}': {e}"
-                    )
+    @overload
+    def build_lookup_table(
+        self,
+        builder: Builder,
+        name: str,
+        data_source: DataInput | None = None,
+        value_columns: list[str] | tuple[str, ...] = ...,
+    ) -> LookupTable[pd.DataFrame]:
+        ...
 
     def build_lookup_table(
         self,
         builder: Builder,
-        data_source: DataInput,
-        value_columns: Sequence[str] | None = None,
-    ) -> LookupTable:
-        """Builds a :class:`~vivarium.framework.lookup.table.LookupTable` from a data source.
+        name: str,
+        data_source: DataInput | None = None,
+        value_columns: list[str] | tuple[str, ...] | str | None = None,
+    ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
+        """Builds a LookupTable.
 
-        Uses :meth:`get_data` to parse the data source and retrieve the lookup table
-        data. The :class:`~vivarium.framework.lookup.table.LookupTable` is built from the
-        data source, with the value columns specified in the ``value_columns`` parameter.
-        If ``value_columns`` is :obj:`None` and the data is a :class:`~pandas.DataFrame`,
-        the :class:`~vivarium.framework.artifact.manager.ArtifactManager` will determine the
-        value columns.
+        If a data_source is not provided, the method will look for a data source
+        in the component's configuration under the key "data_sources" with the
+        provided name.
+
+        If value_columns provided is a list or tuple, a LookupTable returning a
+        DataFrame will be built. If it is a string or None, a LookupTable
+        returning a Series will be built. If value_columns is None, the name of the
+        returned Series will be "value".
 
         Parameters
         ----------
         builder
             The builder object used to set up the component.
         data_source
-            The data source to build the LookupTable from.
+            The data source to build the LookupTable from. If None, the data source
+            will be retrieved from the component's configuration.
+        name
+            The name of the lookup table, used to retrieve the data source from
+            the configuration if data_source is None.
         value_columns
             The columns to include in the LookupTable.
 
@@ -623,77 +497,24 @@ class Component(ABC):
         layered_config_tree.exceptions.ConfigurationError
             If the data source is invalid.
         """
-        data = self.get_data(builder, data_source)
-        # TODO update this to use vivarium.types.LookupTableData once we drop
-        #  support for Python 3.9
-        if not isinstance(
-            data, (Numeric, timedelta, datetime, pd.DataFrame, list, tuple, dict)
-        ):
-            raise ConfigurationError(f"Data '{data}' must be a LookupTableData instance.")
+        if data_source is None:
+            data_source = self.configuration.get(["data_sources", name])
 
-        if isinstance(data, list):
+        if data_source is None:
+            raise ConfigurationError(
+                f"No data source provided for lookup table '{name}', "
+                "and no data source found in configuration."
+            )
+
+        try:
+            data = self.get_data(builder, data_source)
             return builder.lookup.build_table(
-                data, value_columns=list(value_columns) if value_columns else ()
+                data=data, name=name, value_columns=value_columns
             )
-        if isinstance(data, pd.DataFrame):
-            duplicated_columns = set(data.columns[data.columns.duplicated()])
-            if duplicated_columns:
-                raise ConfigurationError(
-                    f"Dataframe contains duplicate columns {duplicated_columns}."
-                )
-            value_columns, parameter_columns, key_columns = self._get_columns(
-                value_columns, data
-            )
+        except ConfigurationError as e:
+            raise ConfigurationError(f"Error building lookup table '{name}': {e}")
 
-            return builder.lookup.build_table(
-                data=data,
-                key_columns=key_columns,
-                parameter_columns=parameter_columns,
-                value_columns=value_columns,
-            )
-
-        return builder.lookup.build_table(data)
-
-    def _get_columns(
-        self,
-        value_columns: Sequence[str] | None,
-        data: pd.DataFrame | dict[str, list[ScalarValue] | list[str]],
-    ) -> tuple[Sequence[str], list[str], list[str]]:
-        if isinstance(data, pd.DataFrame):
-            all_columns = list(data.columns)
-        else:
-            all_columns = list(data.keys())
-        if value_columns is None:
-            # NOTE: self.get_value_columns cannot be None at this point of the call stack
-            value_column_getter = cast(
-                Callable[
-                    [str | pd.DataFrame | dict[str, list[ScalarValue] | list[str]]], list[str]
-                ],
-                self.get_value_columns,
-            )
-            value_columns = value_column_getter(data)
-
-        potential_parameter_columns = [
-            str(col).removesuffix("_start")
-            for col in all_columns
-            if str(col).endswith("_start")
-        ]
-        parameter_columns = []
-        bin_edge_columns = []
-        for column in potential_parameter_columns:
-            if f"{column}_end" in all_columns:
-                parameter_columns.append(column)
-                bin_edge_columns += [f"{column}_start", f"{column}_end"]
-
-        key_columns = [
-            col
-            for col in all_columns
-            if col not in value_columns and col not in bin_edge_columns
-        ]
-
-        return value_columns, parameter_columns, key_columns
-
-    def get_data(self, builder: Builder, data_source: DataInput) -> Any:
+    def get_data(self, builder: Builder, data_source: DataInput) -> LookupTableData:
         """Retrieves data from a data source.
 
         If the data source is a float or a DataFrame, it is treated as the data
@@ -737,7 +558,7 @@ class Component(ABC):
                     raise ConfigurationError(
                         f"There is no method '{method}' for the {module_string}."
                     )
-                data = data_source_callable(builder)
+                data: LookupTableData = data_source_callable(builder)
             else:
                 try:
                     data = builder.data.load(data_source)
@@ -752,50 +573,17 @@ class Component(ABC):
 
         return data
 
-    def _set_population_view(self, builder: "Builder") -> None:
-        """Creates the PopulationView for this component if it needs access to
-        the state table.
-
-        The method determines the necessary columns for the PopulationView
-        based on the columns required and created by this component. If no
-        columns are required or created, no PopulationView is set.
+    def _set_population_view(self, builder: Builder) -> None:
+        """Creates the PopulationView for this component.
 
         Parameters
         ----------
         builder
             The builder object used to set up the component.
         """
-        requires_all_columns = False
-        if self.columns_required == []:
-            warnings.warn(
-                "The empty list [] format for requiring all columns is deprecated. Please "
-                "use the string 'all' instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        if self.columns_required and self.columns_required != "all":
-            # Get all columns created and required
-            population_view_columns = self.columns_created + self.columns_required
-        elif self.columns_required == "all" or self.columns_required == []:
-            # Empty list means population view needs all available columns
-            requires_all_columns = True
-            if self.columns_created:
-                population_view_columns = self.columns_created
-            else:
-                population_view_columns = []
-        elif self.columns_required is None and self.columns_created:
-            # No additional columns required, so just get columns created
-            population_view_columns = self.columns_created
-        else:
-            # no need for a population view if no columns created or required
-            population_view_columns = None
+        self._population_view = builder.population.get_view(self)
 
-        if population_view_columns is not None:
-            self._population_view = builder.population.get_view(
-                population_view_columns, self.population_view_query, requires_all_columns
-            )
-
-    def _register_post_setup_listener(self, builder: "Builder") -> None:
+    def _register_post_setup_listener(self, builder: Builder) -> None:
         """Registers a ``post_setup`` listener if this component has defined one.
 
         This method allows the component to respond to ``post_setup`` events if it
@@ -815,39 +603,7 @@ class Component(ABC):
                 self.post_setup_priority,
             )
 
-    def _register_simulant_initializer(self, builder: Builder) -> None:
-        """Registers a simulant initializer if this component has defined one.
-
-        This method allows the component to initialize simulants if it has its
-        own :meth:`on_initialize_simulants` method. It registers this method with the
-        builder's :class:`~vivarium.framework.population.PopulationManager`. It also
-        specifies the columns that the component creates and any additional
-        requirements for initialization.
-
-        Parameters
-        ----------
-        builder
-            The builder with which to register the initializer.
-        """
-        if isinstance(self.initialization_requirements, list):
-            initialization_requirements = {
-                "required_resources": self.initialization_requirements
-            }
-        else:
-            initialization_requirements = self.initialization_requirements
-            warnings.warn(
-                "The dict format for initialization_requirements is deprecated."
-                " You should use provide a list of the required resources.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-        if type(self).on_initialize_simulants != Component.on_initialize_simulants:
-            builder.population.initializes_simulants(
-                self, creates_columns=self.columns_created, **initialization_requirements  # type: ignore[arg-type]
-            )
-
-    def _register_time_step_prepare_listener(self, builder: "Builder") -> None:
+    def _register_time_step_prepare_listener(self, builder: Builder) -> None:
         """Registers a ``time_step__prepare`` listener if this component has defined one.
 
         This method allows the component to respond to ``time_step__prepare`` events
@@ -866,7 +622,7 @@ class Component(ABC):
                 self.time_step_prepare_priority,
             )
 
-    def _register_time_step_listener(self, builder: "Builder") -> None:
+    def _register_time_step_listener(self, builder: Builder) -> None:
         """Registers a ``time_step`` listener if this component has defined one.
 
         This method allows the component to respond to ``time_step`` events
@@ -885,7 +641,7 @@ class Component(ABC):
                 self.time_step_priority,
             )
 
-    def _register_time_step_cleanup_listener(self, builder: "Builder") -> None:
+    def _register_time_step_cleanup_listener(self, builder: Builder) -> None:
         """Registers a ``time_step__cleanup`` listener if this component has defined one.
 
         This method allows the component to respond to ``time_step__cleanup`` events
@@ -904,7 +660,7 @@ class Component(ABC):
                 self.time_step_cleanup_priority,
             )
 
-    def _register_collect_metrics_listener(self, builder: "Builder") -> None:
+    def _register_collect_metrics_listener(self, builder: Builder) -> None:
         """Registers a ``collect_metrics`` listener if this component has defined one.
 
         This method allows the component to respond to ``collect_metrics`` events
@@ -923,7 +679,7 @@ class Component(ABC):
                 self.collect_metrics_priority,
             )
 
-    def _register_simulation_end_listener(self, builder: "Builder") -> None:
+    def _register_simulation_end_listener(self, builder: Builder) -> None:
         """Registers a ``simulation_end`` listener if this component has defined one.
 
         This method allows the component to respond to ``simulation_end`` events

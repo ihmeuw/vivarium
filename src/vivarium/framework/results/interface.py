@@ -9,7 +9,7 @@ This module provides an interface to the :class:`ResultsManager <vivarium.framew
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Sequence, Union
+from typing import TYPE_CHECKING, Any, NamedTuple, Sequence, Union
 
 import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy
@@ -30,14 +30,16 @@ if TYPE_CHECKING:
 
 
 ResultsUpdater = Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
-"""This is a Callable that takes existing results and new observations and returns updated results."""
+"""A Callable that takes existing results and new observations and returns updated results."""
 ResultsFormatter = Callable[[str, pd.DataFrame], pd.DataFrame]
-"""This is a Callable that takes a measure as a string and a DataFrame of observation results and returns formatted results."""
+"""A Callable that takes a measure as a string and a DataFrame of observation results
+and returns formatted results."""
 ResultsGathererInput = Union[
     pd.DataFrame, DataFrameGroupBy, tuple[str, ...], None  # type: ignore [type-arg]
 ]
 ResultsGatherer = Callable[[ResultsGathererInput], pd.DataFrame]
-"""This is a Callable that optionally takes a possibly stratified population and returns new observation results."""
+"""A Callable that optionally takes a possibly stratified population and returns
+new observation results."""
 
 
 def _required_function_placeholder(
@@ -46,22 +48,32 @@ def _required_function_placeholder(
     | tuple[str, pd.DataFrame],
     **kwargs: Any,
 ) -> pd.DataFrame:
-    """Placeholder function to indicate that a required function is missing."""
+    """Returns and empty dataframe.
+
+    Placeholder function to indicate that a required function is missing.
+    """
     return pd.DataFrame()
 
 
 def _default_stratified_observation_formatter(
     measure: str, results: pd.DataFrame
 ) -> pd.DataFrame:
-    """Default formatter for stratified observations."""
+    """Resets the results index."""
     return results.reset_index()
 
 
 def _default_unstratified_observation_formatter(
     measure: str, results: pd.DataFrame
 ) -> pd.DataFrame:
-    """Default formatter for unstratified observations."""
+    """Returns the results unchanged."""
     return results
+
+
+class PopulationFilter(NamedTuple):
+    """Container class for population query string and include_untracked flag."""
+
+    query: str = ""
+    include_untracked: bool = False
 
 
 class ResultsInterface(Interface):
@@ -70,11 +82,7 @@ class ResultsInterface(Interface):
     The results management system allows users to delegate results production
     to the simulation framework. This process attempts to roughly mimic the
     groupby-apply logic commonly done when manipulating :mod:`pandas`
-    DataFrames. The representation of state in the simulation is complex,
-    however, as it includes information both in the population state table
-    and dynamically generated information available from the
-    :class:`value pipelines <vivarium.framework.values.pipeline.Pipeline>`.
-    Additionally, good encapsulation of simulation logic typically has
+    DataFrames. Good encapsulation of simulation logic typically has
     results production separated from the modeling code into specialized
     `Observer` components. This often highlights the need for transformations
     of the simulation state into representations that aren't needed for
@@ -105,8 +113,7 @@ class ResultsInterface(Interface):
         excluded_categories: list[str] | None = None,
         mapper: VectorMapper | ScalarMapper | None = None,
         is_vectorized: bool = False,
-        requires_columns: list[str] = [],
-        requires_values: list[str] = [],
+        requires_attributes: list[str] = [],
     ) -> None:
         """Registers a stratification that can be used by stratified observations.
 
@@ -120,20 +127,16 @@ class ResultsInterface(Interface):
             List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
-            A callable that maps the columns and value pipelines specified by the
-            `requires_columns` and `requires_values` arguments to the stratification
-            categories. It can either map the entire population or an individual
-            simulant. A simulation will fail if the `mapper` ever produces an invalid
-            value.
+            A callable that maps the population attributes specified by the
+            `requires_attributes` argumnt to the stratification categories. It can
+            either map the entire population or an individual simulant. A simulation
+            will fail if the `mapper` ever produces an invalid value.
         is_vectorized
             True if the `mapper` function will map the entire population, and False
             if it will only map a single simulant.
-        requires_columns
-            A list of the state table columns that are required by the `mapper`
-            to produce the stratification.
-        requires_values
-            A list of the value pipelines that are required by the `mapper` to
-            produce the stratification.
+        requires_attributes
+            The population attributes that are required by the `mapper` to produce
+            the stratification.
         """
         self._manager.register_stratification(
             name,
@@ -141,8 +144,7 @@ class ResultsInterface(Interface):
             excluded_categories,
             mapper,
             is_vectorized,
-            requires_columns,
-            requires_values,
+            requires_attributes,
         )
 
     def register_binned_stratification(
@@ -152,7 +154,6 @@ class ResultsInterface(Interface):
         bin_edges: Sequence[int | float] = [],
         labels: list[str] = [],
         excluded_categories: list[str] | None = None,
-        target_type: str = "column",
         **cut_kwargs: int | str | bool,
     ) -> None:
         """Registers a binned stratification that can be used by stratified observations.
@@ -160,7 +161,7 @@ class ResultsInterface(Interface):
         Parameters
         ----------
         target
-            Name of the state table column or value pipeline to be binned.
+            Name of the population attribute to be binned.
         binned_column
             Name of the (binned) stratification.
         bin_edges
@@ -172,9 +173,6 @@ class ResultsInterface(Interface):
         excluded_categories
             List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
-        target_type
-            Type specification of the `target` to be binned. "column" if it's a
-            state table column or "value" if it's a value pipeline.
         **cut_kwargs
             Keyword arguments for :meth: pandas.cut.
         """
@@ -184,7 +182,6 @@ class ResultsInterface(Interface):
             bin_edges,
             labels,
             excluded_categories,
-            target_type,
             **cut_kwargs,
         )
 
@@ -195,10 +192,10 @@ class ResultsInterface(Interface):
     def register_stratified_observation(
         self,
         name: str,
-        pop_filter: str = "tracked==True",
+        pop_filter: str = "",
+        include_untracked: bool = False,
         when: str = lifecycle_states.COLLECT_METRICS,
-        requires_columns: list[str] = [],
-        requires_values: list[str] = [],
+        requires_attributes: list[str] = [],
         results_updater: ResultsUpdater = _required_function_placeholder,
         results_formatter: ResultsFormatter = _default_stratified_observation_formatter,
         additional_stratifications: list[str] = [],
@@ -217,13 +214,13 @@ class ResultsInterface(Interface):
         pop_filter
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
+        include_untracked
+            Whether to include simulants who are untracked from this observation.
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-        requires_columns
-            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
-        requires_values
-            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
+        requires_attributes
+            The population attributes that are required by the `aggregator`.
         results_updater
             Function that updates existing raw observation results with newly gathered results.
         results_formatter
@@ -250,10 +247,9 @@ class ResultsInterface(Interface):
         self._manager.register_observation(
             observation_type=StratifiedObservation,
             name=name,
-            pop_filter=pop_filter,
+            population_filter=PopulationFilter(pop_filter, include_untracked),
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             results_updater=results_updater,
             results_formatter=results_formatter,
             additional_stratifications=additional_stratifications,
@@ -266,10 +262,10 @@ class ResultsInterface(Interface):
     def register_unstratified_observation(
         self,
         name: str,
-        pop_filter: str = "tracked==True",
+        pop_filter: str = "",
+        include_untracked: bool = False,
         when: str = lifecycle_states.COLLECT_METRICS,
-        requires_columns: list[str] = [],
-        requires_values: list[str] = [],
+        requires_attributes: list[str] = [],
         results_gatherer: ResultsGatherer = _required_function_placeholder,
         results_updater: ResultsUpdater = _required_function_placeholder,
         results_formatter: ResultsFormatter = _default_unstratified_observation_formatter,
@@ -285,15 +281,13 @@ class ResultsInterface(Interface):
         pop_filter
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
+        include_untracked
+            Whether to include simulants who are untracked from this observation.
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-        requires_columns
-            List of the state table columns that are required by either the `pop_filter` or the
-            `results_gatherer`.
-        requires_values
-            List of the value pipelines that are required by either the `pop_filter` or the
-            `results_gatherer`.
+        requires_attributes
+            The population attributes that are required by the `results_gatherer`.
         results_gatherer
             Function that gathers the latest observation results.
         results_updater
@@ -316,10 +310,9 @@ class ResultsInterface(Interface):
         self._manager.register_observation(
             observation_type=UnstratifiedObservation,
             name=name,
-            pop_filter=pop_filter,
+            population_filter=PopulationFilter(pop_filter, include_untracked),
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             results_updater=results_updater,
             results_gatherer=results_gatherer,
             results_formatter=results_formatter,
@@ -329,10 +322,10 @@ class ResultsInterface(Interface):
     def register_adding_observation(
         self,
         name: str,
-        pop_filter: str = "tracked==True",
+        pop_filter: str = "",
+        include_untracked: bool = False,
         when: str = lifecycle_states.COLLECT_METRICS,
-        requires_columns: list[str] = [],
-        requires_values: list[str] = [],
+        requires_attributes: list[str] = [],
         results_formatter: ResultsFormatter = _default_stratified_observation_formatter,
         additional_stratifications: list[str] = [],
         excluded_stratifications: list[str] = [],
@@ -357,13 +350,13 @@ class ResultsInterface(Interface):
         pop_filter
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
+        include_untracked
+            Whether to include simulants who are untracked from this observation.
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-        requires_columns
-            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
-        requires_values
-            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
+        requires_attributes
+            The population attributes that are required by the `aggregator`.
         results_formatter
             Function that formats the raw observation results.
         additional_stratifications
@@ -382,10 +375,9 @@ class ResultsInterface(Interface):
         self._manager.register_observation(
             observation_type=AddingObservation,
             name=name,
-            pop_filter=pop_filter,
+            population_filter=PopulationFilter(pop_filter, include_untracked),
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             results_formatter=results_formatter,
             additional_stratifications=additional_stratifications,
             excluded_stratifications=excluded_stratifications,
@@ -397,10 +389,10 @@ class ResultsInterface(Interface):
     def register_concatenating_observation(
         self,
         name: str,
-        pop_filter: str = "tracked==True",
+        pop_filter: str = "",
+        include_untracked: bool = False,
         when: str = lifecycle_states.COLLECT_METRICS,
-        requires_columns: list[str] = [],
-        requires_values: list[str] = [],
+        requires_attributes: list[str] = [],
         results_formatter: ResultsFormatter = _default_unstratified_observation_formatter,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
@@ -421,13 +413,13 @@ class ResultsInterface(Interface):
         pop_filter
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
+        include_untracked
+            Whether to include simulants who are untracked from this observation.
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-        requires_columns
-            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
-        requires_values
-            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
+        requires_attributes
+            The population attributes that are required by the `aggregator`.
         results_formatter
             Function that formats the raw observation results.
         to_observe
@@ -436,10 +428,9 @@ class ResultsInterface(Interface):
         self._manager.register_observation(
             observation_type=ConcatenatingObservation,
             name=name,
-            pop_filter=pop_filter,
+            population_filter=PopulationFilter(pop_filter, include_untracked),
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             results_formatter=results_formatter,
             to_observe=to_observe,
         )

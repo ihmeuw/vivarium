@@ -6,25 +6,84 @@ Framework Utility Functions
 Collection of utility functions shared by the ``vivarium`` framework.
 
 """
+from __future__ import annotations
+
 import functools
 from bdb import BdbQuit
 from collections.abc import Callable, Sequence
 from importlib import import_module
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar, overload
 
 import numpy as np
+import pandas as pd
 from loguru import logger
 
 from vivarium.types import NumberLike, NumericArray, Timedelta
 
+TimeValue = TypeVar("TimeValue", bound=NumberLike)
+
+
+@overload
+def from_yearly(value: int, time_step: Timedelta) -> float:
+    ...
+
+
+@overload
+def from_yearly(value: float, time_step: Timedelta) -> float:
+    ...
+
+
+@overload
+def from_yearly(value: NumericArray, time_step: Timedelta) -> NumericArray:
+    ...
+
+
+@overload
+def from_yearly(
+    value: pd.Series[int] | pd.Series[float], time_step: Timedelta
+) -> pd.Series[float]:
+    ...
+
+
+@overload
+def from_yearly(value: pd.DataFrame, time_step: Timedelta) -> pd.DataFrame:
+    ...
+
 
 def from_yearly(value: NumberLike, time_step: Timedelta) -> NumberLike:
-    """Rescale a yearly rate to the size of a time step."""
+    """Rescales a yearly rate to the size of a time step."""
     return value * (time_step.total_seconds() / (60 * 60 * 24 * 365.0))
 
 
+@overload
+def to_yearly(value: int, time_step: Timedelta) -> float:
+    ...
+
+
+@overload
+def to_yearly(value: float, time_step: Timedelta) -> float:
+    ...
+
+
+@overload
+def to_yearly(value: NumericArray, time_step: Timedelta) -> NumericArray:
+    ...
+
+
+@overload
+def to_yearly(
+    value: pd.Series[int] | pd.Series[float], time_step: Timedelta
+) -> pd.Series[float]:
+    ...
+
+
+@overload
+def to_yearly(value: pd.DataFrame, time_step: Timedelta) -> pd.DataFrame:
+    ...
+
+
 def to_yearly(value: NumberLike, time_step: Timedelta) -> NumberLike:
-    """Convert a time-step-scaled rate back to a yearly rate."""
+    """Converts a time-step-scaled rate back to a yearly rate."""
     return value / (time_step.total_seconds() / (60 * 60 * 24 * 365.0))
 
 
@@ -48,7 +107,19 @@ def rate_to_probability(
 
     Returns
     -------
-        An array of floats representing the probability of the converted rates
+        An array of floats representing the probability of the converted rates.
+
+    Raises
+    ------
+    ValueError
+        If an unsupported rate conversion type is provided.
+
+    Notes
+    -----
+    Beware machine-specific floating point issues. We have encountered underflow
+    when using the exponential conversion for rates greater than ~30,000. To avoid
+    this, we cap the rate at 250 when using the exponential conversion since
+    exp(-250) is effectively zero for practical purposes.
     """
     if rate_conversion_type not in ["linear", "exponential"]:
         raise ValueError(
@@ -70,9 +141,7 @@ def rate_to_probability(
                 "The probability has been clipped to 1.0 and indicates the rate is too high. "
             )
     else:
-        # encountered underflow from rate > 30k
-        # for rates greater than 250, exp(-rate) evaluates to 1e-109
-        # beware machine-specific floating point issues
+        # NOTE: Cap the rate at 250 to avoid floating point underflow issues
         rate = np.asarray(rate)
         rate[rate > 250] = 250.0
         probability = 1 - np.exp(-rate * time_scaling_factor)
@@ -85,7 +154,7 @@ def probability_to_rate(
     time_scaling_factor: float | int = 1.0,
     rate_conversion_type: Literal["linear", "exponential"] = "linear",
 ) -> NumericArray:
-    """Function to convert a probability to a rate.
+    """Converts a probability to a rate.
 
     Parameters
     ----------
@@ -100,7 +169,12 @@ def probability_to_rate(
 
     Returns
     -------
-        An array of floats representing the rate of the converted probabilities
+        An array of floats representing the rate of the converted probabilities.
+
+    Raises
+    ------
+    ValueError
+        If an unsupported rate conversion type is provided.
     """
     # NOTE: The default behavior for randomness streams is to use a rate that is already
     # scaled to the time step which is why the default time scaling factor is 1.0.
@@ -116,6 +190,7 @@ def probability_to_rate(
     else:
         probability = np.asarray(probability)
         rate = -np.log(1 - probability)
+
     return rate
 
 
@@ -133,16 +208,16 @@ def collapse_nested_dict(
 
 
 def import_by_path(path: str) -> Callable[..., Any]:
-    """Import a class or function given its absolute path.
+    """Imports a class or function given its absolute path.
 
     Parameters
     ----------
     path
-        Path to object to import
+        Fully qualified dotted path to the object (e.g. "module.submodule.ClassName")
 
     Returns
     -------
-        The imported class or function
+        The imported class or function.
     """
 
     module_path, _, class_name = path.rpartition(".")

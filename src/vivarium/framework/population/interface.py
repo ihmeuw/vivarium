@@ -1,0 +1,120 @@
+"""
+====================
+Population Interface
+====================
+
+This module provides a :class:`PopulationInterface <PopulationInterface>` class with
+methods to initialize simulants and get a population view.
+
+"""
+
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Any
+
+import pandas as pd
+
+from vivarium.framework.population.population_view import PopulationView
+from vivarium.framework.resource import Resource
+from vivarium.manager import Interface
+
+if TYPE_CHECKING:
+    from vivarium import Component
+    from vivarium.framework.population import SimulantData
+    from vivarium.framework.population.manager import PopulationManager
+
+
+class PopulationInterface(Interface):
+    """Provides access to the system for reading and updating the population.
+
+    The most important aspect of the simulation state is the ``population state table``
+    (or simply ``state table``). It is a table with a row for every individual or
+    cohort (referred to as a simulant) being simulated and a column for each of
+    the attributes of the simulant being modeled. All access to the state table
+    is mediated by :class:`population views <vivarium.framework.population.population_view.PopulationView>`,
+    which may be requested from this system during setup time.
+
+    """
+
+    def __init__(self, manager: PopulationManager):
+        self._manager = manager
+
+    def get_view(self, component: Component | None = None) -> PopulationView:
+        """Gets a time-varying view of the population state table.
+
+        The requested population view can be used to view the current state or
+        to update the state with new values.
+
+        Parameters
+        ----------
+        component
+            The component requesting this view. If None, the view will provide
+            read-only access.
+
+        Returns
+        -------
+            A view of the requested columns of the population state table.
+        """
+        return self._manager.get_view(component)
+
+    def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
+        """Gets a function that can generate new simulants.
+
+        The creator function takes the number of simulants to be created as its
+        first argument and a population configuration dict that will be available
+        to simulant initializers as its second argument. It generates the new rows
+        in the population state table and then calls each initializer registered
+        with the population system with a data object containing the state table
+        index of the new simulants, the configuration info passed to the creator,
+        the current simulation time, and the size of the next time step.
+
+        Returns
+        -------
+           The simulant creator function.
+        """
+        return self._manager.get_simulant_creator()
+
+    def register_initializer(
+        self,
+        initializer: Callable[[SimulantData], None],
+        columns: str | Sequence[str] | None,
+        required_resources: Sequence[str | Resource] = (),
+    ) -> None:
+        """Registers a component's initializers and any (private) columns created by them.
+
+        This does three primary things:
+        1. Registers each private column's corresponding attribute producer.
+        2. Records metadata about which component created which private columns.
+        3. Registers the initializer as a resource.
+
+        A `columns` value of None indicates that no private columns are being registered.
+        This is useful when a component or manager needs to register an initializer
+        that does not create any private columns.
+
+        Parameters
+        ----------
+        initializer
+            A function that will be called to initialize the state of new simulants.
+        columns
+            The private columns that the given initializer provides the initial state
+            information for.
+        required_resources
+            The resources that the initializer requires to run. Strings are interpreted
+            as attributes.
+        """
+        self._manager.register_initializer(initializer, columns, required_resources)
+
+    def register_tracked_query(self, query: str) -> None:
+        """Adds a new query to the population manager's tracked query string.
+
+        Parameters
+        ----------
+        query
+            The new query to be added to the population manager's tracked query string.
+        """
+        self._manager.register_tracked_query(query)
+
+    def get_tracked_query(self) -> Callable[[], str]:
+        """Gets a callable that returns the combined tracked query for the population."""
+        return self._manager.get_tracked_query

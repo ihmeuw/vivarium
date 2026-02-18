@@ -24,8 +24,14 @@ from tests.framework.results.helpers import (
     NoStratificationsQuidditchWinsObserver,
     QuidditchWinsObserver,
 )
-from tests.helpers import Listener, MockComponentA, MockComponentB
-from vivarium import Component
+from tests.helpers import (
+    AttributePipelineCreator,
+    ColumnCreator,
+    Listener,
+    MockComponentA,
+    MockComponentB,
+)
+from vivarium import Component, InteractiveContext
 from vivarium.framework.artifact import ArtifactInterface, ArtifactManager
 from vivarium.framework.components import (
     ComponentConfigError,
@@ -269,9 +275,8 @@ def test_SimulationContext_initialize_simulants(
     sim.setup()
     pop_size = sim.configuration.population.population_size
     current_time = sim._clock.time
-    assert sim._population.get_population(True).empty
     sim.initialize_simulants()
-    pop = sim._population.get_population(True)
+    pop = sim._population.get_population("all")
     assert len(pop) == pop_size
     assert sim._clock.time == current_time
 
@@ -523,6 +528,22 @@ def test_SimulationContext_load_from_backup(
     # Load from backup
     sim_backup = SimulationContext.load_from_backup(backup_path)
     assert isinstance(sim_backup, SimulationContext)
+
+
+def test_private_columns_get_registered() -> None:
+    component1 = ColumnCreator()
+    component2 = AttributePipelineCreator()
+    sim = InteractiveContext(components=[component1, component2], setup=False)
+    assert sim._population._private_column_metadata == {}
+    sim.setup()
+    metadata = sim._population._private_column_metadata
+    assert metadata == {
+        component1.name: ["test_column_1", "test_column_2", "test_column_3"],
+        # The datetime clock does not have private columns but does register an initializer
+        "datetime_clock": [],
+    }
+    # Check that there are indeed other attributes registered besides via column_created
+    len(sim.get_population().columns) > 3
 
 
 ####################

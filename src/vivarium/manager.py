@@ -14,10 +14,10 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
-    from vivarium.framework.population import SimulantData
 
 
 class Manager(ABC):
+
     CONFIGURATION_DEFAULTS: dict[str, Any] = {}
     """A dictionary containing the defaults for any configurations managed by this
     manager. An empty dictionary indicates no managed configurations.
@@ -43,11 +43,6 @@ class Manager(ABC):
         """
         return self.CONFIGURATION_DEFAULTS
 
-    @property
-    def columns_created(self) -> list[str]:
-        """Provides names of columns created by the manager."""
-        return []
-
     #####################
     # Lifecycle methods #
     #####################
@@ -57,28 +52,12 @@ class Manager(ABC):
         lifecycle phase.
 
         This method is intended to be overridden by subclasses to perform any
-        necessary setup operations specific to the manager. By default, it
-        does nothing.
+        necessary setup operations specific to the manager.
 
         Parameters
         ----------
         builder
             The builder object used to set up the manager.
-        """
-        pass
-
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        """
-        Method that vivarium will run during simulant initialization.
-
-        This method is intended to be overridden by subclasses if there are
-        operations they need to perform specifically during the simulant
-        initialization phase.
-
-        Parameters
-        ----------
-        pop_data : SimulantData
-            The data associated with the simulants being initialized.
         """
         pass
 

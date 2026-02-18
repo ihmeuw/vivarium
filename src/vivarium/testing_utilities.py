@@ -35,14 +35,15 @@ class NonCRNTestPopulation(Component):
         },
     }
 
-    @property
-    def columns_created(self) -> list[str]:
-        return ["age", "sex", "location", "alive", "entrance_time", "exit_time"]
-
     def setup(self, builder: Builder) -> None:
         self.config = builder.configuration
         self.randomness = builder.randomness.get_stream(
             "population_age_fuzz", initializes_crn_attributes=True
+        )
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns=["age", "sex", "location", "is_alive", "entrance_time", "exit_time"],
+            required_resources=[self.randomness],
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
@@ -66,7 +67,9 @@ class NonCRNTestPopulation(Component):
         self.population_view.update(population)
 
     def on_time_step(self, event: Event) -> None:
-        population = self.population_view.get(event.index, query="alive == 'alive'")
+        population = self.population_view.get_attributes(
+            event.index, ["is_alive", "age"], query="is_alive == True"
+        )
         # This component won't work if event.step_size is an int
         if not isinstance(event.step_size, int):
             population["age"] += event.step_size / pd.Timedelta(days=365)
@@ -75,11 +78,19 @@ class NonCRNTestPopulation(Component):
 
 class TestPopulation(NonCRNTestPopulation):
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
+        self.config = builder.configuration
+        self.randomness = builder.randomness.get_stream(
+            "population_age_fuzz", initializes_crn_attributes=True
+        )
         self.age_randomness = builder.randomness.get_stream(
             "age_initialization", initializes_crn_attributes=True
         )
         self.register = builder.randomness.register_simulants
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns=["age", "sex", "location", "is_alive", "entrance_time", "exit_time"],
+            required_resources=[self.randomness, self.age_randomness],
+        )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         age_start = pop_data.user_data.get(
@@ -125,7 +136,7 @@ def _build_population(
             "sex": randomness_stream.choice(
                 index, ["Male", "Female"], additional_key="sex_choice"
             ),
-            "alive": pd.Series("alive", index=index),
+            "is_alive": pd.Series(True, index=index),
             "location": location,
             "exit_time": pd.NaT,
         },
@@ -158,7 +169,7 @@ def _non_crn_build_population(
             "sex": randomness_stream.choice(
                 index, ["Male", "Female"], additional_key="sex_choice"
             ),
-            "alive": pd.Series("alive", index=index),
+            "is_alive": pd.Series(True, index=index),
             "location": location,
             "entrance_time": creation_time,
             "exit_time": pd.NaT,
@@ -253,12 +264,22 @@ def get_randomness(
     clock: Callable[[], pd.Timestamp | datetime | int] = lambda: pd.Timestamp(1990, 7, 2),
     seed: int = 12345,
     initializes_crn_attributes: bool = False,
+    component: Component | None = None,
 ) -> RandomnessStream:
+    if component is None:
+        # Create a simple mock component for testing
+        class _MockComponent(Component):
+            @property
+            def name(self) -> str:
+                return "mock_component"
+
+        component = _MockComponent()
     return RandomnessStream(
         key,
         clock,
         seed=seed,
         index_map=IndexMap(),
+        component=component,
         initializes_crn_attributes=initializes_crn_attributes,
     )
 

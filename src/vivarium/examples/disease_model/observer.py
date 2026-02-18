@@ -1,36 +1,46 @@
-# mypy: ignore-errors
 from typing import Any
 
-from layered_config_tree.main import LayeredConfigTree
 import pandas as pd
 
 from vivarium.framework.engine import Builder
 from vivarium.framework.results import Observer
-
+from vivarium.framework.population import SimulantData
+from vivarium.framework.event import Event
 
 class DeathsObserver(Observer):
     """Observes the number of deaths."""
-
-    ##############
-    # Properties #
-    ##############
-
-    @property
-    def columns_required(self) -> list[str] | None:
-        return ["alive"]
 
     #################
     # Setup methods #
     #################
 
+    def setup(self, builder: Builder) -> None:
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns="previous_alive",
+            required_resources=["is_alive"]
+        )
+
     def register_observations(self, builder: Builder) -> None:
-        """We define a newly-dead simulant as one who is 'dead' but who has not
-        yet become untracked."""
         builder.results.register_adding_observation(
             name="dead",
-            requires_columns=["alive"],
-            pop_filter='tracked == True and alive == "dead"',
+            requires_attributes=["is_alive", "previous_alive"],
+            pop_filter='previous_alive == True and is_alive == False',
         )
+
+    ########################
+    # Event-driven methods #
+    ########################
+
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+        """Initialize simulants as alive"""
+        self.population_view.update(pd.Series(True, index=pop_data.index, name="previous_alive"))
+
+    def on_time_step_prepare(self, event: Event) -> None:
+        """Update the previous deaths column to the current deaths."""
+        previous_alive = self.population_view.get_attributes(event.index, "is_alive")
+        previous_alive.name = "previous_alive"
+        self.population_view.update(previous_alive)
 
 
 class YllsObserver(Observer):
@@ -41,41 +51,28 @@ class YllsObserver(Observer):
     ##############
 
     @property
-    def columns_required(self) -> list[str] | None:
-        return ["age", "alive"]
-
-    @property
     def configuration_defaults(self) -> dict[str, Any]:
-        return {
-            "mortality": {
-                "life_expectancy": 80,
-            }
-        }
-
+        config = super().configuration_defaults
+        config["mortality"] = {"life_expectancy": 80.0}
+        return config
     #####################
     # Lifecycle methods #
     #####################
 
-    # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
-        self.life_expectancy = builder.configuration.mortality.life_expectancy
+        self.life_expectancy = float(builder.configuration.mortality.life_expectancy)
 
     #################
     # Setup methods #
     #################
 
-    def get_configuration(self, builder: "Builder") -> LayeredConfigTree | None:
-        # Use component configuration
-        if self.name in builder.configuration:
-            return builder.configuration.get_tree(self.name)
-        return None
-
     def register_observations(self, builder: Builder) -> None:
         builder.results.register_adding_observation(
             name="ylls",
-            requires_columns=["age", "alive"],
+            requires_attributes=["age", "is_alive", "previous_alive"],
+            pop_filter='previous_alive == True and is_alive == False',
             aggregator=self.calculate_ylls,
         )
 
     def calculate_ylls(self, df: pd.DataFrame) -> float:
-        return (self.life_expectancy - df.loc[df["alive"] == "dead", "age"]).sum()
+        return float((self.life_expectancy - df["age"]).sum())

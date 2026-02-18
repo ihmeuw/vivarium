@@ -10,6 +10,7 @@ import pytest
 from tests.framework.results.helpers import BASE_POPULATION, FAMILIARS, HOUSE_CATEGORIES
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
+from vivarium.framework.results.interface import PopulationFilter
 from vivarium.framework.results.observation import (
     AddingObservation,
     ConcatenatingObservation,
@@ -23,10 +24,9 @@ from vivarium.framework.results.observation import (
 def stratified_observation() -> StratifiedObservation:
     return StratifiedObservation(
         name="stratified_observation_name",
-        pop_filter="",
+        population_filter=PopulationFilter(),
         when="whenevs",
-        requires_columns=[],
-        requires_values=[],
+        requires_attributes=[],
         results_updater=lambda _, __: pd.DataFrame(),
         results_formatter=lambda _, __: pd.DataFrame(),
         aggregator_sources=None,
@@ -38,10 +38,9 @@ def stratified_observation() -> StratifiedObservation:
 def concatenating_observation() -> ConcatenatingObservation:
     return ConcatenatingObservation(
         name="concatenating_observation_name",
-        pop_filter="",
+        population_filter=PopulationFilter(),
         when="whenevs",
-        requires_columns=["some-col", "some-other-col"],
-        requires_values=[],
+        requires_attributes=["some-col", "some-other-col"],
         results_formatter=lambda _, __: pd.DataFrame(),
     )
 
@@ -70,9 +69,9 @@ def test_is_stratified(observation_type: type[Observation], is_stratified: bool)
         ((), ["power_level"], len),
         ((), [], len),
         # Multiple-column dataframe return
-        (("familiar",), ["power_level", "tracked"], sum),
-        (("familiar", "house"), ["power_level", "tracked"], sum),
-        ((), ["power_level", "tracked"], sum),
+        (("familiar",), ["power_level"], sum),
+        (("familiar", "house"), ["power_level"], sum),
+        ((), ["power_level"], sum),
     ],
 )
 def test_stratified_observation__aggregate(
@@ -113,8 +112,8 @@ def test_stratified_observation__aggregate(
             assert len(aggregates.values) == 1
             assert aggregates.values[0] == len(BASE_POPULATION)
     else:  # sum aggregator
-        assert aggregates.shape[1] == 2
-        expected = BASE_POPULATION[["power_level", "tracked"]].sum() / groups.ngroups
+        assert aggregates.shape[1] == 1
+        expected = BASE_POPULATION[["power_level"]].sum() / groups.ngroups
         if stratifications:
             stratification_idx = (
                 set(itertools.product(*(FAMILIARS, HOUSE_CATEGORIES)))
@@ -127,7 +126,7 @@ def test_stratified_observation__aggregate(
             assert final.equals(expected)
         else:
             assert len(aggregates.values) == 1
-            for col in ["power_level", "tracked"]:
+            for col in ["power_level"]:
                 assert aggregates.loc["all", col] == expected[col]
 
 
@@ -237,10 +236,9 @@ def test_adding_observation_results_updater(new_observations: pd.DataFrame) -> N
     existing_results = pd.DataFrame({"value": [0.0, 0.0]})
     obs = AddingObservation(
         name="adding_observation_name",
-        pop_filter="",
+        population_filter=PopulationFilter(),
         when="whenevs",
-        requires_columns=[],
-        requires_values=[],
+        requires_attributes=[],
         results_formatter=lambda _, __: pd.DataFrame(),
         aggregator_sources=None,
         aggregator=lambda _: 0.0,

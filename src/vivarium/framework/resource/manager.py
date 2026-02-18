@@ -7,11 +7,12 @@ Resource Manager
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any
 
 import networkx as nx
 
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.resource.exceptions import ResourceError
 from vivarium.framework.resource.group import ResourceGroup
 from vivarium.framework.resource.resource import Column, NullResource, Resource
@@ -20,6 +21,8 @@ from vivarium.manager import Manager
 if TYPE_CHECKING:
     from vivarium import Component
     from vivarium.framework.engine import Builder
+    from vivarium.framework.event import Event
+    from vivarium.framework.population.manager import SimulantData
 
 
 class ResourceManager(Manager):
@@ -42,7 +45,6 @@ class ResourceManager(Manager):
 
     @property
     def name(self) -> str:
-        """The name of this manager."""
         return "resource_manager"
 
     @property
@@ -66,20 +68,31 @@ class ResourceManager(Manager):
                 self._sorted_nodes = list(nx.algorithms.topological_sort(self.graph))  # type: ignore[func-returns-value]
             except nx.NetworkXUnfeasible:
                 raise ResourceError(
-                    "The resource pool contains at least one cycle: "
+                    "The resource pool contains at least one cycle:\n"
                     f"{nx.find_cycle(self.graph)}."
                 )
         return self._sorted_nodes
 
     def setup(self, builder: Builder) -> None:
         self.logger = builder.logging.get_logger(self.name)
+        self._get_attribute_pipelines = builder.value.get_attribute_pipelines()
+        self._get_current_component_or_manager = (
+            builder.components.get_current_component_or_manager
+        )
+        builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
+
+    def on_post_setup(self, _: Event) -> None:
+        # Finalize the resource group dependencies
+        attribute_pipelines = self._get_attribute_pipelines()
+        for group in self._resource_group_map.values():
+            group.set_required_resources(attribute_pipelines)
 
     def add_resources(
         self,
-        # TODO [MIC-5452]: all resource groups should have a component
-        component: Component | Manager | None,
-        resources: Iterable[str | Resource],
-        dependencies: Iterable[str | Resource],
+        component: Component | Manager,
+        initializer: Callable[[SimulantData], None] | None,
+        resources: Iterable[Column] | Resource,
+        required_resources: Iterable[str | Resource],
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -87,40 +100,68 @@ class ResourceManager(Manager):
         ----------
         component
             The component or manager adding the resources.
+        initializer
+            A method that will be called to initialize the state of new simulants.
         resources
-            The resources being added. A string represents a column resource.
-        dependencies
+            The resources being added. A string represents a population attribute.
+        required_resources
             A list of resources that the producer requires. A string represents
-            a column resource.
+            a population attribute.
 
         Raises
         ------
         ResourceError
-            If a component has multiple resource producers for the ``column``
-            resource type or there are multiple producers of the same resource.
+            If there are multiple producers of the same resource.
         """
-        resource_group = self._get_resource_group(component, resources, dependencies)
-
+        resource_group = self._get_resource_group(
+            component, initializer, resources, required_resources
+        )
         for resource_id, resource in resource_group.resources.items():
             if resource_id in self._resource_group_map:
                 other_resource = self._resource_group_map[resource_id]
-                # TODO [MIC-5452]: all resource groups should have a component
-                resource_component = resource.component.name if resource.component else None
-                other_resource_component = (
-                    other_resource.component.name if other_resource.component else None
-                )
                 raise ResourceError(
-                    f"Component '{resource_component}' is attempting to register"
+                    f"Component '{resource.component.name}' is attempting to register"
                     f" resource '{resource_id}' but it is already registered by"
-                    f" '{other_resource_component}'."
+                    f" '{other_resource.component.name}'."
                 )
             self._resource_group_map[resource_id] = resource_group
 
+    def add_private_columns(
+        self,
+        initializer: Callable[[SimulantData], None] | None,
+        columns: Iterable[str] | str,
+        required_resources: Iterable[str | Resource],
+    ) -> None:
+        """Adds private column resources to the resource pool.
+
+        Parameters
+        ----------
+        initializer
+            A method that will be called to initialize the state of new simulants.
+        columns
+            The population state table private columns that the given initializer
+            provides initial state information for.
+        required_resources
+            The resources that the initializer requires to run. Strings are interpreted
+            as attributes.
+        """
+        if isinstance(columns, str):
+            columns = [columns]
+        component = self._get_current_component_or_manager()
+        columns_ = [Column(col, component) for col in columns]
+        self.add_resources(
+            component=component,
+            initializer=initializer,
+            resources=columns_,
+            required_resources=required_resources,
+        )
+
     def _get_resource_group(
         self,
-        component: Component | Manager | None,
-        resources: Iterable[str | Resource],
-        dependencies: Iterable[str | Resource],
+        component: Component | Manager,
+        initializer: Callable[[SimulantData], None] | None,
+        resources: Iterable[Column] | Resource,
+        required_resources: Iterable[str | Resource],
     ) -> ResourceGroup:
         """Packages resource information into a resource group.
 
@@ -128,26 +169,21 @@ class ResourceManager(Manager):
         --------
         :class:`ResourceGroup`
         """
-        resources_ = [Column(r, component) if isinstance(r, str) else r for r in resources]
-        dependencies_ = [Column(d, None) if isinstance(d, str) else d for d in dependencies]
-
-        if not resources_:
+        if not resources:
             # We have a "producer" that doesn't produce anything, but
             # does have dependencies. This is necessary for components that
             # want to track private state information.
-            resources_ = [NullResource(self._null_producer_count, component)]
+            resources = NullResource(self._null_producer_count, component)
             self._null_producer_count += 1
 
-        # TODO [MIC-5452]: all resource groups should have a component
-        if component and (
-            have_other_component := [r for r in resources_ if r.component != component]
-        ):
+        if isinstance(resources, Resource) and resources.component != component:
             raise ResourceError(
-                f"All initialized resources must have the component '{component.name}'."
-                f" The following resources have a different component: {have_other_component}"
+                "All initialized resources in this resource group must have the"
+                f" component '{component.name}'. The following resource has a different"
+                f" component: {resources.name}"
             )
 
-        return ResourceGroup(resources_, dependencies_)
+        return ResourceGroup(resources, required_resources, initializer)
 
     def _to_graph(self) -> nx.DiGraph:
         """Constructs the full resource graph from information in the groups.
@@ -169,7 +205,7 @@ class ResourceManager(Manager):
         resource_graph.add_nodes_from(self._resource_group_map.values())
 
         for resource_group in resource_graph.nodes:
-            for dependency in resource_group.dependencies:
+            for dependency in resource_group.required_resources:
                 if dependency not in self._resource_group_map:
                     # Warn here because this sometimes happens naturally
                     # if observer components are missing from a simulation.
@@ -196,5 +232,5 @@ class ResourceManager(Manager):
         out = {}
         for resource_group in set(self._resource_group_map.values()):
             produced = ", ".join(resource_group)
-            out[produced] = ", ".join(resource_group.dependencies)
+            out[produced] = ", ".join(resource_group.required_resources)
         return "\n".join([f"{produced} : {depends}" for produced, depends in out.items()])

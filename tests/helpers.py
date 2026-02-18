@@ -3,14 +3,12 @@ from __future__ import annotations
 from typing import Any
 
 import pandas as pd
-from layered_config_tree import ConfigurationError
 
 from vivarium import Component, Observer
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.population import SimulantData
-from vivarium.framework.resource import Resource
 from vivarium.manager import Manager
 
 
@@ -96,6 +94,9 @@ class MockGenericComponent(Component):
     def __eq__(self, other: Any) -> bool:
         return type(self) == type(other) and self.name == other.name
 
+    def __hash__(self) -> int:
+        return super().__hash__()
+
 
 class Listener(MockComponentB):
     def __init__(self, *args: Any, name: str = "test_listener"):
@@ -138,23 +139,114 @@ class Listener(MockComponentB):
 
 
 class ColumnCreator(Component):
-    @property
-    def columns_created(self) -> list[str]:
-        return ["test_column_1", "test_column_2", "test_column_3"]
-
     def setup(self, builder: Builder) -> None:
-        builder.value.register_value_producer("pipeline_1", lambda x: x)
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns=["test_column_1", "test_column_2", "test_column_3"],
+        )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         self.population_view.update(self.get_initial_state(pop_data.index))
 
     def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:
         return pd.DataFrame(
-            {column: [i % 3 for i in index] for column in self.columns_created}, index=index
+            {
+                column: [i % 3 for i in index]
+                for column in ["test_column_1", "test_column_2", "test_column_3"]
+            },
+            index=index,
+        )
+
+
+class SingleColumnCreator(ColumnCreator):
+    def setup(self, builder: Builder) -> None:
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants, columns=["test_column_1"]
+        )
+
+    def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:
+        return pd.DataFrame(
+            {"test_column_1": [i % 3 for i in index]},
+            index=index,
+        )
+
+
+class MultiLevelSingleColumnCreator(Component):
+    def setup(self, builder: Builder) -> None:
+        builder.value.register_attribute_producer(
+            "some_attribute",
+            lambda idx: pd.DataFrame({"some_column": [i % 3 for i in idx]}, index=idx),
+        )
+
+
+class MultiLevelMultiColumnCreator(Component):
+    def setup(self, builder: Builder) -> None:
+        builder.value.register_attribute_producer(
+            "some_attribute",
+            lambda idx: pd.DataFrame(
+                {"column_1": [i % 3 for i in idx], "column_2": [i % 3 for i in idx]},
+                index=idx,
+            ),
+        )
+        builder.value.register_attribute_producer(
+            "some_other_attribute",
+            lambda idx: pd.DataFrame({"column_3": [i % 3 for i in idx]}, index=idx),
+        )
+
+
+class AttributePipelineCreator(Component):
+    """A helper class to register different types of attribute pipelines.
+
+    It does NOT create any private columns; use the ColumnCreator class for that.
+
+    """
+
+    def setup(self, builder: Builder) -> None:
+
+        # Simple attributes
+        builder.value.register_attribute_producer(
+            "attribute_generating_columns_4_5",
+            lambda idx: pd.DataFrame(
+                {
+                    "test_column_4": [i % 3 for i in idx],
+                    "test_column_5": [i % 3 for i in idx],
+                },
+                index=idx,
+            ),
+        )
+        builder.value.register_attribute_producer(
+            "attribute_generating_column_8",
+            lambda idx: pd.DataFrame({"test_column_8": [i % 3 for i in idx]}, index=idx),
+        )
+
+        # Non-simple attributes
+        # For this test, we make them non-simple by registering a modifer that doesn't actually modify anything
+        builder.value.register_attribute_producer(
+            "test_attribute",
+            lambda idx: pd.Series([i % 3 for i in idx], index=idx),
+        )
+        builder.value.register_attribute_producer(
+            "attribute_generating_columns_6_7",
+            lambda idx: pd.DataFrame(
+                {
+                    "test_column_6": [i % 3 for i in idx],
+                    "test_column_7": [i % 3 for i in idx],
+                },
+                index=idx,
+            ),
+        )
+        builder.value.register_attribute_modifier(
+            "test_attribute",
+            lambda index, series: series,
+        )
+        builder.value.register_attribute_modifier(
+            "attribute_generating_columns_6_7",
+            lambda index, df: df,
         )
 
 
 class LookupCreator(ColumnCreator):
+
     CONFIGURATION_DEFAULTS = {
         "lookup_creator": {
             "data_sources": {
@@ -162,26 +254,26 @@ class LookupCreator(ColumnCreator):
                 "favorite_scalar": 0.4,
                 "favorite_color": "simulants.favorite_color",
                 "favorite_number": "simulants.favorite_number",
+                "favorite_list": [9, 4],
                 "baking_time": "self::load_baking_time",
                 "cooling_time": "tests.framework.components.test_component::load_cooling_time",
-            },
-            "alternate_data_sources": {
-                "favorite_list": [9, 4],
             },
         }
     }
 
-    def build_all_lookup_tables(self, builder: "Builder") -> None:
-        super().build_all_lookup_tables(builder)
-        if not self.configuration:
-            raise ConfigurationError(
-                "Configuration not set. This may break tests using the lookup table creator helper."
-            )
-        self.lookup_tables["favorite_list"] = self.build_lookup_table(
-            builder,
-            self.configuration["alternate_data_sources"]["favorite_list"],
-            ["column_1", "column_2"],
+    def setup(self, builder: Builder) -> None:
+        super().setup(builder)
+        self.favorite_team_table = self.build_lookup_table(builder, "favorite_team")
+        self.favorite_scalar_table = self.build_lookup_table(
+            builder, "favorite_scalar", value_columns="scalar"
         )
+        self.favorite_color_table = self.build_lookup_table(builder, "favorite_color")
+        self.favorite_number_table = self.build_lookup_table(builder, "favorite_number")
+        self.favorite_list_table = self.build_lookup_table(
+            builder, "favorite_list", value_columns=["column_1", "column_2"]
+        )
+        self.baking_time_table = self.build_lookup_table(builder, "baking_time")
+        self.cooling_time_table = self.build_lookup_table(builder, "cooling_time")
 
     @staticmethod
     def load_baking_time(_builder: Builder) -> float:
@@ -189,13 +281,45 @@ class LookupCreator(ColumnCreator):
 
 
 class SingleLookupCreator(ColumnCreator):
-    pass
+    CONFIGURATION_DEFAULTS = {
+        "single_lookup_creator": {
+            "data_sources": {"favorite_color": "simulants.favorite_color"}
+        }
+    }
+
+    def setup(self, builder: Builder) -> None:
+        super().setup(builder)
+        self.favorite_color_table = self.build_lookup_table(builder, "favorite_color")
 
 
 class OrderedColumnsLookupCreator(Component):
+    VALUE_COLUMNS = ["one", "two", "three", "four", "five", "six", "seven"]
+    ORDERED_COLUMNS = pd.DataFrame(
+        [[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14]],
+        columns=VALUE_COLUMNS,
+    )
+
     @property
-    def columns_created(self) -> list[str]:
-        return ["foo", "bar"]
+    def configuration_defaults(self) -> dict[str, Any]:
+        return {
+            self.name: {
+                "data_sources": {
+                    "categorical": self._get_ordered_columns_categorical(),
+                    "interpolated": self._get_ordered_columns_interpolated(),
+                },
+            }
+        }
+
+    def setup(self, builder: Builder) -> None:
+        self.categorical_table = self.build_lookup_table(
+            builder, "categorical", value_columns=self.VALUE_COLUMNS
+        )
+        self.interpolated_table = self.build_lookup_table(
+            builder, "interpolated", value_columns=self.VALUE_COLUMNS
+        )
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants, columns=["foo", "bar"]
+        )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         initialization_data = pd.DataFrame(
@@ -207,74 +331,32 @@ class OrderedColumnsLookupCreator(Component):
         )
         self.population_view.update(initialization_data)
 
-    def build_all_lookup_tables(self, builder: "Builder") -> None:
-        value_columns = ["one", "two", "three", "four", "five", "six", "seven"]
-        ordered_columns = pd.DataFrame(
-            [[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14]],
-            columns=value_columns,
-        )
-        ordered_columns_categorical = ordered_columns.copy()
-        ordered_columns_categorical["foo"] = ["key1", "key2"]
-        ordered_columns_interpolated = ordered_columns.copy()
-        ordered_columns_interpolated["foo"] = ["key1", "key1"]
-        ordered_columns_interpolated["bar_start"] = [10, 20]
-        ordered_columns_interpolated["bar_end"] = [20, 30]
-        self.lookup_tables["ordered_columns_categorical"] = self.build_lookup_table(
-            builder,
-            ordered_columns_categorical,
-            value_columns,
-        )
-        self.lookup_tables["ordered_columns_interpolated"] = self.build_lookup_table(
-            builder,
-            ordered_columns_interpolated,
-            value_columns,
-        )
+    def _get_ordered_columns_categorical(self) -> pd.DataFrame:
+        df = self.ORDERED_COLUMNS.copy()
+        df["foo"] = ["key1", "key2"]
+        return df
 
-
-class ColumnRequirer(Component):
-    @property
-    def columns_required(self) -> list[str]:
-        return ["test_column_1", "test_column_2"]
+    def _get_ordered_columns_interpolated(self) -> pd.DataFrame:
+        df = self.ORDERED_COLUMNS.copy()
+        df["foo"] = ["key1", "key1"]
+        df["bar_start"] = [10, 20]
+        df["bar_end"] = [20, 30]
+        return df
 
 
 class ColumnCreatorAndRequirer(Component):
-    @property
-    def columns_required(self) -> list[str]:
-        return ["test_column_1", "test_column_2"]
-
-    @property
-    def columns_created(self) -> list[str]:
-        return ["test_column_4"]
-
-    @property
-    def initialization_requirements(self) -> list[str | Resource]:
-        return ["test_column_2", self.pipeline, self.randomness]
-
     def setup(self, builder: Builder) -> None:
         self.pipeline = builder.value.get_value("pipeline_1")
         self.randomness = builder.randomness.get_stream("stream_1")
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns="test_column_4",
+            required_resources=["test_column_2", self.pipeline, self.randomness],
+        )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         initialization_data = pd.DataFrame({"test_column_4": 8}, index=pop_data.index)
         self.population_view.update(initialization_data)
-
-
-class ColumnCreatorAndAllRequirer(ColumnCreatorAndRequirer):
-    @property
-    def columns_required(self) -> list[str]:
-        return []
-
-
-class AllColumnsRequirer(Component):
-    @property
-    def columns_required(self) -> list[str]:
-        return []
-
-
-class FilteredPopulationView(ColumnRequirer):
-    @property
-    def population_view_query(self) -> str:
-        return "test_column_1 == 5"
 
 
 class NoPopulationView(Component):

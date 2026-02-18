@@ -33,7 +33,8 @@ reusable_pipeline(
       // Add additional branches for cron jobs below.
       // Note: Newly added branches will require a manual trigger of the first build 
       // for subsequent scheduled builds to run.
-      "main"
+      "main",
+      "release_candidate/v4.0.0",
     ], 
     upstream_repos: ["layered_config_tree"]
 )

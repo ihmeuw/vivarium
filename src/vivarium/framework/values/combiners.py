@@ -12,7 +12,7 @@ class ValueCombiner(Protocol):
 def replace_combiner(
     value: Any, mutator: Callable[..., Any], *args: Any, **kwargs: Any
 ) -> Any:
-    """Replace the previous pipeline output with the output of the mutator.
+    """Replaces the previous pipeline output with the output of the mutator.
 
     This is the default combiner.
 

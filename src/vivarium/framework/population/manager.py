@@ -1,32 +1,32 @@
 """
-======================
-The Population Manager
-======================
-
-The manager and :ref:`builder <builder_concept>` interface for the
-:ref:`population management system <population_concept>`.
+==================
+Population Manager
+==================
 
 """
 from __future__ import annotations
 
-import warnings
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from types import MethodType
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal, overload
 
 import pandas as pd
 
+import vivarium.framework.population.utilities as pop_utils
+from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.framework.resource import Resource
-from vivarium.manager import Interface, Manager
+from vivarium.manager import Manager
 
 if TYPE_CHECKING:
     from vivarium import Component
     from vivarium.framework.engine import Builder
     from vivarium.types import ClockStepSize, ClockTime
+
+from collections import defaultdict
 
 
 @dataclass
@@ -34,21 +34,19 @@ class SimulantData:
     """Data to help components initialize simulants.
 
     Any time simulants are added to the simulation, each initializer is called
-    with this structure containing information relevant to their
-    initialization.
+    with this structure containing information relevant to their initialization.
 
     """
 
-    #: The index representing the new simulants being added to the simulation.
     index: pd.Index[int]
-    #: A dictionary of extra data passed in by the component creating the
-    #: population.
+    """The index representing the new simulants being added to the simulation."""
     user_data: dict[str, Any]
-    #: The time when the simulants enter the simulation.
+    """A dictionary of extra data passed in by the component creating the population."""
     creation_time: ClockTime
-    #: The span of time over which the simulants are created.  Useful for,
-    #: e.g., distributing ages over the window.
+    """The time when the simulants enter the simulation."""
     creation_window: ClockStepSize
+    """The span of time over which the simulants are created. Useful for, e.g., distributing 
+    ages over the window."""
 
 
 class InitializerComponentSet:
@@ -59,7 +57,7 @@ class InitializerComponentSet:
         self._columns_produced: dict[str, str] = {}
 
     def add(
-        self, initializer: Callable[[SimulantData], None], columns_produced: Sequence[str]
+        self, initializer: Callable[[SimulantData], None], columns_produced: Iterable[str]
     ) -> None:
         """Adds an initializer and columns to the set, enforcing uniqueness.
 
@@ -101,21 +99,15 @@ class InitializerComponentSet:
             raise AttributeError(
                 "Population initializers must be methods of named simulation components. "
                 f"You provided {initializer} which is bound to {component} that has no "
-                f"name attribute."
+                f"'name' attribute."
             )
 
         component_name = component.name
-        if component_name in self._components:
-            raise PopulationError(
-                f"Component {component_name} has multiple population initializers. "
-                "This is not allowed."
-            )
         for column in columns_produced:
             if column in self._columns_produced:
                 raise PopulationError(
-                    f"Component {component_name} and component "
-                    f"{self._columns_produced[column]} have both registered initializers "
-                    f"for column {column}."
+                    f"Component {component_name} and component {self._columns_produced[column]} "
+                    f"have both registered initializers for column {column}."
                 )
             self._columns_produced[column] = component_name
         self._components[component_name] = list(columns_produced)
@@ -128,7 +120,7 @@ class InitializerComponentSet:
 
 
 class PopulationManager(Manager):
-    """Manages the state of the simulated population."""
+    """Manages the population state table."""
 
     # TODO: Move the configuration for initial population creation to
     #  user components.
@@ -139,38 +131,52 @@ class PopulationManager(Manager):
     }
 
     @property
-    def population(self) -> pd.DataFrame:
-        """The current population state table."""
-        if self._population is None:
-            raise PopulationError("Population has not been initialized.")
-        return self._population
-
-    def __init__(self) -> None:
-        self._population: pd.DataFrame | None = None
-        self._initializer_components = InitializerComponentSet()
-        self.creating_initial_population = False
-        self.adding_simulants = False
-        self._last_id = -1
-
-    ############################
-    # Normal Component Methods #
-    ############################
-
-    @property
     def name(self) -> str:
         """The name of this component."""
         return "population_manager"
 
     @property
-    def columns_created(self) -> list[str]:
-        return ["tracked"]
+    def private_columns(self) -> pd.DataFrame:
+        """The dataframe of all population private columns.
+
+        Notes
+        -----
+        Critically, the private columns dataframe not only contains all private
+        columns created for the simulation, but also serves as the simulant
+        index for the entire population. Even if no private columns are created,
+        this dataframe will exist and all simulants will be represented by its index.
+        """
+        if self._private_columns is None:
+            raise PopulationError("Population has not been initialized.")
+        return self._private_columns
+
+    ############################
+    # Normal Component Methods #
+    ############################
+
+    def __init__(self) -> None:
+        self._private_columns: pd.DataFrame | None = None
+        self._private_column_metadata: defaultdict[str, list[str]] = defaultdict(list)
+        self._initializer_components = InitializerComponentSet()
+        self.creating_initial_population = False
+        self.adding_simulants = False
+        self._last_id = -1
+        self.tracked_queries: list[str] = []
 
     def setup(self, builder: Builder) -> None:
         """Registers the population manager with other vivarium systems."""
+        super().setup(builder)
+        self.logger = builder.logging.get_logger(self.name)
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
         self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
+        self._get_attribute_pipelines = builder.value.get_attribute_pipelines()
+        self._register_attribute_producer = builder.value.register_attribute_producer
+        self._get_current_component_or_manager = (
+            builder.components.get_current_component_or_manager
+        )
+        self.get_current_state = builder.lifecycle.current_state()
 
         builder.lifecycle.add_constraint(
             self.get_view,
@@ -186,16 +192,21 @@ class PopulationManager(Manager):
             self.get_simulant_creator, allow_during=[lifecycle_states.SETUP]
         )
         builder.lifecycle.add_constraint(
-            self.register_simulant_initializer, allow_during=[lifecycle_states.SETUP]
+            self.register_initializer, allow_during=[lifecycle_states.SETUP]
+        )
+        self._add_constraint(
+            self.get_population,
+            restrict_during=[
+                lifecycle_states.SETUP,
+                lifecycle_states.POST_SETUP,
+            ],
         )
 
-        self.register_simulant_initializer(self, creates_columns=self.columns_created)
-        self._view = self.get_view("tracked")
+        builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        """Adds a ``tracked`` column to the state table for new simulants."""
-        status = pd.Series(True, index=pop_data.index)
-        self._view.update(status)
+    def on_post_setup(self, event: Event) -> None:
+        # All pipelines are registered during setup and so exist at this point.
+        self._attribute_pipelines = self._get_attribute_pipelines()
 
     def __repr__(self) -> str:
         return "PopulationManager()"
@@ -204,56 +215,166 @@ class PopulationManager(Manager):
     # Builder API and helpers #
     ###########################
 
-    def get_view(
+    def register_tracked_query(self, query: str) -> None:
+        """Updates list of registered tracked queries with the provided query.
+
+        Parameters
+        ----------
+        query
+            The new query to add to the running list of tracked queries.
+
+        Notes
+        -----
+        While we log a warning if the same query is registered multiple times,
+        we make no attempt to de-duplicate functionally-equivalent queries that
+        are syntactically different, e.g. "x > 5" and "5 < x". In such cases,
+        duplicate queries will be applied which is not optimal but will not
+        affect correctness.
+        """
+        if query in self.tracked_queries:
+            self.logger.warning(
+                f"The tracked query '{query}' has already been registered. "
+                "Duplicate registrations are ignored."
+            )
+            return
+        self.tracked_queries.append(query)
+
+    def get_private_column_names(self, component_name: str) -> list[str]:
+        """Gets the names of private columns created by a given component.
+
+        Parameters
+        ----------
+        component_name
+            The name of the component whose private column names are to be retrieved.
+
+        Returns
+        -------
+            The list of private column names created by the specified component.
+            If the component has not created any private columns, an empty list is returned.
+        """
+        return self._private_column_metadata[component_name]
+
+    @overload
+    def get_private_columns(
         self,
-        columns: str | Sequence[str],
-        query: str = "",
-        requires_all_columns: bool = False,
-    ) -> PopulationView:
-        """Get a time-varying view of the population state table.
+        component: Component | Manager,
+        index: pd.Index[int] | None = None,
+        columns: str = ...,
+    ) -> pd.Series[Any]:
+        ...
+
+    @overload
+    def get_private_columns(
+        self,
+        component: Component | Manager,
+        index: pd.Index[int] | None = None,
+        columns: list[str] | tuple[str, ...] = ...,
+    ) -> pd.DataFrame:
+        ...
+
+    @overload
+    def get_private_columns(
+        self,
+        component: Component | Manager,
+        index: pd.Index[int] | None = None,
+        columns: None = None,
+    ) -> pd.Series[Any] | pd.DataFrame:
+        ...
+
+    def get_private_columns(
+        self,
+        component: Component | Manager,
+        index: pd.Index[int] | None = None,
+        columns: str | list[str] | tuple[str, ...] | None = None,
+    ) -> pd.DataFrame | pd.Series[Any]:
+        """Gets the private columns for a given component.
+
+        While the ``private_columns`` property provides a dataframe of all private
+        columns in population, this method returns only the private columns created
+        by the specified component. If no component is specified, then no columns
+        are returned.
+
+        Parameters
+        ----------
+        component
+            The component whose private columns are to be retrieved. If None,
+            no columns are returned.
+        index
+            The index of simulants to include in the returned dataframe. If None,
+            all simulants are included.
+        columns
+            The specific column(s) to include. If None, all columns created by the
+            component are included.
+
+        Raises
+        ------
+        PopulationError
+            If ``columns`` are requested during initial population creation
+            (when no columns yet exist) or if the provided ``component`` does not
+            create one or more of them.
+
+        Returns
+        -------
+            The private column(s) created by the specified component. Will return
+            a Series if a single column is requested or a Dataframe otherwise.
+        """
+
+        if self.creating_initial_population:
+            if columns:
+                raise PopulationError(
+                    "Cannot get private columns during initial population "
+                    "creation when no columns yet exist."
+                )
+            returned_cols = []
+            squeeze = False  # does not really matter (will return an empty df anyway)
+        else:
+            all_private_columns = self._private_column_metadata.get(component.name, [])
+            if columns is None:
+                returned_cols = all_private_columns
+                squeeze = True
+            else:
+                if isinstance(columns, str):
+                    columns = [columns]
+                    squeeze = True
+                else:
+                    columns = list(columns)
+                    squeeze = False
+                missing_cols = set(columns).difference(set(all_private_columns))
+                if missing_cols:
+                    raise PopulationError(
+                        f"Component {component.name} is requesting the following "
+                        f"private columns to which it does not have access: {missing_cols}."
+                    )
+                returned_cols = columns
+        private_columns = self.private_columns[returned_cols]
+        if squeeze:
+            private_columns = private_columns.squeeze(axis=1)
+        return private_columns.loc[index] if index is not None else private_columns
+
+    def get_population_index(self) -> pd.Index[int]:
+        """Gets the index of the current population."""
+        return self.private_columns.index
+
+    def get_view(self, component: Component | None = None) -> PopulationView:
+        """Gets a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
         to update the state with new values.
 
-        If the column 'tracked' is not specified in the ``columns`` argument,
-        the query string 'tracked == True' will be added to the provided
-        query argument. This allows components to ignore untracked simulants
-        by default. If the columns argument is empty, the population view will
-        have access to the entire state table.
-
         Parameters
         ----------
-        columns
-            A subset of the state table columns that will be available in the
-            returned view. If requires_all_columns is True, this should be set to
-            the columns created by the component containing the population view.
-        query
-            A filter on the population state.  This filters out particular
-            simulants (rows in the state table) based on their current state.
-            The query should be provided in a way that is understood by the
-            :meth:`pandas.DataFrame.query` method and may reference state
-            table columns not requested in the ``columns`` argument.
-        requires_all_columns
-            If True, all columns in the population state table will be
-            included in the population view.
+        component
+            The component requesting this view. If None, the view will provide
+            read-only access.
 
         Returns
         -------
-            A filtered view of the requested columns of the population state
-            table.
+            A view of the requested private columns of the population state table.
 
         """
-        if not columns and not requires_all_columns:
-            warnings.warn(
-                "The empty list [] format for requiring all columns is deprecated. Please "
-                "use the new argument 'requires_all_columns' instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            requires_all_columns = True
-        view = self._get_view(columns, query, requires_all_columns)
+        view = self._get_view(component)
         self._add_constraint(
-            view.get,
+            view.get_attributes,
             restrict_during=[
                 lifecycle_states.INITIALIZATION,
                 lifecycle_states.SETUP,
@@ -272,97 +393,21 @@ class PopulationManager(Manager):
         )
         return view
 
-    def _get_view(
-        self, columns: str | Sequence[str], query: str, requires_all_columns: bool = False
-    ) -> PopulationView:
-        if isinstance(columns, str):
-            columns = [columns]
-
-        if columns and "tracked" not in columns:
-            if not query:
-                query = "tracked == True"
-            elif "tracked" not in query:
-                query += " and tracked == True"
+    def _get_view(self, component: Component | None) -> PopulationView:
         self._last_id += 1
-        return PopulationView(self, self._last_id, columns, query, requires_all_columns)
-
-    def register_simulant_initializer(
-        self,
-        component: Component | Manager,
-        creates_columns: str | Sequence[str] = (),
-        requires_columns: str | Sequence[str] = (),
-        requires_values: str | Sequence[str] = (),
-        requires_streams: str | Sequence[str] = (),
-        required_resources: Iterable[str | Resource] = (),
-    ) -> None:
-        """Marks a source of initial state information for new simulants.
-
-        Parameters
-        ----------
-        component
-            The component or manager that will add or update initial state
-            information about new simulants.
-        creates_columns
-            The state table columns that the given initializer provides the
-            initial state information for.
-        requires_columns
-            The state table columns that already need to be present and
-            populated in the state table before the provided initializer is
-            called.
-        requires_values
-            The value pipelines that need to be properly sourced before the
-            provided initializer is called.
-        requires_streams
-            The randomness streams necessary to initialize the simulant
-            attributes.
-        required_resources
-            The resources that the initializer requires to run. Strings are
-            interpreted as column names.
-        """
-        if requires_columns or requires_values or requires_streams:
-            if required_resources:
-                raise ValueError(
-                    "If requires_columns, requires_values, or requires_streams are provided, "
-                    "requirements must be empty."
-                )
-
-            if isinstance(requires_columns, str):
-                requires_columns = [requires_columns]
-            if isinstance(requires_values, str):
-                requires_values = [requires_values]
-            if isinstance(requires_streams, str):
-                requires_streams = [requires_streams]
-
-            required_resources = (
-                list(requires_columns)
-                + [Resource("value", name, component) for name in requires_values]
-                + [Resource("stream", name, component) for name in requires_streams]
-            )
-
-        if isinstance(creates_columns, str):
-            creates_columns = [creates_columns]
-
-        if "tracked" not in creates_columns:
-            # The population view itself uses the tracked column, so include
-            # to be safe.
-            all_dependencies = list(required_resources) + ["tracked"]
-        else:
-            all_dependencies = list(required_resources)
-
-        self._initializer_components.add(component.on_initialize_simulants, creates_columns)
-        self.resources.add_resources(component, creates_columns, all_dependencies)
+        view = PopulationView(self, component, self._last_id)
+        return view
 
     def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
         """Gets a function that can generate new simulants.
 
-        The creator function takes the number of simulants to be created as it's
-        first argument and a dict population configuration that will be available
-        to simulant initializers as it's second argument. It generates the new rows
-        in the population state table and then calls each initializer
-        registered with the population system with a data
-        object containing the state table index of the new simulants, the
-        configuration info passed to the creator, the current simulation
-        time, and the size of the next time step.
+        The creator function takes the number of simulants to be created as its
+        first argument and a population configuration dict that will be available
+        to simulant initializers as its second argument. It generates the new rows
+        in the population state table and then calls each initializer registered
+        with the population system with a data object containing the state table
+        index of the new simulants, the configuration info passed to the creator,
+        the current simulation time, and the size of the next time step.
 
         Returns
         -------
@@ -376,14 +421,14 @@ class PopulationManager(Manager):
         population_configuration = (
             population_configuration if population_configuration else {}
         )
-        if self._population is None:
+        if self._private_columns is None:
             self.creating_initial_population = True
-            self._population = pd.DataFrame()
+            self._private_columns = pd.DataFrame()
 
-        new_index = range(len(self._population) + count)
-        new_population = self._population.reindex(new_index)
-        index = new_population.index.difference(self._population.index)
-        self._population = new_population
+        new_index = range(len(self._private_columns) + count)
+        new_population = self._private_columns.reindex(new_index)
+        index = new_population.index.difference(self._private_columns.index)
+        self._private_columns = new_population
         self.adding_simulants = True
         for initializer in self.resources.get_population_initializers():
             initializer(
@@ -392,153 +437,380 @@ class PopulationManager(Manager):
         self.creating_initial_population = False
         self.adding_simulants = False
 
+        missing = {}
+        for component, cols_created in self._private_column_metadata.items():
+            missing_cols = [col for col in cols_created if col not in self._private_columns]
+            if missing_cols:
+                missing[component] = missing_cols
+        if missing:
+            raise PopulationError(
+                "The following components registered initializers to create columns "
+                f"that were not actually created: {missing}."
+            )
+
         return index
+
+    def register_initializer(
+        self,
+        initializer: Callable[[SimulantData], None],
+        columns: str | Sequence[str] | None,
+        required_resources: Sequence[str | Resource] = (),
+    ) -> None:
+        """Registers a component's initializers and any (private) columns created by them.
+
+        This does three primary things:
+        1. Registers each private column's corresponding attribute producer.
+        2. Records metadata about which component created which private columns.
+        3. Registers the initializer as a resource.
+
+        A `columns` value of None indicates that no private columns are being registered.
+        This is useful when a component or manager needs to register an initializer
+        that does not create any private columns.
+
+        Parameters
+        ----------
+        initializer
+            A function that will be called to initialize the state of new simulants.
+        columns
+            The private columns that the given initializer provides the initial state
+            information for.
+        required_resources
+            The resources that the initializer requires to run. Strings are interpreted
+            as attributes.
+
+        Raises
+        ------
+        PopulationError
+            If this component name has already registered private columns.
+        """
+
+        component = self._get_current_component_or_manager()
+        if columns is None:
+            columns = []
+        elif isinstance(columns, str):
+            columns = [columns]
+        for column_name in columns:
+            # Check for duplicate registration
+            for component_name, columns_list in self._private_column_metadata.items():
+                if column_name in columns_list:
+                    raise PopulationError(
+                        f"Component '{component.name}' is attempting to register "
+                        f"private column '{column_name}' but it is already registered "
+                        f"by component '{component_name}'."
+                    )
+            # Register each private column's attribute producer
+            self._register_attribute_producer(
+                column_name,
+                source=[column_name],
+                source_is_private_column=True,
+            )
+
+        # Register private column metadata
+        self._private_column_metadata[component.name].extend(columns)
+
+        # Register the initializer as a resource
+        self._initializer_components.add(initializer, columns)
+        self.resources.add_private_columns(
+            initializer=initializer,
+            columns=columns,
+            required_resources=required_resources,
+        )
 
     ###############
     # Context API #
     ###############
 
-    def get_population(self, untracked: bool) -> pd.DataFrame:
-        """Provides a copy of the full population state table.
-
-        Parameters
-        ----------
-        untracked
-            Whether to include untracked simulants in the returned population.
+    def get_all_attribute_names(self) -> list[str]:
+        """Gets the names of all attributes in the population.
 
         Returns
         -------
-            A copy of the population table.
+            A list of all attribute names in the population.
         """
-        pop = self._population.copy() if self._population is not None else pd.DataFrame()
-        if not untracked and "tracked" in pop.columns:
-            pop = pop[pop.tracked]
-        return pop
+        return list(self._attribute_pipelines.keys())
 
-
-class PopulationInterface(Interface):
-    """Provides access to the system for reading and updating the population.
-
-    The most important aspect of the simulation state is the ``population
-    table`` or ``state table``.  It is a table with a row for every
-    individual or cohort (referred to as a simulant) being simulated and a
-    column for each of the attributes of the simulant being modeled.  All
-    access to the state table is mediated by
-    :class:`population views <vivarium.framework.population.population_view.PopulationView>`,
-    which may be requested from this system during setup time.
-
-    The population system itself manages a single attribute of simulants
-    called ``tracked``. This attribute allows global control of which
-    simulants are available to read and update in the state table by
-    default.
-
-    For example, in a simulation of childhood illness, we might not
-    need information about individuals or cohorts once they reach five years
-    of age, and so we can have them "age out" of the simulation at five years
-    old by setting the ``tracked`` attribute to ``False``.
-
-    """
-
-    def __init__(self, manager: PopulationManager):
-        self._manager = manager
-
-    def get_view(
+    @overload
+    def get_population(
         self,
-        columns: str | Sequence[str],
+        attributes: list[str] | tuple[str, ...] | Literal["all"],
+        index: pd.Index[int] | None = None,
         query: str = "",
-        requires_all_columns: bool = False,
-    ) -> PopulationView:
-        """Get a time-varying view of the population state table.
+        squeeze: Literal[True] = True,
+        skip_post_processor: Literal[False] = False,
+    ) -> pd.Series[Any] | pd.DataFrame:
+        ...
 
-        The requested population view can be used to view the current state or
-        to update the state with new values.
-
-        If the column 'tracked' is not specified in the ``columns`` argument,
-        the query string 'tracked == True' will be added to the provided
-        query argument. This allows components to ignore untracked simulants
-        by default. If the columns argument is empty, the population view will
-        have access to the entire state table.
-
-        Parameters
-        ----------
-        columns
-            A subset of the state table columns that will be available in the
-            returned view. If requires_all_columns is True, this should be set to
-            the columns created by the component containing the population view.
-        query
-            A filter on the population state.  This filters out particular
-            simulants (rows in the state table) based on their current state.
-            The query should be provided in a way that is understood by the
-            :meth:`pandas.DataFrame.query` method and may reference state
-            table columns not requested in the ``columns`` argument.
-        requires_all_columns
-            If True, all columns in the population state table will be
-            included in the population view.
-
-        Returns
-        -------
-            A filtered view of the requested columns of the population state
-            table.
-        """
-        return self._manager.get_view(columns, query, requires_all_columns)
-
-    def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
-        """Gets a function that can generate new simulants.
-
-        The creator function takes the number of simulants to be created as it's
-        first argument and a dict population configuration that will be available
-        to simulant initializers as it's second argument. It generates the new rows
-        in the population state table and then calls each initializer
-        registered with the population system with a data
-        object containing the state table index of the new simulants, the
-        configuration info passed to the creator, the current simulation
-        time, and the size of the next time step.
-
-        Returns
-        -------
-           The simulant creator function.
-        """
-        return self._manager.get_simulant_creator()
-
-    def initializes_simulants(
+    @overload
+    def get_population(
         self,
-        component: Component | Manager,
-        creates_columns: str | Sequence[str] = (),
-        requires_columns: str | Sequence[str] = (),
-        requires_values: str | Sequence[str] = (),
-        requires_streams: str | Sequence[str] = (),
-        required_resources: Sequence[str | Resource] = (),
-    ) -> None:
-        """Marks a source of initial state information for new simulants.
+        attributes: list[str] | tuple[str, ...] | Literal["all"],
+        index: pd.Index[int] | None = None,
+        query: str = "",
+        squeeze: Literal[False] = ...,
+        skip_post_processor: Literal[False] = False,
+    ) -> pd.DataFrame:
+        ...
+
+    @overload
+    def get_population(
+        self,
+        attributes: list[str] | tuple[str, ...] | Literal["all"],
+        index: pd.Index[int] | None = None,
+        query: str = "",
+        squeeze: Literal[True, False] = True,
+        skip_post_processor: Literal[True] = ...,
+    ) -> Any:
+        ...
+
+    def get_population(
+        self,
+        attributes: list[str] | tuple[str, ...] | Literal["all"],
+        index: pd.Index[int] | None = None,
+        query: str = "",
+        squeeze: Literal[True, False] = True,
+        skip_post_processor: Literal[True, False] = False,
+    ) -> Any:
+        """Provides a copy of the population state table.
 
         Parameters
         ----------
-        component
-            The component or manager that will add or update initial state
-            information about new simulants.
-        creates_columns
-            The state table columns that the given initializer
-            provides the initial state information for.
-        requires_columns
-            The state table columns that already need to be present
-            and populated in the state table before the provided initializer
-            is called.
-        requires_values
-            The value pipelines that need to be properly sourced
-            before the provided initializer is called.
-        requires_streams
-            The randomness streams necessary to initialize the
-            simulant attributes.
-        required_resources
-            The resources that the initializer requires to run. Strings are
-            interpreted as column names, and Pipelines and RandomnessStreams
-            are interpreted as value pipelines and randomness streams,
+        attributes
+            The attributes to include as the state table. If "all", all attributes are included.
+        index
+            The index of simulants to include in the returned population. If None,
+            all simulants are included.
+        query
+            Additional conditions used to filter the index.
+        squeeze
+            Whether or not to attempt to squeeze a multi-level column into a single-level
+            column and/or a single-column dataframe into a series.
+        skip_post_processor
+            Whether we should invoke the post-processor on the combined
+            source and mutator output or return without post-processing.
+            This is useful when the post-processor acts as some sort of final
+            unit conversion (e.g. the rescale post processor).
+
+        Notes
+        -----
+        If ``skip_post_processor`` is True, the returned data will not be squeezed
+        regardless of the ``squeeze`` argument passed.
+
+        Returns
+        -------
+            A copy of the population state table.
+
+        Raises
+        ------
+        TypeError
+            If ``attributes`` is not a list or tuple of strings or "all".
+        PopulationError
+            - If any of the requested attributes do not exist in the state table.
+            - If a required column for querying is missing from the state table.
+            - If the population has not yet been initialized.
+        ValueError
+            If multiple attributes are requested when ``skip_post_processor`` is True.
         """
-        self._manager.register_simulant_initializer(
-            component,
-            creates_columns,
-            requires_columns,
-            requires_values,
-            requires_streams,
-            required_resources,
+
+        if self._private_columns is None:
+            return pd.DataFrame()
+
+        if isinstance(attributes, str) and attributes != "all":
+            raise TypeError(
+                f"Attributes must be a list of strings or 'all'; got '{attributes}'."
+            )
+
+        if attributes == "all":
+            requested_attributes = self.get_all_attribute_names()
+        else:
+            attributes = list(attributes)
+            # check for duplicate request
+            if len(attributes) != len(set(attributes)):
+                # deduplicate while preserving order
+                requested_attributes = list(dict.fromkeys(attributes))
+                self.logger.warning(
+                    f"Duplicate attributes requested: {set(attributes) - set(requested_attributes)}\n"
+                    "Only returning one instance of each of these duplicate requests."
+                )
+            else:
+                requested_attributes = attributes
+
+        non_existent_attributes = set(requested_attributes) - set(
+            self._attribute_pipelines.keys()
         )
+        if non_existent_attributes:
+            raise PopulationError(
+                f"Requested attribute(s) {non_existent_attributes} not in population state table. "
+                "This is likely due to a failure to require some columns, randomness "
+                "streams, or pipelines when registering a simulant initializer, an attribute "
+                "producer, or an attribute modifier. NOTE: It is possible for a run to "
+                "succeed even if resource requirements were not properly specified in "
+                "the simulant initializers or pipeline creation/modification calls. This "
+                "success depends on component initialization order which may change in "
+                "different run settings."
+            )
+
+        idx = index if index is not None else self._private_columns.index
+
+        # Filter the index based on the query
+        columns_to_get = set(requested_attributes)
+        if query:
+            query_columns = pop_utils.extract_columns_from_query(query)
+            # We can remove these query columns from requested columns (and will fetch later)
+            columns_to_get = columns_to_get.difference(query_columns)
+            missing_query_columns = query_columns.difference(set(self._attribute_pipelines))
+            if missing_query_columns:
+                raise PopulationError(
+                    "Columns used for querying missing from population state table:\n"
+                    f"Missing columns: {missing_query_columns}\n"
+                    f"Query: {query}"
+                )
+            query_df = self._get_attributes(idx, list(query_columns))
+            query_df = query_df.query(query)
+            idx = query_df.index
+
+        data = self._get_attributes(
+            idx,
+            requested_attributes if skip_post_processor else list(columns_to_get),
+            skip_post_processor,
+        )
+        if skip_post_processor:
+            return data
+
+        # Add on any query columns that are actually requested to be returned
+        requested_query_columns = (
+            query_columns.intersection(set(requested_attributes)) if query else set()
+        )
+        if requested_query_columns:
+            requested_query_df = query_df[list(requested_query_columns)]
+            if isinstance(data.columns, pd.MultiIndex):
+                # Make the query df multi-index to prevent converting columns from
+                # multi-index to single index w/ tuples for column names
+                requested_query_df.columns = pd.MultiIndex.from_product(
+                    [requested_query_df.columns, [""]]
+                )
+            data = pd.concat([data, requested_query_df], axis=1)
+
+        # Maintain column ordering
+        data = data[requested_attributes]
+
+        if squeeze:
+            if (
+                isinstance(data.columns, pd.MultiIndex)
+                and len(set(data.columns.get_level_values(0))) == 1
+            ):
+                # If multi-index columns with a single outer level, drop the outer level
+                data = data.droplevel(0, axis=1)
+            if len(data.columns) == 1:
+                # If single column df, squeeze to series
+                data = data.squeeze(axis=1)
+
+        return data
+
+    def get_tracked_query(self) -> str:
+        """Gets the combined tracked query for the population.
+
+        Returns
+        -------
+            A query string combining all registered tracked queries with "and" operators.
+        """
+        return " and ".join(self.tracked_queries)
+
+    @overload
+    def _get_attributes(
+        self,
+        idx: pd.Index[int],
+        requested_attributes: Sequence[str],
+        skip_post_processor: Literal[False] = ...,
+    ) -> pd.DataFrame:
+        ...
+
+    @overload
+    def _get_attributes(
+        self,
+        idx: pd.Index[int],
+        requested_attributes: Sequence[str],
+        skip_post_processor: Literal[True] = ...,
+    ) -> Any:
+        ...
+
+    def _get_attributes(
+        self,
+        idx: pd.Index[int],
+        requested_attributes: Sequence[str],
+        skip_post_processor: Literal[True, False] = False,
+    ) -> Any:
+        """Gets the population for a given index and requested attributes."""
+
+        if skip_post_processor:
+            if len(requested_attributes) != 1:
+                raise ValueError(
+                    "When skip_post_processor is True, a single attribute must "
+                    f"be requested. You requested {requested_attributes}."
+                )
+            return self._attribute_pipelines[requested_attributes[0]](
+                idx, skip_post_processor=skip_post_processor
+            )
+
+        attributes_list: list[pd.Series[Any] | pd.DataFrame] = []
+
+        # batch simple attributes and directly leverage private column backing dataframe
+        simple_attributes = [
+            name
+            for name, pipeline in self._attribute_pipelines.items()
+            if name in requested_attributes and pipeline.is_simple
+        ]
+        if simple_attributes:
+            if self._private_columns is None:
+                raise PopulationError("Population has not been initialized.")
+            attributes_list.append(self._private_columns.loc[idx, simple_attributes])
+
+        # handle remaining non-simple attributes one by one
+        remaining_attributes = [
+            attribute
+            for attribute in requested_attributes
+            if attribute not in simple_attributes
+        ]
+        contains_column_multi_index = False
+        for name in remaining_attributes:
+            values = self._attribute_pipelines[name](idx)
+
+            # Handle column names
+            if isinstance(values, pd.Series):
+                if values.name is not None and values.name != name:
+                    self.logger.warning(
+                        f"The '{name}' attribute pipeline returned a pd.Series with a "
+                        f"different name '{values.name}'. For the column being added to the "
+                        f"population state table, we will use '{name}'."
+                    )
+                values.name = name
+            else:
+                # Must be a dataframe. Coerce the columns to multi-index and set the
+                # attribute name as the outer level.
+                if isinstance(values.columns, pd.MultiIndex):
+                    # FIXME [MIC-6645]
+                    raise NotImplementedError(
+                        f"The '{name}' attribute pipeline returned a DataFrame with multi-level "
+                        f"columns (nlevels={values.columns.nlevels}). Multi-level columns in "
+                        "attribute pipeline outputs are not supported."
+                    )
+                values.columns = pd.MultiIndex.from_product([[name], values.columns])
+                contains_column_multi_index = True
+            attributes_list.append(values)
+
+        # Make sure all items of the list have consistent column levels
+        if contains_column_multi_index:
+            for i, item in enumerate(attributes_list):
+                if isinstance(item, pd.Series):
+                    item_df = item.to_frame()
+                    item_df.columns = pd.MultiIndex.from_tuples([(item.name, "")])
+                    attributes_list[i] = item_df
+                if isinstance(item, pd.DataFrame) and item.columns.nlevels == 1:
+                    item.columns = pd.MultiIndex.from_product([item.columns, [""]])
+        df = (
+            pd.concat(attributes_list, axis=1) if attributes_list else pd.DataFrame(index=idx)
+        )
+
+        return df
+
+    def update(self, update: pd.DataFrame) -> None:
+        self.private_columns[update.columns] = update

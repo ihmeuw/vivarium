@@ -6,7 +6,6 @@ from vivarium.framework.event import Event
 from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.population import SimulantData
-from vivarium.framework.resource.resource import Resource
 
 
 class Movement(Component):
@@ -23,15 +22,6 @@ class Movement(Component):
         },
     }
 
-    @property
-    def columns_created(self) -> list[str]:
-        return ["x", "y", "vx", "vy"]
-
-    @property
-    def initialization_requirements(self) -> list[str | Resource]:
-        return [self.randomness]
-
-
     #####################
     # Lifecycle methods #
     #####################
@@ -39,17 +29,26 @@ class Movement(Component):
     def setup(self, builder: Builder) -> None:
         self.config = builder.configuration
 
-        self.acceleration = builder.value.register_value_producer(
+        # docs-start: register_attribute_producer
+        builder.value.register_attribute_producer(
             "acceleration", source=self.base_acceleration
         )
+        # docs-end: register_attribute_producer
         self.randomness = builder.randomness.get_stream(self.name)
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns=["x", "y", "vx", "vy"],
+            required_resources=[self.randomness]
+        )
 
     ##################################
     # Pipeline sources and modifiers #
     ##################################
 
+    # docs-start: base_acceleration
     def base_acceleration(self, index: pd.Index[int]) -> pd.DataFrame:
-        return pd.DataFrame(0.0, columns=["x", "y"], index=index)
+        return pd.DataFrame(0.0, columns=["acc_x", "acc_y"], index=index)
+    # docs-end: base_acceleration
 
     ########################
     # Event-driven methods #
@@ -68,13 +67,15 @@ class Movement(Component):
         )
         self.population_view.update(new_population)
 
+    # docs-start: on_time_step
     def on_time_step(self, event: Event) -> None:
-        pop = self.population_view.get(event.index)
-
-        acceleration = self.acceleration(event.index)
+        pop = self.population_view.get_private_columns(event.index)
+        acceleration = self.population_view.get_attribute_frame(event.index, "acceleration")
 
         # Accelerate and limit velocity
-        pop[["vx", "vy"]] += acceleration.rename(columns=lambda c: f"v{c}")
+        if not isinstance(acceleration, pd.DataFrame):
+            raise ValueError("Acceleration must be a pd.DataFrame")
+        pop[["vx", "vy"]] += acceleration.rename(columns=lambda c: c.replace("acc_", "v"))
         speed = np.sqrt(np.square(pop.vx) + np.square(pop.vy))
         velocity_scaling_factor = np.where(
             speed > self.config.movement.max_speed,
@@ -93,3 +94,4 @@ class Movement(Component):
         pop["y"] = pop.y % self.config.field.height
 
         self.population_view.update(pop)
+    # docs-end: on_time_step

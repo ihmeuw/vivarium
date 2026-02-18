@@ -7,14 +7,10 @@ import pytest
 from layered_config_tree.exceptions import ConfigurationError
 
 from tests.helpers import (
-    AllColumnsRequirer,
     ColumnCreator,
-    ColumnCreatorAndAllRequirer,
     ColumnCreatorAndRequirer,
-    ColumnRequirer,
     CustomPriorities,
     DefaultPriorities,
-    FilteredPopulationView,
     LookupCreator,
     NoPopulationView,
     OrderedColumnsLookupCreator,
@@ -86,39 +82,9 @@ def test_component_that_creates_columns_population_view() -> None:
 
     # Assert population view is set and has the correct columns
     assert component.population_view is not None
-    assert set(component.population_view.columns) == set(component.columns_created)
-
-
-def test_component_that_requires_columns_population_view() -> None:
-    component = ColumnRequirer()
-    InteractiveContext(components=[ColumnCreator(), component])
-
-    # Assert population view is set and has the correct columns
-    assert component.population_view is not None
-    assert set(component.population_view.columns) == set(component.columns_required)
-
-
-def test_component_that_creates_and_requires_columns_population_view() -> None:
-    component = ColumnCreatorAndRequirer()
-    InteractiveContext(components=[ColumnCreator(), component])
-
-    # Assert population view is set and has the correct columns
-    expected_columns = component.columns_required + component.columns_created
-
-    assert component.population_view is not None
-    assert set(component.population_view.columns) == set(expected_columns)
-
-
-def test_component_that_creates_column_and_requires_all_columns_population_view() -> None:
-    component = ColumnCreatorAndAllRequirer()
-    simulation = InteractiveContext(components=[ColumnCreator(), component])
-    population = simulation.get_population()
-
-    # Assert population view is set and has the correct columns
-    expected_columns = population.columns
-
-    assert component.population_view is not None
-    assert set(component.population_view.columns) == set(expected_columns)
+    assert set(component.population_view.private_columns) == set(
+        ["test_column_1", "test_column_2", "test_column_3"]
+    )
 
 
 def test_component_with_initialization_requirements() -> None:
@@ -127,50 +93,30 @@ def test_component_with_initialization_requirements() -> None:
     )
 
     # Assert required resources have been recorded by the ResourceManager
-    component_dependencies_list = [
-        r.dependencies
+    component_required_resources_list = [
+        r.required_resources
         # get all resources in the dependency graph
         for r in simulation._resource.sorted_nodes
         # if the resource is an initializer
         if r.is_initialized
         # its initializer is an instance method
         and hasattr(r.initializer, "__self__")
+        # and is not None
+        and r.initializer is not None
         # and is a method of ColumnCreatorAndRequirer
         and isinstance(r.initializer.__self__, ColumnCreatorAndRequirer)
     ]
-    assert len(component_dependencies_list) == 1
-    component_dependencies = component_dependencies_list[0]
+    assert len(component_required_resources_list) == 1
+    component_required_resources = component_required_resources_list[0]
 
-    assert "value.pipeline_1" in component_dependencies
-    assert "column.test_column_2" in component_dependencies
-    assert "stream.stream_1" in component_dependencies
-
-
-def test_component_that_requires_all_columns_population_view() -> None:
-    component = AllColumnsRequirer()
-    simulation = InteractiveContext(
-        components=[ColumnCreator(), ColumnCreatorAndRequirer(), component]
-    )
-    population = simulation.get_population()
-
-    # Assert population view is set and has the correct columns
-    expected_columns = population.columns
-
-    assert component.population_view is not None
-    assert set(component.population_view.columns) == set(expected_columns)
+    assert "value.pipeline_1" in component_required_resources
+    assert "attribute.test_column_2" in component_required_resources
+    assert "stream.stream_1" in component_required_resources
 
 
-def test_component_with_filtered_population_view() -> None:
-    component = FilteredPopulationView()
-    InteractiveContext(components=[ColumnCreator(), component])
-
-    # Assert population view is being filtered using the desired query
-    assert component.population_view.query == "test_column_1 == 5 and tracked == True"
-
-
-def test_component_with_no_population_view() -> None:
+def test_component_population_view_raises_before_setup() -> None:
     component = NoPopulationView()
-    InteractiveContext(components=[ColumnCreator(), component])
+    sim = InteractiveContext(components=[ColumnCreator(), component], setup=False)
 
     # Assert population view is not set
     assert component._population_view is None
@@ -179,16 +125,20 @@ def test_component_with_no_population_view() -> None:
     with pytest.raises(PopulationError, match=f"'{component.name}' does not have access"):
         _ = component.population_view
 
+    sim.setup()
+    assert component._population_view is not None
+
 
 def test_component_initializer_is_not_registered_if_not_defined() -> None:
     component = NoPopulationView()
     simulation = InteractiveContext(components=[component])
 
-    # Assert that simulant initializer has been registered
-    assert (
-        component.on_initialize_simulants
-        not in simulation._resource.get_population_initializers()
-    )
+    # Assert that component did not register an initializer
+    initializers = [
+        initializer.__repr__()
+        for initializer in simulation._resource.get_population_initializers()
+    ]
+    assert "NoPopulationView" not in ";".join(initializers)
 
 
 def test_component_initializer_is_registered_and_called_if_defined() -> None:
@@ -198,15 +148,15 @@ def test_component_initializer_is_registered_and_called_if_defined() -> None:
 
     config = {"population": {"population_size": pop_size}}
     simulation = InteractiveContext(components=[component], configuration=config)
-    population = simulation.get_population()
-
+    population = simulation.get_population(component.private_columns)
+    assert isinstance(population, pd.DataFrame)
     # Assert that simulant initializer has been registered
     assert (
         component.on_initialize_simulants
         in simulation._resource.get_population_initializers()
     )
     # and that created columns are correctly initialized
-    pd.testing.assert_frame_equal(population[component.columns_created], expected_pop_view)
+    pd.testing.assert_frame_equal(population[component.private_columns], expected_pop_view)
 
 
 def test_listeners_are_not_registered_if_not_defined() -> None:
@@ -276,23 +226,22 @@ def test_listeners_are_registered_at_custom_priorities() -> None:
 
 def test_component_configuration_gets_set() -> None:
     without_config = ColumnCreator()
-    with_config = ColumnRequirer()
+    with_config = ColumnCreatorAndRequirer()
 
     column_requirer_config = {
-        "column_requirer": {"test_configuration": "some_config_value"},
+        "column_creator_and_requirer": {"test_configuration": "some_config_value"},
     }
 
     sim = InteractiveContext(components=[with_config, without_config], setup=False)
     sim.configuration.update(column_requirer_config)
-
-    assert without_config.configuration is None
-    assert with_config.configuration is None
-
     sim.setup()
 
-    assert without_config.configuration is None
+    assert without_config.configuration.to_dict() == {"data_sources": {}}
     assert with_config.configuration is not None
-    assert with_config.configuration.to_dict() == column_requirer_config["column_requirer"]
+    assert (
+        with_config.configuration.to_dict()
+        == column_requirer_config["column_creator_and_requirer"]
+    )
 
 
 def test_component_lookup_table_configuration(hdf_file_path: Path) -> None:
@@ -338,41 +287,35 @@ def test_component_lookup_table_configuration(hdf_file_path: Path) -> None:
     )
     sim.setup()
 
-    # Assertions for specific lookup tables
-    expected_tables = {
-        "favorite_team",
-        "favorite_color",
-        "favorite_number",
-        "favorite_scalar",
-        "favorite_list",
-        "baking_time",
-        "cooling_time",
-    }
-    assert expected_tables == set(component.lookup_tables.keys())
     # check that tables have correct type
-    assert isinstance(component.lookup_tables["favorite_team"], CategoricalTable)
-    assert isinstance(component.lookup_tables["favorite_color"], InterpolatedTable)
-    assert isinstance(component.lookup_tables["favorite_scalar"], ScalarTable)
-    assert isinstance(component.lookup_tables["favorite_list"], ScalarTable)
-    assert isinstance(component.lookup_tables["baking_time"], ScalarTable)
-    assert isinstance(component.lookup_tables["cooling_time"], CategoricalTable)
+    assert isinstance(component.favorite_team_table, CategoricalTable)
+    assert isinstance(component.favorite_color_table, InterpolatedTable)
+    assert isinstance(component.favorite_number_table, InterpolatedTable)
+    assert isinstance(component.favorite_scalar_table, ScalarTable)
+    assert isinstance(component.favorite_list_table, ScalarTable)
+    assert isinstance(component.baking_time_table, ScalarTable)
+    assert isinstance(component.cooling_time_table, CategoricalTable)
 
     # Check for correct columns in lookup tables
-    assert component.lookup_tables["favorite_team"].key_columns == ["test_column_1"]
-    assert not component.lookup_tables["favorite_team"].parameter_columns
-    assert component.lookup_tables["favorite_color"].key_columns == ["test_column_2"]
-    assert component.lookup_tables["favorite_color"].parameter_columns == ["test_column_3"]
-    assert component.lookup_tables["favorite_list"].value_columns == ["column_1", "column_2"]
-    assert component.lookup_tables["cooling_time"].key_columns == ["test_column_1"]
-    assert not component.lookup_tables["cooling_time"].parameter_columns
+    assert component.favorite_team_table.key_columns == ["test_column_1"]
+    assert not component.favorite_team_table.parameter_columns
+    assert component.favorite_color_table.key_columns == ["test_column_2"]
+    assert component.favorite_color_table.parameter_columns == ["test_column_3"]
+    assert component.favorite_number_table.key_columns == []
+    assert component.favorite_number_table.parameter_columns == ["test_column_3"]
+    assert component.favorite_scalar_table.value_columns == ["scalar"]
+    assert component.favorite_list_table.value_columns == ["column_1", "column_2"]
+    assert component.cooling_time_table.key_columns == ["test_column_1"]
+    assert not component.cooling_time_table.parameter_columns
 
     # Check for correct data in lookup tables
-    assert component.lookup_tables["favorite_team"].data.equals(favorite_team.reset_index())
-    assert component.lookup_tables["favorite_color"].data.equals(favorite_color.reset_index())
-    assert component.lookup_tables["favorite_scalar"].data == 0.4
-    assert component.lookup_tables["favorite_list"].data == [9, 4]
-    assert component.lookup_tables["baking_time"].data == 0.5
-    assert component.lookup_tables["cooling_time"].data.equals(cooling_time.reset_index())
+    assert component.favorite_team_table.data.equals(favorite_team.reset_index())
+    assert component.favorite_color_table.data.equals(favorite_color.reset_index())
+    assert component.favorite_number_table.data.equals(favorite_number.reset_index())
+    assert component.favorite_scalar_table.data == 0.4
+    assert component.favorite_list_table.data == [9, 4]
+    assert component.baking_time_table.data == 0.5
+    assert component.cooling_time_table.data.equals(cooling_time.reset_index())
 
 
 @pytest.mark.parametrize(
@@ -422,10 +365,7 @@ def test_failing_component_lookup_table_configurations(
         sim.setup()
 
 
-@pytest.mark.parametrize(
-    "table", ["ordered_columns_categorical", "ordered_columns_interpolated"]
-)
-def test_value_column_order_is_maintained(table: str) -> None:
+def test_value_column_order_is_maintained() -> None:
     """Tests that the order of value columns is maintained when creating a LookupTable.
 
     Notes
@@ -438,9 +378,22 @@ def test_value_column_order_is_maintained(table: str) -> None:
     """
     component = OrderedColumnsLookupCreator()
     sim = InteractiveContext(components=[component])
-    lookup_table = component.lookup_tables[table]
-    assert isinstance(
-        lookup_table, CategoricalTable if "categorical" in table else InterpolatedTable
-    )
-    data = lookup_table(sim.get_population().index)
-    assert list(data.columns) == ["one", "two", "three", "four", "five", "six", "seven"]
+    assert isinstance(component.categorical_table, CategoricalTable)
+    assert isinstance(component.interpolated_table, InterpolatedTable)
+    columns = list(component.categorical_table(sim.get_population_index()).columns)
+    assert columns == OrderedColumnsLookupCreator.VALUE_COLUMNS
+    columns = list(component.interpolated_table(sim.get_population_index()).columns)
+    assert columns == OrderedColumnsLookupCreator.VALUE_COLUMNS
+
+
+def test_attribute_pipelines_from_private_columns() -> None:
+    idx = pd.Index([4, 8, 15, 16, 23, 42])
+    component = ColumnCreator()
+    sim = InteractiveContext(components=[component])
+    for column in component.private_columns:
+        pipeline = sim._builder.value.get_attribute_pipelines()()[column]
+        assert pipeline.name == column
+        assert pipeline.mutators == []
+        attributes = pipeline(idx)
+        assert attributes.equals(pd.Series([i % 3 for i in idx], index=idx))
+        assert attributes.name == column

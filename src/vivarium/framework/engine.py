@@ -19,6 +19,8 @@ tools to easily setup and run a simulation.
 
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from pprint import pformat
 from time import time
@@ -62,7 +64,7 @@ class SimulationContext:
 
     @staticmethod
     def _get_context_name(sim_name: str | None) -> str:
-        """Get a unique name for a simulation context.
+        """Gets a unique name for a simulation context.
 
         Parameters
         ----------
@@ -96,7 +98,7 @@ class SimulationContext:
 
     @staticmethod
     def _clear_context_cache() -> None:
-        """Clear the cache of simulation context names.
+        """Clears the cache of simulation context names.
 
         Notes
         -----
@@ -199,7 +201,8 @@ class SimulationContext:
             self._tables,
             self._data,
             self._results,
-        ] + list(self._plugin_manager.get_optional_controllers().values())
+            *self._plugin_manager.get_optional_controllers().values(),
+        ]
         self._component_manager.add_managers(managers)
 
         component_config_parser = self._plugin_manager.get_component_config_parser()
@@ -242,11 +245,11 @@ class SimulationContext:
         return self._clock.time
 
     def get_results(self) -> dict[str, pd.DataFrame]:
-        """Return the formatted results."""
+        """Returns a dictionary of formatted results."""
         return self._results.get_results()
 
     def run_simulation(self) -> None:
-        """A wrapper method to run all steps of a simulation"""
+        """Runs all steps of a simulation."""
         self.setup()
         self.initialize_simulants()
         self.run()
@@ -278,7 +281,7 @@ class SimulationContext:
         self._clock.step_backward()
         population_size = pop_params.population_size
         self.simulant_creator(population_size, {"sim_state": lifecycle_states.SETUP})
-        self._clock.step_forward(self.get_population().index)
+        self._clock.step_forward(self.get_population_index())
 
     def step(self) -> None:
         self._logger.info(self.current_time)
@@ -286,12 +289,12 @@ class SimulationContext:
             self._logger.debug(f"Event: {event}")
             self._lifecycle.set_state(event)
             pop_to_update = self._clock.get_active_simulants(
-                self.get_population().index,
+                self.get_population_index(),
                 self._clock.event_time,
             )
             self._logger.debug(f"Updating: {len(pop_to_update)}")
             self.time_step_emitters[event](pop_to_update, None)
-        self._clock.step_forward(self.get_population().index)
+        self._clock.step_forward(self.get_population_index())
 
     def run(
         self,
@@ -312,7 +315,7 @@ class SimulationContext:
 
     def finalize(self) -> None:
         self._lifecycle.set_state(lifecycle_states.SIMULATION_END)
-        self.end_emitter(self.get_population().index, None)
+        self.end_emitter(self.get_population_index(), None)
         unused_config_keys = self.configuration.unused_keys()
         if unused_config_keys:
             self._logger.warning(
@@ -321,7 +324,7 @@ class SimulationContext:
 
     def report(self, print_results: bool = True) -> None:
         self._lifecycle.set_state(lifecycle_states.REPORT)
-        self.report_emitter(self.get_population().index, None)
+        self.report_emitter(self.get_population_index(), None)
         results = self.get_results()
         if print_results:
             for measure, df in results.items():
@@ -335,7 +338,7 @@ class SimulationContext:
         self._write_results(results)
 
     def _write_results(self, results: dict[str, pd.DataFrame]) -> None:
-        """Iterate through the measures and write out the formatted results"""
+        """Iterates through the measures and writes out the formatted results."""
         try:
             results_dir = self.configuration.output_data.results_directory
             for measure, df in results.items():
@@ -370,8 +373,11 @@ class SimulationContext:
         """Adds new components to the simulation."""
         self._component_manager.add_components(component_list)
 
-    def get_population(self, untracked: bool = True) -> pd.DataFrame:
-        return self._population.get_population(untracked)
+    def get_population(self) -> pd.Series[Any] | pd.DataFrame:
+        return self._population.get_population("all")
+
+    def get_population_index(self) -> pd.Index[int]:
+        return self._population.get_population_index()
 
     def __repr__(self) -> str:
         return f"SimulationContext({self.name})"
@@ -381,7 +387,7 @@ class SimulationContext:
 
     @classmethod
     def load_from_backup(cls, backup_path: Path) -> "SimulationContext":
-        """Load a simulation context from a backup file."""
+        """Loads a simulation context from a backup file."""
         with open(backup_path, "rb") as f:
             backup: SimulationContext = dill.load(f)
         return backup
@@ -422,7 +428,7 @@ class Builder:
         :ref:`event<event_concept>` system."""
 
         self.population = plugin_manager.get_plugin_interface(PopulationInterface)
-        """Provides access to simulant state table via the
+        """Provides access to population state table via the
         :ref:`population<population_concept>` system."""
 
         self.resources = plugin_manager.get_plugin_interface(ResourceInterface)

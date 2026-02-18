@@ -13,7 +13,7 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Union
 
 from vivarium import Component
-from vivarium.framework.components.manager import ComponentManager
+from vivarium.framework.components.manager import C, ComponentManager
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
@@ -21,34 +21,27 @@ if TYPE_CHECKING:
 
 
 class ComponentInterface(Interface):
-    """The builder interface for the component manager system.
-
-    This class defines component manager methods a ``vivarium`` component can
-    access from the builder. It provides methods for querying and adding components
-    to the :class:`ComponentManager <vivarium.framework.components.manager.ComponentManager>`.
-    """
+    """The builder interface for the component manager system."""
 
     def __init__(self, manager: ComponentManager):
         self._manager = manager
 
     def get_component(self, name: str) -> Component | Manager:
-        """Get the component that has ``name`` if presently held by the component
-        manager. Names are guaranteed to be unique.
+        """Get the component or manager that has ``name`` if presently held by the
+        component manager. Names are guaranteed to be unique.
 
         Parameters
         ----------
         name
-            A component name.
+            A component or manager name.
 
         Returns
         -------
-            A component that has name ``name``.
+            A component or manager that has name ``name``.
         """
         return self._manager.get_component(name)
 
-    def get_components_by_type(
-        self, component_type: type[Component | Manager] | Sequence[type[Component | Manager]]
-    ) -> list[Component | Manager]:
+    def get_components_by_type(self, component_type: type[C] | Sequence[type[C]]) -> list[C]:
         """Get all components that are an instance of ``component_type``.
 
         Parameters
@@ -64,10 +57,44 @@ class ComponentInterface(Interface):
         return self._manager.get_components_by_type(component_type)
 
     def list_components(self) -> dict[str, Component | Manager]:
-        """Get a mapping of component names to components held by the manager.
+        """Get a mapping of names to components or managers held by the manager.
 
         Returns
         -------
-            A dictionary mapping component names to components.
+            A dictionary mapping names to components or managers.
         """
         return self._manager.list_components()
+
+    def get_current_component(self) -> Component:
+        """Get the component currently being set up, if any.
+
+        This method is primarily used internally by the framework to support
+        automatic component injection in interface methods.
+
+        Returns
+        -------
+            The component currently being set up.
+
+        Raises
+        ------
+            LifeCycleError
+                If there is no component currently being set up.
+        """
+        return self._manager.get_current_component()
+
+    def get_current_component_or_manager(self) -> Component | Manager:
+        """Get the component or manager currently being set up, if any.
+
+        This method exists to allow for cases where a manager is needed during
+        setup, such as if a manager creates a Value Pipeline.
+
+        Returns
+        -------
+            The component or manager currently being set up.
+
+        Raises
+        ------
+            LifeCycleError
+                If there is no component or manager currently being set up.
+        """
+        return self._manager.get_current_component_or_manager()

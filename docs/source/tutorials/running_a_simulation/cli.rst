@@ -29,10 +29,7 @@ to the ``~/vivarium_results`` directory.
 If you navigate to that directory, you should see a subdirectory with the name
 of your model specification.  Inside the model specification directory, there
 will be another subdirectory named for the start time of the run. In here, you
-should see two hdf files: ``final_state.hdf``, which is the population
-:term:`state table <State Table>` at the end of the simulation, and
-``output.hdf``, which is the results of the :term:`metrics <Metrics>` generated
-by the simulation.
+a results directory which contains all of the simulation results files.
 
 For example, say we've run a simulation for a model specification called
 ``potatoes.yaml`` (maybe we're really into gardening).  Our directory tree
@@ -41,8 +38,9 @@ will look like::
     ~/vivarium_results/
         potatoes/
             2019_04_20_15_44_20/
-                final_state.hdf
-                output.hdf
+                results/
+                    mashed.parquet
+                    eye_counts.parquet
 
 If we decide we don't like our results, or want to rerun the simulation with
 a different set of :term:`configuration parameters <Configuration>`, we'll add
@@ -51,11 +49,13 @@ new time stamped sub-directories to our ``potatoes`` model results directory::
     ~/vivarium_results/
         potatoes/
             2019_04_20_15_44_20/
-                final_state.hdf
-                output.hdf
+                results/
+                    mashed.parquet
+                    eye_counts.parquet
             2019_04_20_16_34_12/
-                final_state.hdf
-                output.hdf
+                results/
+                    mashed.parquet
+                    eye_counts.parquet
 
 ``simulate run`` also provides various flags which you can use to configure
 options for the run. These are:
@@ -119,10 +119,6 @@ the following:
     DEBUG:vivarium.framework.engine:2005-07-07 00:00:00
     DEBUG:vivarium.framework.engine:2005-07-10 00:00:00
     DEBUG:vivarium.framework.engine:2005-07-13 00:00:00
-    DEBUG:vivarium.framework.engine:{'simulation_run_time': 0.7717499732971191,
-     'total_population': 10000,
-     'total_population_tracked': 10000,
-     'total_population_untracked': 0}
     DEBUG:vivarium.framework.engine:Some configuration keys not used during run: {'input_data.cache_data', 'output_data.results_directory', 'input_data.intermediary_data_cache_path'}
 
 The specifics of these messages will depend on your model specification, but

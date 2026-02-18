@@ -1,12 +1,15 @@
-# mypy: ignore-errors
+from __future__ import annotations
+
+from collections.abc import Iterable
+from typing import Any
 import pandas as pd
 
 from vivarium import Component
 from vivarium.framework.engine import Builder
-from vivarium.framework.state_machine import Machine, State, Transition
+from vivarium.framework.state_machine import Machine, State, Transition, Trigger
 from vivarium.framework.utilities import rate_to_probability
 from vivarium.framework.values import list_combiner, union_post_processor
-
+from collections.abc import Iterable
 
 class DiseaseTransition(Transition):
     #####################
@@ -19,75 +22,75 @@ class DiseaseTransition(Transition):
         cause_key: str,
         measure: str,
         rate_name: str,
-        **kwargs,
+        triggered: Trigger = Trigger.NOT_TRIGGERED,
     ):
         super().__init__(
-            input_state, output_state, probability_func=self._probability, **kwargs
+            input_state, output_state, probability_func=self._probability, triggered=triggered
         )
         self.cause_key = cause_key
         self.measure = measure
         self.rate_name = rate_name
+        self.joint_paf_pipeline = f"{self.rate_name}.population_attributable_fraction"
+        self.base_rate: float | int
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
-        rate = builder.configuration[self.cause_key][self.measure]
 
-        self.base_rate = lambda index: pd.Series(rate, index=index)
-        self.joint_population_attributable_fraction = builder.value.register_value_producer(
-            f"{self.rate_name}.population_attributable_fraction",
+        self.base_rate = builder.configuration[self.cause_key][self.measure]
+        builder.value.register_attribute_producer(
+            self.joint_paf_pipeline,
             source=lambda index: [pd.Series(0.0, index=index)],
             preferred_combiner=list_combiner,
             preferred_post_processor=union_post_processor,
         )
-        self.transition_rate = builder.value.register_rate_producer(
+        builder.value.register_rate_producer(
             self.rate_name,
             source=self._risk_deleted_rate,
-            required_resources=[self.joint_population_attributable_fraction],
+            required_resources=[self.joint_paf_pipeline],
         )
 
     ##################################
     # Pipeline sources and modifiers #
     ##################################
 
-    def _risk_deleted_rate(self, index: pd.Index) -> pd.Series:
-        return self.base_rate(index) * (
-            1 - self.joint_population_attributable_fraction(index)
-        )
+    def _risk_deleted_rate(self, index: pd.Index[int]) -> pd.Series[float]:
+        joint_paf = self.population_view.get_attributes(index, self.joint_paf_pipeline)
+        return self.base_rate * (1 - joint_paf)
 
     ##################
     # Helper methods #
     ##################
 
-    def _probability(self, index: pd.Index) -> pd.Series:
-        effective_rate = self.transition_rate(index)
+    def _probability(self, index: pd.Index[int]) -> pd.Series[float]:
+        effective_rate = self.population_view.get_attributes(index, self.rate_name)
         return pd.Series(rate_to_probability(effective_rate))
 
 
 class DiseaseState(State):
+
     ##############
     # Properties #
     ##############
 
     @property
-    def columns_required(self) -> list[str] | None:
-        return [self.model, "alive"]
-
-    @property
-    def population_view_query(self) -> str | None:
-        return f"alive == 'alive' and {self.model} == '{self.state_id}'"
+    def configuration_defaults(self) -> dict[str, Any]:
+        configuration_defaults = super().configuration_defaults
+        configuration_defaults[self.name]["data_sources"]["excess_mortality_rate"] = 0.0
+        return configuration_defaults
 
     #####################
     # Lifecycle methods #
     #####################
 
-    def __init__(self, state_id: str, cause_key: str, with_excess_mortality: bool = False):
+    def __init__(self, state_id: str, cause_key: str):
         super().__init__(state_id)
         self._cause_key = cause_key
-        self._with_excess_mortality = with_excess_mortality
+        self.emr_paf_pipeline = f"{self.state_id}.excess_mortality_rate.population_attributable_fraction"
+        self.emr_pipeline = f"{self.state_id}.excess_mortality_rate"
 
     # noinspection PyAttributeOutsideInit
-    def setup(self, builder: Builder):
+    def setup(self, builder: Builder) -> None:
         """Performs this component's simulation setup.
 
         Parameters
@@ -96,31 +99,26 @@ class DiseaseState(State):
             Interface to several simulation tools.
         """
         super().setup(builder)
-        if self._with_excess_mortality:
-            self._excess_mortality_rate = builder.configuration[
-                self._cause_key
-            ].excess_mortality_rate
-        else:
-            self._excess_mortality_rate = 0
 
         self.clock = builder.time.clock()
-        self.excess_mortality_rate_paf = builder.value.register_value_producer(
-            f"{self.state_id}.excess_mortality_rate.population_attributable_fraction",
+        self.emr_table = self.build_lookup_table(builder, "excess_mortality_rate")
+        builder.value.register_attribute_producer(
+            self.emr_paf_pipeline,
             source=lambda index: [pd.Series(0.0, index=index)],
             preferred_combiner=list_combiner,
             preferred_post_processor=union_post_processor,
         )
 
-        self.excess_mortality_rate = builder.value.register_rate_producer(
-            f"{self.state_id}.excess_mortality_rate",
+        builder.value.register_rate_producer(
+            self.emr_pipeline,
             source=self.risk_deleted_excess_mortality_rate,
-            required_resources=[self.excess_mortality_rate_paf],
+            required_resources=[self.emr_paf_pipeline],
         )
 
-        builder.value.register_value_modifier(
+        builder.value.register_attribute_modifier(
             "mortality_rate",
-            self.add_in_excess_mortality,
-            required_resources=[self.excess_mortality_rate]
+            modifier=self.add_in_excess_mortality,
+            required_resources=[self.emr_pipeline]
         )
 
     ##################
@@ -128,25 +126,27 @@ class DiseaseState(State):
     ##################
 
     def add_disease_transition(
-        self, output: "DiseaseState", measure: str, rate_name: str, **kwargs
+        self, output: "DiseaseState", measure: str, rate_name: str, triggered: Trigger = Trigger.NOT_TRIGGERED
     ) -> DiseaseTransition:
-        t = DiseaseTransition(self, output, self._cause_key, measure, rate_name, **kwargs)
+        t = DiseaseTransition(self, output, self._cause_key, measure, rate_name, triggered=triggered)
         self.add_transition(t)
         return t
 
     ##################################
     # Pipeline sources and modifiers #
     ##################################
-
-    def risk_deleted_excess_mortality_rate(self, index: pd.Index) -> pd.Series:
-        return pd.Series(self._excess_mortality_rate, index=index) * (
-            1 - self.excess_mortality_rate_paf(index)
-        )
+    
+    def risk_deleted_excess_mortality_rate(self, index: pd.Index[int]) -> pd.Series[float]:
+        base_emr = self.emr_table(index)
+        emr_paf = self.population_view.get_attributes(index, self.emr_paf_pipeline)
+        return base_emr * (1 - emr_paf)
 
     def add_in_excess_mortality(
-        self, index: pd.Index, mortality_rates: pd.Series
-    ) -> pd.Series:
-        mortality_rates.loc[index] += self.excess_mortality_rate(index)
+        self, index: pd.Index[int], mortality_rates: pd.Series[float]
+    ) -> pd.Series[float]:
+        mortality_rates.loc[index] += self.population_view.get_attributes(
+            index, self.emr_pipeline
+        )
         return mortality_rates
 
 
@@ -155,6 +155,15 @@ class DiseaseModel(Machine):
     #####################
     # Lifecycle methods #
     #####################
+
+    def __init__(
+        self,
+        state_column: str,
+        states: Iterable[State] = (),
+        initial_state: State | None = None,
+    ) -> None:
+        super().__init__(state_column, states, initial_state)
+        self.csmr_pipeline = f"{self.state_column}.cause_specific_mortality_rate"
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
@@ -166,22 +175,23 @@ class DiseaseModel(Machine):
         )
         cause_specific_mortality_rate = config.incidence_rate * case_fatality_rate
 
-        self.cause_specific_mortality_rate = builder.value.register_rate_producer(
-            f"{self.state_column}.cause_specific_mortality_rate",
+        builder.value.register_rate_producer(
+            self.csmr_pipeline,
             source=lambda index: pd.Series(cause_specific_mortality_rate, index=index),
         )
-        builder.value.register_value_modifier(
+        builder.value.register_attribute_modifier(
             "mortality_rate",
             modifier=self.delete_cause_specific_mortality,
-            required_resources=[self.cause_specific_mortality_rate],
+            required_resources=[self.csmr_pipeline],
         )
 
     ##################################
     # Pipeline sources and modifiers #
     ##################################
 
-    def delete_cause_specific_mortality(self, index: pd.Index, rates: pd.Series) -> pd.Series:
-        return rates - self.cause_specific_mortality_rate(index)
+    def delete_cause_specific_mortality(self, index: pd.Index[int], rates: pd.Series[float]) -> pd.Series[float]:
+        csmr = self.population_view.get_attributes(index, self.csmr_pipeline)
+        return rates - csmr
 
 
 class SISDiseaseModel(Component):
@@ -201,17 +211,13 @@ class SISDiseaseModel(Component):
         }
 
         susceptible_state = DiseaseState(f"susceptible_to_{self._name}", self._name)
-        infected_state = DiseaseState(
-            f"infected_with_{self._name}", self._name, with_excess_mortality=True
-        )
+        infected_state = DiseaseState(f"infected_with_{self._name}", self._name)
 
-        susceptible_state.allow_self_transitions()
         susceptible_state.add_disease_transition(
             infected_state,
             measure="incidence_rate",
             rate_name=f"{infected_state.state_id}.incidence_rate",
         )
-        infected_state.allow_self_transitions()
         infected_state.add_disease_transition(
             susceptible_state,
             measure="remission_rate",

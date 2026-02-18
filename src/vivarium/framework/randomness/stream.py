@@ -3,8 +3,8 @@
 Randomness Streams
 ==================
 
-This module provides a wrapper around numpy's randomness system with the intent of coupling
-it to vivarium's tools for Common Random Number genereration.
+This module provides a wrapper around numpy's randomness system with the intent 
+of coupling it to vivarium's tools for common random number genereration.
 
 
 Attributes
@@ -15,12 +15,6 @@ RESIDUAL_CHOICE : object
     For example::
 
         [0.2, 0.2, RESIDUAL_CHOICE] => [0.2, 0.2, 0.6]
-
-        
-Notes
------
-Currently this object is only used in the `choice` function of this
-module.
 
 """
 
@@ -43,6 +37,7 @@ from vivarium.types import ClockTime, NumericArray
 
 if TYPE_CHECKING:
     from vivarium import Component
+    from vivarium.manager import Manager
 
 RESIDUAL_CHOICE = object()
 
@@ -60,7 +55,7 @@ def get_hash(key: str) -> int:
 
     Parameters
     ----------
-    key :
+    key
         A string used to create a seed for the random number generator.
 
     Returns
@@ -72,10 +67,10 @@ def get_hash(key: str) -> int:
 
 
 class RandomnessStream(Resource):
-    """A stream for producing common random numbers.
+    """A stream for producing Common Random Numbers (CRN).
 
     `RandomnessStream` objects provide an interface to Vivarium's
-    common random number generation.  They provide a number of methods
+    common random number generation. They provide a number of methods
     for doing common simulation tasks that require random numbers like
     making decisions among a number of choices.
 
@@ -99,8 +94,7 @@ class RandomnessStream(Resource):
         clock: Callable[[], ClockTime],
         seed: Any,
         index_map: IndexMap,
-        # TODO [MIC-5452]: all resources should have a component
-        component: Component | None = None,
+        component: Component | Manager,
         initializes_crn_attributes: bool = False,
         rate_conversion_type: Literal["linear", "exponential"] = "linear",
     ):
@@ -126,7 +120,7 @@ class RandomnessStream(Resource):
             )
 
     def _key(self, additional_key: Any = None) -> str:
-        """Construct a hashable key from this object's state.
+        """Constructs a hashable key from this object's state.
 
         Parameters
         ----------
@@ -140,7 +134,7 @@ class RandomnessStream(Resource):
         return "_".join([self.key, str(self.clock()), str(additional_key), str(self.seed)])
 
     def get_draw(self, index: pd.Index[int], additional_key: Any = None) -> pd.Series[float]:
-        """Get an indexed set of numbers uniformly drawn from the unit interval.
+        """Gets an indexed set of numbers uniformly drawn from the unit interval.
 
         Parameters
         ----------
@@ -207,7 +201,7 @@ class RandomnessStream(Resource):
         rate: float | list[float] | tuple[float] | NumericArray | pd.Series[float],
         additional_key: Any = None,
     ) -> PandasObject:
-        """Decide an event outcome for each individual from rates.
+        """Decides an event outcome for each individual from rates.
 
         Given a population or its index and an array of associated rates for
         some event to happen, we create and return the subpopulation for whom
@@ -242,10 +236,14 @@ class RandomnessStream(Resource):
     def filter_for_probability(
         self,
         population: PandasObject,
-        probability: float | list[float] | tuple[float] | NumericArray | pd.Series[float],
+        probability: float
+        | list[float]
+        | tuple[float, ...]
+        | NumericArray
+        | pd.Series[float],
         additional_key: Any = None,
     ) -> PandasObject:
-        """Decide an outcome for each individual from probabilities.
+        """Decides an outcome for each individual from probabilities.
 
         Given a population or its index and an array of associated probabilities
         for some event to happen, we create and return the subpopulation for
@@ -282,8 +280,16 @@ class RandomnessStream(Resource):
         else:
             index = population.index
 
-        draws = self.get_draw(index, additional_key)
-        mask = np.array(draws < probability)
+        probabilities = pd.Series(probability, index=index)
+        # We skip draws for simulants who have a zero or one probability
+        zeros_idx = probabilities[probabilities == 0].index
+        ones_idx = probabilities[probabilities == 1].index
+        get_draws_idx = probabilities.index.difference(zeros_idx).difference(ones_idx)
+        draws = self.get_draw(get_draws_idx, additional_key)
+        # instantiate mask as False and fill in True where appropriate
+        mask = np.zeros(len(index), dtype=bool)
+        mask[index.get_indexer(ones_idx)] = True  # type: ignore [no-untyped-call]
+        mask[index.get_indexer(get_draws_idx)] = draws < probabilities[get_draws_idx]  # type: ignore [no-untyped-call]
         return population[mask]
 
     def choice(
@@ -313,9 +319,9 @@ class RandomnessStream(Resource):
         choices
             A set of options to choose from.
         p
-            The relative weights of the choices.  Can be either a 1-d array of
+            The relative weights of the choices. Can be either a 1-d array of
             the same length as `choices` or a 2-d array with `len(index)` rows
-            and `len(choices)` columns.  In the 1-d case, the same set of
+            and `len(choices)` columns. In the 1-d case, the same set of
             weights are used to decide among the choices for every item in
             the `index`. In the 2-d case, each row in `p` contains a separate
             set of weights for every item in the `index`.
@@ -344,8 +350,7 @@ class RandomnessStream(Resource):
         additional_key: Any = None,
         **distribution_kwargs: Any,
     ) -> pd.Series[Any]:
-        """Given a distribution, returns an indexed set of samples from that
-        distribution.
+        """Returns an indexed set of samples from a given distribution.
 
         Parameters
         ----------
@@ -409,9 +414,9 @@ def _choice(
         A set of options to choose from. Choices must be the same for every
         simulant.
     p
-        The relative weights of the choices.  Can be either a 1-d array of
+        The relative weights of the choices. Can be either a 1-d array of
         the same length as `choices` or a 2-d array with `len(draws)` rows
-        and `len(choices)` columns.  In the 1-d case, the same set of weights
+        and `len(choices)` columns. In the 1-d case, the same set of weights
         are used to decide among the choices for every item in the `index`.
         In the 2-d case, each row in `p` contains a separate set of weights
         for every item in the `index`.

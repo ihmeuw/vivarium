@@ -14,19 +14,26 @@ that index. See the :ref:`lookup concept note <lookup_concept>` for more.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 import numpy as np
 import pandas as pd
 
+from vivarium.component import Component
 from vivarium.framework.lookup.interpolation import Interpolation
 from vivarium.framework.population.population_view import PopulationView
+from vivarium.framework.resource import Resource
 from vivarium.types import ClockTime, ScalarValue
 
+T = TypeVar("T", pd.Series, pd.DataFrame)  # type: ignore [type-arg]
 
-class LookupTable(ABC):
+
+DEFAULT_VALUE_COLUMN = "value"
+
+
+class LookupTable(ABC, Resource, Generic[T]):
     """A callable to produces values for a population index.
 
     In :mod:`vivarium` simulations, the index is synonymous with the simulated
@@ -37,37 +44,42 @@ class LookupTable(ABC):
 
     Notes
     -----
-    These should not be created directly. Use the `lookup` method on the builder
-    during setup.
+    These should not be created directly. Use the :attr:`~vivarium.framework.engine.Builder.lookup`
+    attribute on the :class:`~vivarium.framework.engine.Builder` class during setup.
 
     """
 
     def __init__(
         self,
-        table_number: int,
+        name: str,
+        component: Component,
+        return_type: type[T],
         key_columns: Sequence[str] = (),
         parameter_columns: Sequence[str] = (),
-        value_columns: Sequence[str] = (),
+        value_columns: list[str] | tuple[str, ...] | str = (),
         validate: bool = True,
     ):
-        self.table_number = table_number
-        """Unique identifier of the table."""
+        super().__init__("lookup_table", self.get_name(component.name, name), component)
+        self.return_type: type[T] = return_type
+        """The type of data returned by the lookup table (pd.Series or pd.DataFrame)."""
         self.key_columns = key_columns
         """Column names to be used as categorical parameters in Interpolation
         to select between interpolation functions."""
         self.parameter_columns = parameter_columns
         """Column names to be used as continuous parameters in Interpolation."""
-        self.value_columns = list(value_columns)
+        self.value_columns = (
+            list(value_columns) if not isinstance(value_columns, str) else [value_columns]
+        )
         """Names of value columns to be interpolated over."""
         self.validate = validate
         """Whether to validate the data before building the LookupTable."""
 
     @property
-    def name(self) -> str:
-        """Tables are generically named after the order they were created."""
-        return f"lookup_table_{self.table_number}"
+    def required_resources(self) -> list[str]:
+        lookup_columns = list(self.key_columns) + list(self.parameter_columns)
+        return [col for col in lookup_columns if col != "year"]
 
-    def __call__(self, index: pd.Index[int]) -> pd.Series[Any] | pd.DataFrame:
+    def __call__(self, index: pd.Index[int]) -> T:
         """Get the mapped values for the given index.
 
         Parameters
@@ -81,7 +93,12 @@ class LookupTable(ABC):
             columns
 
         """
-        mapped_values: pd.Series[Any] | pd.DataFrame = self.call(index).squeeze(axis=1)
+        mapped_values = self.call(index).squeeze(axis=1)
+        if not isinstance(mapped_values, self.return_type):
+            raise TypeError(
+                f"LookupTable expected to return {self.return_type}, "
+                f"but got {type(mapped_values)}"
+            )
         return mapped_values
 
     @abstractmethod
@@ -92,8 +109,26 @@ class LookupTable(ABC):
     def __repr__(self) -> str:
         return "LookupTable()"
 
+    @staticmethod
+    def get_name(component_name: str, table_name: str) -> str:
+        """Get the fully qualified name for a lookup table.
 
-class InterpolatedTable(LookupTable):
+        Parameters
+        ----------
+        component_name
+            Name of the component the lookup table belongs to.
+        table_name
+            Name of the lookup table.
+
+        Returns
+        -------
+            Fully qualified name for the lookup table.
+
+        """
+        return f"{component_name}.{table_name}"
+
+
+class InterpolatedTable(LookupTable[T]):
     """A callable that interpolates data according to a given strategy.
 
     Notes
@@ -105,19 +140,22 @@ class InterpolatedTable(LookupTable):
 
     def __init__(
         self,
-        table_number: int,
+        name: str,
+        component: Component,
         data: pd.DataFrame,
-        population_view_builder: Callable[[list[str]], PopulationView],
+        population_view_builder: Callable[[], PopulationView],
         key_columns: Sequence[str],
         parameter_columns: Sequence[str],
-        value_columns: Sequence[str],
+        value_columns: list[str] | tuple[str, ...] | str,
         interpolation_order: int,
         clock: Callable[[], ClockTime],
         extrapolate: bool,
         validate: bool,
     ):
         super().__init__(
-            table_number=table_number,
+            name=name,
+            component=component,
+            return_type=pd.Series if isinstance(value_columns, str) else pd.DataFrame,
             key_columns=key_columns,
             parameter_columns=parameter_columns,
             value_columns=value_columns,
@@ -131,25 +169,24 @@ class InterpolatedTable(LookupTable):
         param_cols_with_edges = []
         for p in parameter_columns:
             param_cols_with_edges += [(p, f"{p}_start", f"{p}_end")]
-        view_columns = sorted((set(key_columns) | set(parameter_columns)) - {"year"}) + [
-            "tracked"
-        ]
 
         self.parameter_columns_with_edges = param_cols_with_edges
 
+        value_columns_list = (
+            [value_columns] if isinstance(value_columns, str) else list(value_columns)
+        )
         required_cols = (
             set(self.key_columns)
             | set([col for p in self.parameter_columns_with_edges for col in p])
-            | set(self.value_columns)
+            | set(value_columns_list)
         )
-        extra_columns = self.data.columns.difference(list(required_cols))
+        if extra_columns := list(self.data.columns.difference(list(required_cols))):
+            raise ValueError(
+                f"Data for InterpolatedTable contains extra columns not in "
+                f"key_columns, parameter_columns, or value_columns: {extra_columns}"
+            )
 
-        if not self.value_columns:
-            self.value_columns = list(extra_columns)
-        else:
-            self.data = self.data.drop(columns=extra_columns)
-
-        self.population_view = population_view_builder(view_columns)
+        self.population_view = population_view_builder()
         self.interpolation = Interpolation(
             data,
             self.key_columns,
@@ -173,9 +210,16 @@ class InterpolatedTable(LookupTable):
             A table with the interpolated values for the population requested.
 
         """
-        pop = self.population_view.get(index)
-        del pop["tracked"]
-        if "year" in [col for col in self.parameter_columns]:
+
+        # Remove 'year' from the requested columns since it is not actually a population
+        # view column (i.e. it is not an attribute) and is instead computed dynamically
+        requested_columns = [
+            col
+            for col in list(self.key_columns) + list(self.parameter_columns)
+            if col != "year"
+        ]
+        pop = pd.DataFrame(self.population_view.get_attributes(index, requested_columns))
+        if "year" in self.parameter_columns:
             current_time = self.clock()
             # TODO: [MIC-5478] handle Number output from clock
             if isinstance(current_time, pd.Timestamp) or isinstance(current_time, datetime):
@@ -193,9 +237,8 @@ class InterpolatedTable(LookupTable):
         return "InterpolatedTable()"
 
 
-class CategoricalTable(LookupTable):
-    """
-    A callable that selects values from a table based on categorical parameters
+class CategoricalTable(LookupTable[T]):
+    """A callable that selects values from a table based on categorical parameters
     across an index.
 
     Notes
@@ -207,28 +250,35 @@ class CategoricalTable(LookupTable):
 
     def __init__(
         self,
-        table_number: int,
+        name: str,
+        component: Component,
         data: pd.DataFrame,
-        population_view_builder: Callable[[list[str]], PopulationView],
+        population_view_builder: Callable[[], PopulationView],
         key_columns: Sequence[str],
-        value_columns: Sequence[str],
+        value_columns: list[str] | tuple[str, ...] | str,
     ):
         super().__init__(
-            table_number=table_number,
+            name=name,
+            component=component,
+            return_type=pd.Series if isinstance(value_columns, str) else pd.DataFrame,
             key_columns=key_columns,
             value_columns=value_columns,
         )
         self.data = data
-        self.population_view = population_view_builder(list(self.key_columns) + ["tracked"])
+        self.population_view = population_view_builder()
 
-        extra_columns = self.data.columns.difference(
-            list(set(self.key_columns) | set(self.value_columns))
+        value_columns_list = (
+            [value_columns] if isinstance(value_columns, str) else list(value_columns)
         )
-
-        if not self.value_columns:
-            self.value_columns = list(extra_columns)
-        else:
-            self.data = self.data.drop(columns=extra_columns)
+        if extra_columns := list(
+            self.data.columns.difference(
+                list(set(self.key_columns) | set(value_columns_list))
+            )
+        ):
+            raise ValueError(
+                f"Data for CategoricalTable contains extra columns not in "
+                f"key_columns or value_columns: {extra_columns}"
+            )
 
     def call(self, index: pd.Index[int]) -> pd.DataFrame:
         """Get the mapped values for the rows in ``index``.
@@ -242,8 +292,11 @@ class CategoricalTable(LookupTable):
         -------
             A table with the mapped values for the population requested.
         """
-        pop = self.population_view.get(index)
-        del pop["tracked"]
+        pop = pd.DataFrame(
+            self.population_view.get_attributes(
+                index, list(self.key_columns) + list(self.parameter_columns)
+            )
+        )
 
         # specify some numeric type for columns, so they won't be objects but
         # will be updated with whatever column type it actually is
@@ -269,26 +322,28 @@ class CategoricalTable(LookupTable):
         return "CategoricalTable()"
 
 
-class ScalarTable(LookupTable):
+class ScalarTable(LookupTable[T]):
     """A callable that broadcasts a scalar or list of scalars over an index.
 
     Notes
     -----
     These should not be created directly. Use the `lookup` interface on the
     builder during setup.
+
     """
 
     def __init__(
         self,
-        table_number: int,
+        name: str,
+        component: Component,
         data: ScalarValue | list[ScalarValue] | tuple[ScalarValue, ...],
-        key_columns: Sequence[str] = (),
-        parameter_columns: Sequence[str] = (),
-        value_columns: Sequence[str] = (),
-        validate: bool = True,
+        value_columns: list[str] | tuple[str, ...] | str,
     ):
         super().__init__(
-            table_number, key_columns, parameter_columns, value_columns, validate
+            name=name,
+            component=component,
+            value_columns=value_columns,
+            return_type=pd.Series if isinstance(value_columns, str) else pd.DataFrame,
         )
         self.data = data
 
@@ -304,7 +359,6 @@ class ScalarTable(LookupTable):
         -------
             A table with a column for each of the scalar values for the
             population requested.
-
         """
         if not isinstance(self.data, (list, tuple)):
             values_series: pd.Series[Any] = pd.Series(

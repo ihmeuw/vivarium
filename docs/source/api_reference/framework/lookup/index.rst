@@ -1,3 +1,7 @@
+=======================
+Lookup Table Management
+=======================
+
 .. automodule:: vivarium.framework.lookup
 
 .. toctree::

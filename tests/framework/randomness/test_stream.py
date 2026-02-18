@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 import pandas as pd
 import pytest
 from layered_config_tree import LayeredConfigTree
+from pytest_mock import MockerFixture
 from scipy import stats
 from vivarium_testing_utils import FuzzyChecker
 
@@ -21,9 +22,16 @@ from vivarium.framework.randomness.stream import (
 
 
 @pytest.fixture
-def randomness_stream() -> RandomnessStream:
-    dates = [pd.Timestamp(1991, 1, 1), pd.Timestamp(1990, 1, 1)]
-    randomness = RandomnessStream("test", dates.pop, 1, IndexMap())
+def randomness_stream(mocker: MockerFixture) -> RandomnessStream:
+    # Provide different dates to each fixture to ensure independence
+    dates = [
+        pd.Timestamp(1991, 1, 1),
+        pd.Timestamp(1990, 1, 1),
+        pd.Timestamp(1989, 1, 1),
+        pd.Timestamp(1988, 1, 1),
+        pd.Timestamp(1987, 1, 1),
+    ]
+    randomness = RandomnessStream("test", dates.pop, 1, IndexMap(), mocker.Mock())
     return randomness
 
 
@@ -82,6 +90,56 @@ def test_filter_for_probability_multiple_probabilities(
     assert np.isclose(
         len(sub_index.intersection(threshold_0_6)) / len(threshold_0_6), 0.6, rtol=0.1
     )
+
+
+def test_filter_for_probability_with_zeros_and_or_ones(
+    randomness_stream: RandomnessStream, index: pd.Index[int]
+) -> None:
+    probabilities = pd.Series(
+        [0.0, 0.6, 1.0, 0.0, 0.0, 0.6, 1.0, 0.6, 0.0, 0.6] * (index.size // 10), index=index
+    )
+    threshold_0_0 = probabilities.index[probabilities == 0.0]
+    threshold_1_0 = probabilities.index[probabilities == 1.0]
+    threshold_0_6 = probabilities.index.difference(threshold_0_0).difference(threshold_1_0)
+    sub_index = randomness_stream.filter_for_probability(index, probabilities)
+    # Nothing should be selected from the zero-probability group
+    assert len(sub_index.intersection(threshold_0_0)) == 0
+    assert np.isclose(
+        len(sub_index.intersection(threshold_0_6)) / len(threshold_0_6), 0.6, rtol=0.1
+    )
+    assert len(sub_index.intersection(threshold_1_0)) == len(threshold_1_0)
+
+
+def test_filter_for_probability_all_zeros_or_ones(
+    randomness_stream: RandomnessStream, index: pd.Index[int]
+) -> None:
+    sub_index_zeros = randomness_stream.filter_for_probability(index, 0.0)
+    assert len(sub_index_zeros) == 0
+
+    sub_index_ones = randomness_stream.filter_for_probability(index, 1.0)
+    assert len(sub_index_ones) == len(index)
+
+
+def test_filter_for_probability_types(
+    randomness_stream: RandomnessStream, index: pd.Index[int]
+) -> None:
+    sub_index_float = randomness_stream.filter_for_probability(index, 0.42)
+    sub_index_list = randomness_stream.filter_for_probability(index, [0.42] * len(index))
+    sub_index_tuple = randomness_stream.filter_for_probability(index, (0.42,) * len(index))
+    sub_index_array = randomness_stream.filter_for_probability(
+        index, np.array([0.42] * len(index))
+    )
+    sub_index_series = randomness_stream.filter_for_probability(
+        index, pd.Series(0.42, index=index)
+    )
+    for sub_index in [
+        sub_index_float,
+        sub_index_list,
+        sub_index_tuple,
+        sub_index_array,
+        sub_index_series,
+    ]:
+        assert np.isclose(len(sub_index) / len(index), 0.42, rtol=0.1)
 
 
 @pytest.mark.parametrize(
@@ -210,10 +268,13 @@ def test_sample_from_distribution_bad_args(
     ],
 )
 def test_sample_from_distribution_using_scipy(
-    index: pd.Index[int], distribution: stats.rv_continuous, params: dict[str, int]
+    mocker: MockerFixture,
+    index: pd.Index[int],
+    distribution: stats.rv_continuous,
+    params: dict[str, int],
 ) -> None:
     randomness_stream = RandomnessStream(
-        "test", lambda: pd.Timestamp(2020, 1, 1), 1, IndexMap()
+        "test", lambda: pd.Timestamp(2020, 1, 1), 1, IndexMap(), mocker.Mock()
     )
     draws = randomness_stream.get_draw(index, "some_key")
     expected = distribution.ppf(draws, **params)
@@ -227,7 +288,9 @@ def test_sample_from_distribution_using_scipy(
     assert np.allclose(sample, expected)
 
 
-def test_sample_from_distribution_using_ppf(index: pd.Index[int]) -> None:
+def test_sample_from_distribution_using_ppf(
+    mocker: MockerFixture, index: pd.Index[int]
+) -> None:
     def silly_ppf(x: pd.Series[Any], **kwargs: Any) -> pd.Series[Any]:
         add = kwargs["add"]
         mult = kwargs["mult"]
@@ -236,7 +299,7 @@ def test_sample_from_distribution_using_ppf(index: pd.Index[int]) -> None:
         return output
 
     randomness_stream = RandomnessStream(
-        "test", lambda: pd.Timestamp(2020, 1, 1), 1, IndexMap()
+        "test", lambda: pd.Timestamp(2020, 1, 1), 1, IndexMap(), mocker.Mock()
     )
     draws = randomness_stream.get_draw(index, "some_key")
     expected = 2 * (draws**2) + 1
@@ -284,10 +347,14 @@ def test_stream_rate_conversion_config(
     ],
 )
 def test_filter_for_probability_error_with_null_values(
-    probs: float | list[float] | pd.Series[float],
+    probs: float | list[float] | pd.Series[float], mocker: MockerFixture
 ) -> None:
     randomness_stream = RandomnessStream(
-        "test", lambda: pd.Timestamp(2020, 1, 1), 1, IndexMap()
+        key="test",
+        clock=lambda: pd.Timestamp(2020, 1, 1),
+        seed=1,
+        index_map=IndexMap(),
+        component=mocker.Mock(),
     )
     pop = pd.DataFrame({"age": [10, 11, 12, 13, 14], "id": [1, 2, 3, 4, 5]}).set_index("id")
     with pytest.raises(ValueError, match="Probabilities contain null values"):

@@ -15,18 +15,15 @@ import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy
 
 from vivarium.framework.event import Event
+from vivarium.framework.population import utilities as pop_utils
 from vivarium.framework.results.exceptions import ResultsConfigurationError
 from vivarium.framework.results.observation import Observation
-from vivarium.framework.results.stratification import (
-    Stratification,
-    get_mapped_col_name,
-    get_original_col_name,
-)
-from vivarium.framework.values import Pipeline
+from vivarium.framework.results.stratification import Stratification, get_mapped_col_name
 from vivarium.types import ScalarMapper, VectorMapper
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
+    from vivarium.framework.results.interface import PopulationFilter
 
 
 class ResultsContext:
@@ -52,7 +49,7 @@ class ResultsContext:
         objects to be produced keyed by the observation name.
     grouped_observations
         Dictionary of observation details. It is of the format
-        {lifecycle_state: {pop_filter: {stratifications: list[Observation]}}}.
+        {lifecycle_state: {PopulationFilter: {stratifications: list[Observation]}}}.
         Allowable lifecycle_states are "time_step__prepare", "time_step",
         "time_step__cleanup", and "collect_metrics".
     logger
@@ -65,7 +62,11 @@ class ResultsContext:
         self.excluded_categories: dict[str, list[str]] = {}
         self.observations: dict[str, Observation] = {}
         self.grouped_observations: defaultdict[
-            str, defaultdict[str, defaultdict[tuple[str, ...] | None, list[Observation]]]
+            str,
+            defaultdict[
+                PopulationFilter,
+                defaultdict[tuple[str, ...] | None, list[Observation]],
+            ],
         ] = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
     @property
@@ -73,7 +74,7 @@ class ResultsContext:
         return "results_context"
 
     def setup(self, builder: Builder) -> None:
-        """Set up the results context.
+        """Sets up the results context.
 
         This method is called by the :class:`ResultsManager <vivarium.framework.results.manager.ResultsManager>`
         during the setup phase of that object.
@@ -82,10 +83,11 @@ class ResultsContext:
         self.excluded_categories = (
             builder.configuration.stratification.excluded_categories.to_dict()
         )
+        self.get_tracked_query = builder.population.get_tracked_query()
 
     # noinspection PyAttributeOutsideInit
     def set_default_stratifications(self, default_grouping_columns: list[str]) -> None:
-        """Set the default stratifications to be used by stratified observations.
+        """Sets the default stratifications to be used by stratified observations.
 
         Parameters
         ----------
@@ -105,7 +107,7 @@ class ResultsContext:
         self.default_stratifications = default_grouping_columns
 
     def set_stratifications(self) -> None:
-        """Set stratifications on all Observers.
+        """Sets stratifications on all Observers.
 
         Emits a warning if any registered stratifications are not being used by any
         observation.
@@ -140,29 +142,28 @@ class ResultsContext:
     def add_stratification(
         self,
         name: str,
-        requires_columns: list[str],
-        requires_values: list[Pipeline],
+        requires_attributes: list[str],
         categories: list[str],
         excluded_categories: list[str] | None,
         mapper: VectorMapper | ScalarMapper | None,
         is_vectorized: bool,
     ) -> None:
-        """Add a stratification to the results context.
+        """Adds a stratification to the results context.
 
         Parameters
         ----------
         name
             Name of the stratification.
-        sources
-            A list of the columns and values needed as input for the `mapper`.
+        requires_attributes
+            The population attributes needed as input for the `mapper`.
         categories
             Exhaustive list of all possible stratification values.
         excluded_categories
             List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
-            A callable that maps the columns and value pipelines specified by
-            `sources` to the stratification categories. It can either map the entire
+            A callable that maps the population attributes specified by
+            `requires_attributes` to the stratification categories. It can either map the entire
             population or an individual simulant. A simulation will fail if the `mapper`
             ever produces an invalid value.
         is_vectorized
@@ -172,11 +173,9 @@ class ResultsContext:
         Raises
         ------
         ValueError
-            If the stratification `name` is already used.
-        ValueError
-            If there are duplicate `categories`.
-        ValueError
-            If any `excluded_categories` are not in `categories`.
+            - If the stratification `name` is already used.
+            - If there are duplicate `categories`.
+            - If any `excluded_categories` are not in `categories`.
         """
         if name in self.stratifications:
             raise ValueError(f"Stratification name '{name}' is already used.")
@@ -210,8 +209,7 @@ class ResultsContext:
 
         self.stratifications[name] = Stratification(
             name=name,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             categories=categories,
             excluded_categories=to_exclude,
             mapper=mapper,
@@ -222,14 +220,13 @@ class ResultsContext:
         self,
         observation_type: type[Observation],
         name: str,
-        pop_filter: str,
+        population_filter: PopulationFilter,
         when: str,
-        requires_columns: list[str],
-        requires_values: list[Pipeline],
+        requires_attributes: list[str],
         stratifications: tuple[str, ...] | None,
         **kwargs: Any,
     ) -> Observation:
-        """Add an observation to the results context.
+        """Adds an observation to the results context.
 
         Parameters
         ----------
@@ -238,9 +235,11 @@ class ResultsContext:
         name
             Name of the observation. It will also be the name of the output results file
             for this particular observation.
-        pop_filter
-            A Pandas query filter string to filter the population down to the simulants who should
-            be considered for the observation.
+        population_filter
+            A named tuple of population filtering details. The first item is a Pandas
+            query string to filter the population down to the simulants who should be
+            considered for the observation. The second item is a boolean indicating whether
+            to include untracked simulants from the observation.
         when
             Name of the lifecycle state the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
@@ -261,18 +260,15 @@ class ResultsContext:
                 f"Observation name '{name}' is already used: {self.observations[name]}."
             )
 
-        # Instantiate the observation and add it and its (pop_filter, stratifications)
-        # tuple as a key-value pair to the self.observations[when] dictionary.
         observation = observation_type(
             name=name,
-            pop_filter=pop_filter,
+            population_filter=population_filter,
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             **kwargs,
         )
         self.observations[name] = observation
-        self.grouped_observations[observation.when][observation.pop_filter][
+        self.grouped_observations[observation.when][observation.population_filter][
             stratifications
         ].append(observation)
         return observation
@@ -287,12 +283,10 @@ class ResultsContext:
         None,
         None,
     ]:
-        """Generate and yield current results for all observations at this lifecycle
-        state and event.
+        """Generates and yields current results for all observations at this lifecycle state and event.
 
-        Each set of results are stratified and grouped by
-        all registered stratifications as well as filtered by their respective
-        observation's pop_filter.
+        Each set of results are stratified and grouped by all registered stratifications
+        as well as filtered by their respective observation's pop_filter.
 
         Parameters
         ----------
@@ -316,11 +310,12 @@ class ResultsContext:
             If a stratification's temporary column name already exists in the population DataFrame.
         """
 
-        # Optimization: We store all the producers by pop_filter and stratifications
+        # Optimization: We store all the producers by population_filter and stratifications
         # so that we only have to apply them once each time we compute results.
-        for pop_filter, stratification_observations in self.grouped_observations[
-            lifecycle_state
-        ].items():
+        for (
+            population_filter,
+            stratification_observations,
+        ) in self.grouped_observations[lifecycle_state].items():
             event_pop_filter_observations = [
                 observation
                 for observations in stratification_observations.values()
@@ -330,7 +325,7 @@ class ResultsContext:
             if not event_pop_filter_observations:
                 continue
 
-            filtered_population = self._filter_population(population, pop_filter)
+            filtered_population = self._filter_population(population, population_filter)
             if filtered_population.empty:
                 continue
 
@@ -353,7 +348,7 @@ class ResultsContext:
                     yield (results, observation.name, observation.results_updater)
 
     def get_observations(self, event: Event) -> list[Observation]:
-        """Get all observations for a given event.
+        """Gets all observations for a given event.
 
         Parameters
         ----------
@@ -374,7 +369,7 @@ class ResultsContext:
         ]
 
     def get_stratifications(self, observations: list[Observation]) -> list[Stratification]:
-        """Get all stratifications for a given set of observations.
+        """Gets all stratifications for a given set of observations.
 
         Parameters
         ----------
@@ -395,10 +390,10 @@ class ResultsContext:
             }.values()
         )
 
-    def get_required_columns(
+    def get_required_attributes(
         self, observations: list[Observation], stratifications: list[Stratification]
     ) -> list[str]:
-        """Get all columns required for producing results for a given Event.
+        """Gets all population attributes required for producing results for a given Event.
 
         Parameters
         ----------
@@ -412,44 +407,32 @@ class ResultsContext:
 
         Returns
         -------
-            A list of all columns required for producing results for the given Event.
+            All population attributes required for producing results for the given Event.
         """
-        required_columns = {"tracked"}
+        required_attributes = set()
         for observation in observations:
-            required_columns.update(observation.requires_columns)
+            required_attributes.update(set(observation.requires_attributes))
+            required_attributes.update(
+                pop_utils.extract_columns_from_query(self.get_tracked_query())
+                if not observation.population_filter.include_untracked
+                else set()
+            )
+            required_attributes.update(
+                pop_utils.extract_columns_from_query(observation.population_filter.query)
+            )
         for stratification in stratifications:
-            required_columns.update(stratification.requires_columns)
-        return list(required_columns)
+            required_attributes.update(stratification.requires_attributes)
+        return list(required_attributes)
 
-    def get_required_values(
-        self, observations: list[Observation], stratifications: list[Stratification]
-    ) -> list[Pipeline]:
-        """Get all values required for producing results for a given Event.
-
-        Parameters
-        ----------
-        observations
-            List of observations to be gathered for this specific event. Note that this
-            excludes all observations whose `to_observe` method returns False.
-        stratifications
-            List of stratifications to be gathered for this specific event. This only
-            includes stratifications which are needed by the observations which will be
-            made during this `Event`.
-
-        Returns
-        -------
-            A list of all values required for producing results for the given Event.
-        """
-        required_values = set()
-        for observation in observations:
-            required_values.update(observation.requires_values)
-        for stratification in stratifications:
-            required_values.update(stratification.requires_values)
-        return list(required_values)
-
-    def _filter_population(self, population: pd.DataFrame, pop_filter: str) -> pd.DataFrame:
+    def _filter_population(
+        self, population: pd.DataFrame, population_filter: PopulationFilter
+    ) -> pd.DataFrame:
         """Filter out simulants not to observe."""
-        return population.query(pop_filter) if pop_filter else population.copy()
+        query = population_filter.query
+        if not population_filter.include_untracked:
+            # combine the tracking query with the population filter query
+            query = pop_utils.combine_queries(query, self.get_tracked_query())
+        return population.query(query) if query else population.copy()
 
     def _drop_na_stratifications(
         self, population: pd.DataFrame, stratification_names: tuple[str, ...] | None
@@ -470,7 +453,7 @@ class ResultsContext:
     def _get_groups(
         stratifications: tuple[str, ...], filtered_pop: pd.DataFrame
     ) -> DataFrameGroupBy[tuple[str, ...] | str, bool]:
-        """Group the population by stratification.
+        """Groups the population by stratification.
 
         Notes
         -----

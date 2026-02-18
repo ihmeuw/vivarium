@@ -17,17 +17,20 @@ import numpy as np
 import pandas as pd
 
 from vivarium import Component
+from vivarium.framework.lookup.table import ScalarTable
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
     from vivarium.framework.event import Event
     from vivarium.framework.population import PopulationView, SimulantData
-    from vivarium.framework.resource import Resource
     from vivarium.types import ClockTime, DataInput, NumericArray
 
 
 def default_probability_function(index: pd.Index[int]) -> pd.Series[float]:
-    """Transition decision function that always triggers this transition."""
+    """Returns a series of ones for the provided index.
+
+    This is the default transition decision function (always triggers this transition).
+    """
     return pd.Series(1.0, index=index)
 
 
@@ -130,7 +133,7 @@ class Transition(Component):
             [pd.Index[int]], pd.Series[float]
         ] = lambda index: pd.Series(1.0, index=index),
         triggered: Trigger = Trigger.NOT_TRIGGERED,
-    ):
+    ) -> None:
         """Initializes a transition between two states.
 
         Parameters
@@ -221,7 +224,7 @@ class State(Component):
     def __init__(
         self,
         state_id: str,
-        allow_self_transition: bool = False,
+        allow_self_transition: bool = True,
         initialization_weights: DataInput = 0.0,
     ) -> None:
         super().__init__()
@@ -232,6 +235,15 @@ class State(Component):
         self.initialization_weights = initialization_weights
         self._model: str | None = None
         self._sub_components = [self.transition_set]
+        self.initialization_weights_pipeline = f"{self.state_id}.initialization_weights"
+
+    def setup(self, builder: Builder) -> None:
+        self.initialization_weights_table = self.build_lookup_table(
+            builder, "initialization_weights"
+        )
+        builder.value.register_attribute_producer(
+            self.initialization_weights_pipeline, self.initialization_weights_table
+        )
 
     ##################
     # Public methods #
@@ -239,9 +251,9 @@ class State(Component):
 
     def has_initialization_weights(self) -> bool:
         """Determines if state has explicitly defined initialization weights."""
-        return (
-            not isinstance(self.initialization_weights, (float, int))
-            or self.initialization_weights != 0.0
+        return not (
+            isinstance(self.initialization_weights_table, ScalarTable)
+            and self.initialization_weights_table.data == 0.0
         )
 
     def set_model(self, model_name: str) -> None:
@@ -330,9 +342,6 @@ class State(Component):
         self.transition_set.append(transition)
         return transition
 
-    def allow_self_transitions(self) -> None:
-        self.transition_set.allow_null_transition = True
-
     ##################
     # Helper methods #
     ##################
@@ -381,11 +390,11 @@ class TransitionSet(Component):
     #####################
 
     def __init__(
-        self, state_id: str, *transitions: Transition, allow_self_transition: bool = False
+        self, state_id: str, *transitions: Transition, allow_self_transition: bool = True
     ):
         super().__init__()
         self.state_id = state_id
-        self.allow_null_transition = allow_self_transition
+        self.allow_self_transition = allow_self_transition
         self.transitions: list[Transition] = []
         self._sub_components = self.transitions
 
@@ -451,7 +460,7 @@ class TransitionSet(Component):
     def _normalize_probabilities(
         self, outputs: list[State | str], probabilities: NumericArray
     ) -> tuple[list[State | str], NumericArray]:
-        """Normalize probabilities to sum to 1 and add a null transition.
+        """Normalizes probabilities to sum to 1 and add a null transition.
 
         Parameters
         ----------
@@ -485,7 +494,7 @@ class TransitionSet(Component):
         probabilities[has_default] /= total[has_default, np.newaxis]
 
         total = np.sum(probabilities, axis=1)  # All totals should be ~<= 1 at this point.
-        if self.allow_null_transition:
+        if self.allow_self_transition:
             if np.any(total > 1 + 1e-08):  # Accommodate rounding errors
                 raise ValueError(
                     f"Null transition requested with un-normalized "
@@ -534,16 +543,6 @@ class Machine(Component):
     def sub_components(self) -> Sequence[Component]:
         return self.states
 
-    @property
-    def columns_created(self) -> list[str]:
-        return [self.state_column]
-
-    @property
-    def initialization_requirements(
-        self,
-    ) -> list[str | Resource]:
-        return [self.randomness]
-
     #####################
     # Lifecycle methods #
     #####################
@@ -557,12 +556,11 @@ class Machine(Component):
         super().__init__()
         self.states: list[State] = []
         self.state_column = state_column
+        self._initial_state = initial_state
+        self.initialization_weights_pipelines: list[str] = []
+
         if states:
             self.add_states(states)
-
-        states_with_initialization_weights = [
-            state for state in self.states if state.has_initialization_weights()
-        ]
 
         if initial_state is not None:
             if initial_state not in self.states:
@@ -570,40 +568,42 @@ class Machine(Component):
                     f"Initial state '{initial_state}' must be one of the"
                     f" states: {self.states}."
                 )
-            if states_with_initialization_weights:
-                raise ValueError(
-                    "Cannot specify both an initial state and provide"
-                    " initialization weights to states."
-                )
 
             initial_state.initialization_weights = 1.0
 
-        # TODO: [MIC-5403] remove this on_initialize_simulants check once
-        #  VPH's DiseaseModel has a compatible initialization strategy
-        elif (
-            type(self).on_initialize_simulants == Machine.on_initialize_simulants
-            and not states_with_initialization_weights
-        ):
+    def setup(self, builder: Builder) -> None:
+        self.randomness = builder.randomness.get_stream(self.name)
+        builder.population.register_initializer(
+            initializer=self.on_initialize_simulants,
+            columns=self.state_column,
+            required_resources=[self.randomness, *self.initialization_weights_pipelines],
+        )
+
+    def on_post_setup(self, event: Event) -> None:
+        states_with_initialization_weights = [
+            state for state in self.states if state.has_initialization_weights()
+        ]
+        if self._initial_state is not None and states_with_initialization_weights != [
+            self._initial_state
+        ]:
+            raise ValueError(
+                "Cannot specify both an initial state and provide initialization"
+                " weights to states."
+            )
+        elif self._initial_state is None and not states_with_initialization_weights:
             raise ValueError(
                 "Must specify either an initial state or provide"
                 " initialization weights to states."
             )
 
-    def setup(self, builder: Builder) -> None:
-        self.randomness = builder.randomness.get_stream(self.name)
-
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         state_ids = [s.state_id for s in self.states]
-        state_weights = pd.concat(
-            [
-                state.lookup_tables["initialization_weights"](pop_data.index)
-                for state in self.states
-            ],
-            axis=1,
-        ).to_numpy()
+        state_weights = self.population_view.get_attributes(
+            pop_data.index, self.initialization_weights_pipelines
+        )
 
         initial_states = self.randomness.choice(
-            pop_data.index, state_ids, state_weights, "initialization"
+            pop_data.index, state_ids, state_weights.to_numpy(), "initialization"
         ).rename(self.state_column)
         self.population_view.update(initial_states)
 
@@ -620,6 +620,9 @@ class Machine(Component):
     def add_states(self, states: Iterable[State]) -> None:
         for state in states:
             self.states.append(state)
+            self.initialization_weights_pipelines.append(
+                state.initialization_weights_pipeline
+            )
             state.set_model(self.state_column)
 
     def transition(self, index: pd.Index[int], event_time: ClockTime) -> None:
@@ -637,7 +640,7 @@ class Machine(Component):
                 state.next_state(
                     affected.index,
                     event_time,
-                    self.population_view.subview(self.state_column),
+                    self.population_view,
                 )
 
     def cleanup(self, index: pd.Index[int], event_time: ClockTime) -> None:
@@ -645,12 +648,14 @@ class Machine(Component):
             if not affected.empty:
                 state.cleanup_effect(affected.index, event_time)
 
-    def _get_state_pops(self, index: pd.Index[int]) -> list[tuple[State, pd.DataFrame]]:
-        population = self.population_view.get(index)
-        return [
-            (state, population[population[self.state_column] == state.state_id])
-            for state in self.states
-        ]
+    def _get_state_pops(self, index: pd.Index[int]) -> list[tuple[State, pd.Series[Any]]]:
+        population = self.population_view.get_attributes(index, self.state_column)
+        if not isinstance(population, pd.Series):
+            raise TypeError(
+                "Expected population view to return a pandas Series for"
+                f" state column '{self.state_column}', but got: {type(population)}"
+            )
+        return [(state, population[population == state.state_id]) for state in self.states]
 
     ##################
     # Helper methods #

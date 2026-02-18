@@ -188,21 +188,22 @@ for this decision point of whether to move left or not. Here's how we'd do it:
 
     import pandas as pd
 
-    class MoveLeft:
+    from vivarium import Component
+
+    class MoveLeft(Component):
 
         @property
         def name(self):
             return 'move_left'
 
         def setup(self, builder):
-            self.randomness = builder.randomness.get_stream('move_left')
+            self.randomness = builder.randomness.get_stream(self.name)
 
-            builder.population.initializes_simulants(self.on_initialize_simulants,
-                                                     creates_columns=['location'])
-
-            self.population_view = builder.population.get_view(['location'])
-
-            builder.event.register_listener('time_step', self.on_time_step)
+            builder.population.register_initializer(
+                initializer=self.on_initialize_simulants,
+                columns='location',
+                required_resources=[self.randomness],
+            )
 
         def on_initialize_simulants(self, pop_data):
             # all simulants start at position 10
@@ -211,7 +212,7 @@ for this decision point of whether to move left or not. Here's how we'd do it:
         def on_time_step(self, event):
             # with probability 0.5 simulants move to the left 1 position
             to_move_index = self.randomness.filter_for_probability(event.index, pd.Series(0.5, index=event.index))
-            moved_locations = self.population_view.get(to_move_index).location - 1
+            moved_locations = self.population_view.get_attributes(to_move_index, "location") - 1
             self.population_view.update(moved_locations)
 
 

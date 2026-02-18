@@ -1,49 +1,129 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import pandas as pd
 
 from vivarium import Component
-from vivarium.framework.resource import Resource
+from vivarium.framework.resource import Column, Resource
 from vivarium.framework.values.exceptions import DynamicValueError
 from vivarium.manager import Manager
 
 if TYPE_CHECKING:
-    from vivarium.framework.values.combiners import ValueCombiner
-    from vivarium.framework.values.manager import ValuesManager
-    from vivarium.framework.values.post_processors import PostProcessor
+    from vivarium.framework.population import PopulationManager
+    from vivarium.framework.values import (
+        AttributePostProcessor,
+        PostProcessor,
+        ValueCombiner,
+        ValuesManager,
+    )
 
 T = TypeVar("T")
 
 
 class ValueSource(Resource):
-    """A resource representing the source of a value pipeline."""
+    """A resource representing the source of a value pipeline.
+
+    If the source is a private column, use :class:`PrivateColumnValueSource` instead.
+    """
 
     def __init__(
         self,
         pipeline: Pipeline,
         source: Callable[..., Any] | None,
-        component: Component | None,
+        component: Component | Manager | None,
+        required_resources: Sequence[str | Resource] | None = None,
     ) -> None:
+        self._pipeline_type = (
+            "attribute" if isinstance(pipeline, AttributePipeline) else "value"
+        )
         super().__init__(
-            "value_source" if source else "missing_value_source", pipeline.name, component
+            f"{self._pipeline_type}_source"
+            if source
+            else f"missing_{self._pipeline_type}_source",
+            pipeline.name,
+            component,
         )
         self._pipeline = pipeline
         self._source = source
+        self.required_resources = required_resources or []
+        if isinstance(source, Resource):
+            self.required_resources.append(source)
 
     def __bool__(self) -> bool:
         return self._source is not None
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        if not self._source:
+    def __call__(self, population_mgr: PopulationManager, *args: Any, **kwargs: Any) -> Any:
+        if self._source is None:
             raise DynamicValueError(
-                f"The dynamic value pipeline for {self.name} has no source."
+                f"The dynamic {self._pipeline_type} pipeline for {self.name} has no source."
                 " This likely means you are attempting to modify a value that"
                 " hasn't been created."
             )
+
         return self._source(*args, **kwargs)
+
+
+class PrivateColumnValueSource(ValueSource):
+    """A resource representing private column source of a value pipeline."""
+
+    def __init__(
+        self,
+        pipeline: Pipeline,
+        source: Callable[..., Any] | list[str],
+        component: Component | Manager,
+        required_resources: Sequence[str | Resource],
+    ) -> None:
+        generic_error_msg = (
+            f"Invalid source for {pipeline.name}. `source` must be list containing a single"
+            " private column name."
+        )
+        if not isinstance(source, list):
+            raise ValueError(generic_error_msg + f"Got `source` type {type(source)} instead.")
+        if len(source) != 1:
+            raise ValueError(generic_error_msg + f"Got {len(source)} names instead.")
+
+        self.column = Column(source[0], component)
+        required_resources = [self.column, *required_resources]
+        super().__init__(
+            pipeline, source=None, component=component, required_resources=required_resources
+        )
+
+    def __bool__(self) -> bool:
+        return True
+
+    def __call__(
+        self, population_mgr: PopulationManager, index: pd.Index[int]
+    ) -> pd.Series[Any]:
+        return population_mgr.get_private_columns(
+            component=self.component, columns=self.column.name, index=index
+        )
+
+
+class AttributesValueSource(ValueSource):
+    """A resource representing the list of attributes source of an attribute pipeline."""
+
+    def __init__(
+        self,
+        pipeline: Pipeline,
+        source: list[str],
+        component: Component | Manager,
+        required_resources: Sequence[str | Resource],
+    ) -> None:
+        self.attributes = source
+        required_resources = [*self.attributes, *required_resources]
+        super().__init__(
+            pipeline, source=None, component=component, required_resources=required_resources
+        )
+
+    def __bool__(self) -> bool:
+        return True
+
+    def __call__(
+        self, population_mgr: PopulationManager, index: pd.Index[int]
+    ) -> pd.Series[Any] | pd.DataFrame:
+        return population_mgr.get_population(attributes=self.attributes, index=index)
 
 
 class ValueModifier(Resource):
@@ -53,7 +133,7 @@ class ValueModifier(Resource):
         self,
         pipeline: Pipeline,
         modifier: Callable[..., Any],
-        component: Component | Manager | None,
+        component: Component | Manager,
     ) -> None:
         mutator_name = self._get_modifier_name(modifier)
         mutator_index = len(pipeline.mutators) + 1
@@ -98,10 +178,20 @@ class Pipeline(Resource):
     need a source or to be configured. This might occur when writing
     generic components that create a set of pipeline modifiers for
     values that won't be used in the particular simulation.
+
+    Notes
+    -----
+    Pipelines are highy generic and can be used to calculate values of any type
+    through a simulation. *Most* pipelines are intended to calculate simulant
+    attributes; for those, use :class:`~vivarium.framework.values.pipeline.AttributePipeline`.
     """
 
     def __init__(self, name: str, component: Component | None = None) -> None:
-        super().__init__("value", name, component=component)
+        super().__init__(
+            "attribute" if isinstance(self, AttributePipeline) else "value",
+            name,
+            component=component,
+        )
 
         self.source: ValueSource = ValueSource(self, source=None, component=None)
         """The callable source of the value represented by the pipeline."""
@@ -154,7 +244,7 @@ class Pipeline(Resource):
             This is useful when the post-processor acts as some sort of final
             unit conversion (e.g. the rescale post processor).
         args, kwargs
-            Pipeline arguments.  These should be the arguments to the
+            Pipeline arguments. These should be the arguments to the
             callable source of the pipeline.
 
         Returns
@@ -174,7 +264,7 @@ class Pipeline(Resource):
                 f"The dynamic value pipeline for {self.name} has no source. This likely means "
                 f"you are attempting to modify a value that hasn't been created."
             )
-        value = self.source(*args, **kwargs)
+        value = self.source(self.manager._population_mgr, *args, **kwargs)
         for mutator in self.mutators:
             value = self.combiner(value, mutator, *args, **kwargs)
         if self.post_processor and not skip_post_processor:
@@ -191,9 +281,9 @@ class Pipeline(Resource):
         return hash(self.name)
 
     def get_value_modifier(
-        self, modifier: Callable[..., Any], component: Component | Manager | None
+        self, modifier: Callable[..., Any], component: Component | Manager
     ) -> ValueModifier:
-        """Add a value modifier to the pipeline and return it.
+        """Adds a value modifier to the pipeline and returns it.
 
         Parameters
         ----------
@@ -208,21 +298,24 @@ class Pipeline(Resource):
 
     def set_attributes(
         self,
-        component: Component | None,
-        source: Callable[..., Any],
+        component: Component | Manager,
+        source: ValueSource,
         combiner: ValueCombiner,
         post_processor: PostProcessor | None,
         manager: ValuesManager,
     ) -> None:
         """
-        Add a source, combiner, post-processor, and manager to a pipeline.
+        Adds a source, combiner, post-processor, and manager to a pipeline.
 
         Parameters
         ----------
         component
             The component that creates the pipeline.
         source
-            The callable source of the value represented by the pipeline.
+            The source for the dynamic attribute pipeline. This can be a callable
+            or a list of column names. If a list of column names is provided,
+            the component that is registering this attribute producer must be the
+            one that creates those columns.
         combiner
             A strategy for combining the source and mutator values into the
             final value represented by the pipeline.
@@ -232,8 +325,79 @@ class Pipeline(Resource):
         manager
             The simulation values manager.
         """
-        self.component = component
-        self.source = ValueSource(self, source, component)
+        self._component = component
+        self.source = source
         self._combiner = combiner
         self.post_processor = post_processor
         self._manager = manager
+
+
+class AttributePipeline(Pipeline):
+    """A type of value pipeline for calculating simulant attributes.
+
+    An attribute pipeline is a specific type of :class:`~vivarium.framework.values.pipeline.Pipeline`
+    where the source and callable must take a pd.Index of integers and return a pd.Series
+    or pd.DataFrame that has that same index.
+
+    """
+
+    @property
+    def is_simple(self) -> bool:
+        """Whether or not this ``AttributePipeline`` is simple, i.e. it has a list
+        of columns as its source and no modifiers or postprocessors."""
+        return (
+            isinstance(self.source, PrivateColumnValueSource)
+            and not self.mutators
+            and not self.post_processor
+        )
+
+    def __init__(self, name: str, component: Component | None = None) -> None:
+        super().__init__(name, component=component)
+        # Re-define the post-processor type to be more specific
+        self.post_processor: AttributePostProcessor | None = None  # type: ignore[assignment]
+        """An optional final transformation to perform on the combined output of
+        the source and mutators."""
+
+    def __call__(  # type: ignore[override]
+        self, index: pd.Index[int], skip_post_processor: bool = False
+    ) -> pd.Series[Any] | pd.DataFrame:
+        """Generates the attributes represented by this pipeline.
+
+        Arguments
+        ---------
+        index
+            A pd.Index of integers representing the simulants for which we
+            want to calculate the attribute.
+        skip_post_processor
+            Whether we should invoke the post-processor on the combined
+            source and mutator output or return without post-processing.
+
+        Returns
+        -------
+            A pd.Series or pd.DataFrame of attributes for the simulants in `index`.
+
+        Raises
+        ------
+        DynamicValueError
+            If the pipeline is invoked without a source set.
+        """
+        # NOTE: must pass index in as arg (NOT kwarg!) to match signature of parent Pipeline._call()
+        attribute = self._call(index, skip_post_processor=True)
+        if self.post_processor and not skip_post_processor:
+            attribute = self.post_processor(index, attribute, self.manager)
+        if not isinstance(attribute, (pd.Series, pd.DataFrame)):
+            raise DynamicValueError(
+                f"The dynamic attribute pipeline for {self.name} returned a {type(attribute)} "
+                "but pd.Series' or pd.DataFrames are expected for attribute pipelines."
+            )
+        if not attribute.index.equals(index):
+            raise DynamicValueError(
+                f"The dynamic attribute pipeline for {self.name} returned a series "
+                "or dataframe with a different index than was passed in. "
+                f"\nReturned index: {attribute.index}"
+                f"\nExpected index: {index}"
+            )
+        return attribute
+
+    def __repr__(self) -> str:
+        return f"_AttributePipeline({self.name})"

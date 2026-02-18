@@ -24,6 +24,7 @@ import itertools
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -32,7 +33,9 @@ from pandas.core.groupby.generic import DataFrameGroupBy
 from vivarium.exceptions import VivariumError
 from vivarium.framework.event import Event
 from vivarium.framework.results.stratification import Stratification, get_original_col_name
-from vivarium.framework.values import Pipeline
+
+if TYPE_CHECKING:
+    from vivarium.framework.results.interface import PopulationFilter
 
 VALUE_COLUMN = "value"
 
@@ -49,16 +52,16 @@ class Observation(ABC):
     name: str
     """Name of the observation. It will also be the name of the output results file
     for this particular observation."""
-    pop_filter: str
-    """A Pandas query filter string to filter the population down to the simulants
-    who should be considered for the observation."""
+    population_filter: PopulationFilter
+    """A named tuple of population filtering details. The first item is a Pandas 
+    query string to filter the population down to the simulants who should be 
+    considered for the observation. The second item is a boolean indicating whether 
+    to include untracked simulants from the observation."""
     when: str
     """Name of the lifecycle phase the observation should happen. Valid values are:
     "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics"."""
-    requires_columns: list[str]
-    """List of columns required for this observation."""
-    requires_values: list[Pipeline]
-    """List of values required for this observation."""
+    requires_attributes: list[str]
+    """The population attributes required for this observation."""
     results_initializer: Callable[[], pd.DataFrame]
     """Method or function that initializes the raw observation results
     prior to starting the simulation. This could return, for example, an empty
@@ -87,7 +90,7 @@ class Observation(ABC):
         df: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str, bool],
         stratifications: tuple[str, ...] | None,
     ) -> pd.DataFrame:
-        """Gather the results of the observation.
+        """Gathers the results of the observation.
 
         Parameters
         ----------
@@ -119,16 +122,16 @@ class UnstratifiedObservation(Observation):
     name
         Name of the observation. It will also be the name of the output results file
         for this particular observation.
-    pop_filter
-        A Pandas query filter string to filter the population down to the simulants who should
-        be considered for the observation.
+    population_filter
+        A named tuple of population filtering details. The first item is a Pandas
+        query string to filter the population down to the simulants who should be
+        considered for the observation. The second item is a boolean indicating whether
+        to include untracked simulants from the observation.
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-    requires_columns
-        List of columns required for this observation.
-    requires_values
-        List of values required for this observation.
+    requires_attributes
+       The population attributes required for this observation.
     results_gatherer
         Method or function that gathers the new observation results.
     results_updater
@@ -143,10 +146,9 @@ class UnstratifiedObservation(Observation):
     def __init__(
         self,
         name: str,
-        pop_filter: str,
+        population_filter: PopulationFilter,
         when: str,
-        requires_columns: list[str],
-        requires_values: list[Pipeline],
+        requires_attributes: list[str],
         results_gatherer: Callable[[pd.DataFrame], pd.DataFrame],
         results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
@@ -165,10 +167,9 @@ class UnstratifiedObservation(Observation):
 
         super().__init__(
             name=name,
-            pop_filter=pop_filter,
+            population_filter=population_filter,
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             results_initializer=self.create_empty_df,
             results_gatherer=_wrap_results_gatherer,
             results_updater=results_updater,
@@ -182,7 +183,7 @@ class UnstratifiedObservation(Observation):
 
     @staticmethod
     def create_empty_df() -> pd.DataFrame:
-        """Initialize an empty dataframe.
+        """Initializes an empty dataframe.
 
         Returns
         -------
@@ -203,16 +204,16 @@ class StratifiedObservation(Observation):
     name
         Name of the observation. It will also be the name of the output results file
         for this particular observation.
-    pop_filter
-        A Pandas query filter string to filter the population down to the simulants who should
-        be considered for the observation.
+    population_filter
+        A named tuple of population filtering details. The first item is a Pandas
+        query string to filter the population down to the simulants who should be
+        considered for the observation. The second item is a boolean indicating whether
+        to include untracked simulants from the observation.
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-    requires_columns
-        List of columns required for this observation.
-    requires_values
-        List of values required for this observation.
+    requires_attributes
+        The population attributes required for this observation.
     results_updater
         Method or function that updates existing raw observation results with newly gathered results.
     results_formatter
@@ -229,10 +230,9 @@ class StratifiedObservation(Observation):
     def __init__(
         self,
         name: str,
-        pop_filter: str,
+        population_filter: PopulationFilter,
         when: str,
-        requires_columns: list[str],
-        requires_values: list[Pipeline],
+        requires_attributes: list[str],
         results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         aggregator_sources: list[str] | None,
@@ -241,10 +241,9 @@ class StratifiedObservation(Observation):
     ):
         super().__init__(
             name=name,
-            pop_filter=pop_filter,
+            population_filter=population_filter,
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             results_initializer=self.create_expanded_df,
             results_gatherer=self.get_complete_stratified_results,  # type: ignore [arg-type]
             results_updater=results_updater,
@@ -263,7 +262,7 @@ class StratifiedObservation(Observation):
         df: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str, bool],
         stratifications: tuple[str, ...] | None,
     ) -> pd.DataFrame:
-        """Gather the results of the observation.
+        """Gathers the results of the observation.
 
         Parameters
         ----------
@@ -291,7 +290,7 @@ class StratifiedObservation(Observation):
                 results.index.rename(get_original_col_name(idx_name), inplace=True)
 
     def create_expanded_df(self) -> pd.DataFrame:
-        """Initialize a dataframe of 0s with complete set of stratifications as the index.
+        """Initializes a dataframe of 0s with complete set of stratifications as the index.
 
         Returns
         -------
@@ -337,7 +336,7 @@ class StratifiedObservation(Observation):
         pop_groups: DataFrameGroupBy[str, bool],
         stratifications: tuple[str, ...],
     ) -> pd.DataFrame:
-        """Gather results for this observation.
+        """Gathers results for this observation.
 
         Parameters
         ----------
@@ -363,9 +362,7 @@ class StratifiedObservation(Observation):
         aggregator_sources: list[str] | None,
         aggregator: Callable[[pd.DataFrame], float | pd.Series[float]],
     ) -> pd.Series[float] | pd.DataFrame:
-        """Apply the `aggregator` to the population groups and their
-        `aggregator_sources` columns.
-        """
+        """Applies the provided aggregator to the popoulation groups."""
         aggregates = (
             pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)  # type: ignore [arg-type]
             if aggregator_sources
@@ -375,9 +372,7 @@ class StratifiedObservation(Observation):
 
     @staticmethod
     def _format(aggregates: pd.Series[float] | pd.DataFrame) -> pd.DataFrame:
-        """Convert the results to a pandas DataFrame if necessary and ensure the
-        results column name is 'value'.
-        """
+        """Converts the results to a dataframe and ensures the results column name is 'value'."""
         df = pd.DataFrame(aggregates) if isinstance(aggregates, pd.Series) else aggregates
         if df.shape[1] == 1:
             df.rename(columns={df.columns[0]: "value"}, inplace=True)
@@ -385,7 +380,7 @@ class StratifiedObservation(Observation):
 
     @staticmethod
     def _expand_index(aggregates: pd.DataFrame) -> pd.DataFrame:
-        """Include all stratifications in the results by filling missing values with 0."""
+        """Includes all stratifications in the results by filling missing values with 0."""
         full_idx = (
             pd.MultiIndex.from_product(aggregates.index.levels)
             if isinstance(aggregates.index, pd.MultiIndex)
@@ -406,16 +401,16 @@ class AddingObservation(StratifiedObservation):
     name
         Name of the observation. It will also be the name of the output results file
         for this particular observation.
-    pop_filter
-        A Pandas query filter string to filter the population down to the simulants who should
-        be considered for the observation.
+    population_filter
+        A named tuple of population filtering details. The first item is a Pandas
+        query string to filter the population down to the simulants who should be
+        considered for the observation. The second item is a boolean indicating whether
+        to include untracked simulants from the observation.
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-    requires_columns
-        List of columns required for this observation.
-    requires_values
-        List of values required for this observation.
+    requires_attributes
+        The population attributes required for this observation.
     results_formatter
         Method or function that formats the raw observation results.
     stratifications
@@ -433,10 +428,9 @@ class AddingObservation(StratifiedObservation):
     def __init__(
         self,
         name: str,
-        pop_filter: str,
+        population_filter: PopulationFilter,
         when: str,
-        requires_columns: list[str],
-        requires_values: list[Pipeline],
+        requires_attributes: list[str],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         aggregator_sources: list[str] | None,
         aggregator: Callable[[pd.DataFrame], float | pd.Series[float]],
@@ -444,10 +438,9 @@ class AddingObservation(StratifiedObservation):
     ):
         super().__init__(
             name=name,
-            pop_filter=pop_filter,
+            population_filter=population_filter,
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             results_updater=self.add_results,
             results_formatter=results_formatter,
             aggregator_sources=aggregator_sources,
@@ -459,7 +452,7 @@ class AddingObservation(StratifiedObservation):
     def add_results(
         existing_results: pd.DataFrame, new_observations: pd.DataFrame
     ) -> pd.DataFrame:
-        """Add newly-observed results to the existing results.
+        """Adds newly-observed results to the existing results.
 
         Parameters
         ----------
@@ -493,25 +486,23 @@ class ConcatenatingObservation(UnstratifiedObservation):
     """Concrete class for observing concatenating (and by extension, unstratified) results.
 
     The parent class `results_gatherer` and `results_updater` methods are explicitly
-    defined and attribute `included_columns` is added.
+    defined.
 
     Attributes
     ----------
     name
         Name of the observation. It will also be the name of the output results file
         for this particular observation.
-    pop_filter
-        A Pandas query filter string to filter the population down to the simulants who should
-        be considered for the observation.
+    population_filter
+        A named tuple of population filtering details. The first item is a Pandas
+        query string to filter the population down to the simulants who should be
+        considered for the observation. The second item is a boolean indicating whether
+        to include untracked simulants from the observation.
     when
         Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-    requires_columns
-        List of columns required for this observation.
-    requires_values
-        List of values required for this observation.
-    included_columns
-        Columns to include in the observation
+    requires_attributes
+        The population attributes required for this observation.
     results_formatter
         Method or function that formats the raw observation results.
     to_observe
@@ -522,38 +513,33 @@ class ConcatenatingObservation(UnstratifiedObservation):
     def __init__(
         self,
         name: str,
-        pop_filter: str,
+        population_filter: PopulationFilter,
         when: str,
-        requires_columns: list[str],
-        requires_values: list[Pipeline],
+        requires_attributes: list[str],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         to_observe: Callable[[Event], bool] = lambda event: True,
     ):
-        requires_columns = ["event_time"] + requires_columns
+        requires_attributes = ["event_time"] + requires_attributes
         super().__init__(
             name=name,
-            pop_filter=pop_filter,
+            population_filter=population_filter,
             when=when,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
+            requires_attributes=requires_attributes,
             results_gatherer=self.get_results_of_interest,
             results_updater=self.concatenate_results,
             results_formatter=results_formatter,
             to_observe=to_observe,
         )
-        self.included_columns = self.requires_columns + [
-            value.name for value in self.requires_values
-        ]
 
     def get_results_of_interest(self, pop: pd.DataFrame) -> pd.DataFrame:
         """Return the population with only the `included_columns`."""
-        return pop[self.included_columns]
+        return pop[self.requires_attributes]
 
     @staticmethod
     def concatenate_results(
         existing_results: pd.DataFrame, new_observations: pd.DataFrame
     ) -> pd.DataFrame:
-        """Concatenate the existing results with the new observations.
+        """Concatenates the existing results with the new observations.
 
         Parameters
         ----------

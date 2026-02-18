@@ -46,16 +46,16 @@ of some of the more complex pieces/systems until later.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
    :caption: **File**: :file:`~/code/vivarium/examples/disease_model/population.py`
+   :linenos:
 
 There are a lot of things here. Let's take them piece by piece.
-
-*Note: docstrings are left out of the code snippets below.*
 
 Imports
 +++++++
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 1-8
+   :start-after: # docs-start: imports
+   :end-before: # docs-end: imports
 
 It's typical to import all required objects at the top of each module. In this case,
 we are importing ``pandas`` and the Vivarium 
@@ -76,9 +76,6 @@ information in method signatures.
 BasePopulation Instantiation
 ++++++++++++++++++++++++++++
 
-.. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 11
-
 We define a class called ``BasePopulation`` that inherits from the Vivarium
 :class:`Component <vivarium.component.Component>`. This inheritance is what 
 makes a class a proper Vivarium :term:`component` and all the affordances that 
@@ -88,9 +85,10 @@ Default Configuration
 +++++++++++++++++++++
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 18-19, 25-32
+   :start-after: # docs-start: configuration_defaults
+   :end-before: # docs-end: configuration_defaults
 
-You'll see this sort of pattern repeated in many, many Vivarium components.
+You'll see this sort of pattern repeated in many Vivarium components.
 
 We declare a configuration block as a property for components. Vivarium
 has a :doc:`cascading configuration system </concepts/configuration>` that
@@ -106,16 +104,16 @@ initial population of simulants. It also notes that there is a
 `'population_size'` key. This key has a default value set by  Vivarium's
 population management system.
 
-Columns Created 
-+++++++++++++++
-.. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 34-36
+Sub-components
+++++++++++++++
 
-This property is a list of the columns that the component will create in the 
-population state table. The population management system uses information about 
-what columns are created by which components in order to determine what order to 
-call initializers defined in separate classes. We'll see what this means in
-practice later.
+.. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
+   :start-after: # docs-start: sub_components
+   :end-before: # docs-end: sub_components
+
+This property is a list of components that are managed by this component. In this 
+case, we see that when ``BasePopulation`` is set up, it will also set up an instance
+of the ``Mortality`` component.
 
 The ``__init__()`` method
 +++++++++++++++++++++++++
@@ -159,7 +157,7 @@ method on each component and calls that method with a
      to register listeners for ``'time_step'`` events.
    - ``builder.population`` : The population management system.
      Registers population initializers (functions that fill in initial state
-     information about simulants), give access to views of the simulation
+     information about simulants), gives access to views of the simulation
      state, and mediates updates to the simulation state. It also provides
      access to functionality for generating new simulants (e.g. via birth or
      migration), though we won't use that feature in this tutorial.
@@ -176,28 +174,26 @@ method on each component and calls that method with a
 Let's step through the ``setup`` method and examine what's happening.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 43, 55-71
-   :dedent: 4
-   :linenos:
+   :start-after: # docs-start: setup
+   :end-before: # docs-end: setup
 
-Line 2 simply grabs a copy of the simulation
+To start, we simply grab a copy of the simulation
 :class:`configuration <layered_config_tree.main.LayeredConfigTree>`. This is essentially
 a dictionary that supports ``.``-access notation.
 
-Lines 4-18 interact with Vivarium's
+The next handful of lines interact with Vivarium's
 :class:`randomness system <vivarium.framework.randomness.interface.RandomnessInterface>`.
 Several things are happening here.
 
-Lines 4-13 deal with the topic of :doc:`Common Random Numbers </concepts/crn>`,
+First, we deal with the topic of :doc:`Common Random Numbers </concepts/crn>`,
 a variance reduction technique employed by the Vivarium framework to make
 it easier to perform counterfactual analysis. It's not important to have a full
 grasp of this system at this point.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 57-66
+   :start-after: # docs-start: crn
+   :end-before: # docs-end: crn
    :dedent: 4
-   :linenos:
-   :lineno-start: 4
 
 .. note::
 
@@ -230,14 +226,13 @@ randomness system to let us know whether or not we care about using CRN.
 We'll explore this later when we're looking at running simulations with
 interventions.
 
-Finally, we grab actual :class:`randomness streams <vivarium.framework.randomness.stream.RandomnessStream>`
+Next, we grab actual :class:`randomness streams <vivarium.framework.randomness.stream.RandomnessStream>`
 from the framework.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 68-71
+   :start-after: # docs-start: randomness
+   :end-before: # docs-end: randomness
    :dedent: 4
-   :linenos:
-   :lineno-start: 15
 
 ``get_stream`` is the only call most components make to the randomness system.
 The best way to think about randomness streams is as decision points in your
@@ -258,45 +253,64 @@ initialization streams in a simulation.
 The ``'sex_randomness'`` is a much more typical example of how to interact
 with the randomness system - we are simply getting the stream.
 
+Finally, we register two initializers with the population manager. This tells
+vivarium which initializers to call when creating the component as well as
+which columns (if any) each initializer is responsible for creating.
+
+.. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
+   :start-after: # docs-start: initializers
+   :end-before: # docs-end: initializers
+   :dedent: 4
+
+Note that each initializer registration requires us to specify which columns
+that initializer is creating (if any), the initializer method itself, and any
+required resources. In this case, each initializer depends on a randomness stream.
+The system will ensure that these required resources are set up before calling the
+initializer methods.
+
 **That was a lot of stuff**
 
-As I mentioned at the top the population component is one of the more
+As I mentioned at the top, the population component is one of the more
 complicated pieces of any simulation. It's not important to grasp everything
 right now. We'll see many of the same patterns repeated in the ``setup``
 method of other components later. The unique things here are worth coming
 back to at a later point once you have more familiarity with the framework
 conventions.
 
-The ``on_initialize_simulants`` method
-++++++++++++++++++++++++++++++++++++++
+The initializers
+++++++++++++++++
 
-The primary purpose of this method (for this class) is to generate the initial 
-population. Specifically, it will generate the 'age', 'sex', 'alive', and 
-'entrance_time' columns for the population table (recall that the ``columns_created`` 
-property dictates that this component will indeed create these columns).
+Two methods are registered as initializers. The primary purpose of initializer methods 
+is to generate the initial population. Specifically (for this class), the 
+``initialize_entrance_time_and_age`` method is registered to create the 'entrance_time'
+and 'age' columns (with ``age_randomness`` as a dependency) and the 
+``initialize_sex`` method is registered to create the 'sex' column (with 
+``sex_randomness`` as a dependency).
 
 .. note::
 
-   **The Population Table**
+   **The Population State Table**
 
    When we talk about columns in the context of Vivarium, we are typically
-   talking about the simulant :term:`attributes <attribute>`. Vivarium
-   represents the population of simulants as a single
-   :class:`pandas.DataFrame`. We think of each simulant as a row in this table
-   and each column as an attribute of the simulants.
+   talking about simulant :term:`attributes <attribute>`. All attributes for all
+   simulants can be represented by a single ``pandas.DataFrame`` where each simulant
+   is a row and each attribute is a column. This dataframe is referred to as the 
+   :term:`population state table` (or simply "state table").
 
 As previously mentioned, this class is a proper Vivarium :term:`Component`. Among
 other things, this means that much of the setup happens automatically during the 
 simulation's ``Setup`` :doc:`lifecycle phase </concepts/lifecycle>`.
 There are several methods available to define for a component's setup, depending
-on what you want to happen when: ``on_post_setup()``, ``on_initialize_simulants()``
-(this one), ``on_time_step_prepare()``, ``on_time_step()``, ``on_time_step_cleanup()``.,
+on what you want to happen when: ``on_post_setup()``
+``on_time_step_prepare()``, ``on_time_step()``, ``on_time_step_cleanup()``,
 ``on_collect_metrics()``, and ``on_simulation_end()``. The framework looks for 
 any of these methods during the setup phase and calls them if they are defined.
-The fact that this method is called ``on_initialize_simulants`` guarantees that 
-it will be called during the population initialization phase of the simulation.
+Further, the framework calls any registered initializer methods during population
+creation. The fact that ``initialize_entrance_time_and_age`` and ``initialize_sex``
+were registered guarantees that they will be called during the population initialization 
+phase of the simulation.
 
-This initializer method is called by the population management whenever simulants
+Initializer methods are called by the population manager whenever simulants
 are created. For our purposes, this happens only once at the very beginning of
 the simulation. Typically, we'd task another component with responsibility for
 managing other ways simulants might enter (we might, for instance, have a
@@ -304,15 +318,18 @@ managing other ways simulants might enter (we might, for instance, have a
 our location of interest or a ``Fertility`` component that handles new simulants
 being born).
 
-We'll take this method line by line as we did with ``setup``.
+Let's inspect the two initializer methods line by line as we did with ``setup``.
+
+The ``initialize_entrance_time_and_age`` method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 77, 102-132
+   :start-after: # docs-start: initialize_entrance_time_and_age
+   :end-before: # docs-end: initialize_entrance_time_and_age
    :dedent: 4
-   :linenos:
 
 First, we see that this method takes in a special argument that we don't provide. 
-This argument, ``pop_data`` is an instance of 
+This argument, ``pop_data``, is an instance of 
 :class:`~vivarium.framework.population.manager.SimulantData` containing a
 handful of information useful when initializing simulants.
 
@@ -338,10 +355,9 @@ property we specified an ``'age_start'`` and ``'age_end'``. Here we use these
 to generate the age distribution of our initial population.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 102-111
+   :start-after: # docs-start: ages
+   :end-before: # docs-end: ages
    :dedent: 4
-   :linenos:
-   :lineno-start: 2
 
 We've built in support for two different kinds of populations based on the
 ``'age_start'`` and ``'age_end'`` specified in the configuration. If we get
@@ -364,11 +380,18 @@ in the index.
 
    **The Population Index**
 
-   The population table we described before has an index that uniquely
+   The population state table we described before has an index that uniquely
    identifies each simulant. This index is used in several places in the
    simulation to look up information, calculate simulant-specific values,
    and update information about the simulants' state.
 
+With the simulant ages defined, we then create a dataframe of simulant 
+ages and entrance times.
+
+.. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
+   :start-after: # docs-start: population_dataframe
+   :end-before: # docs-end: population_dataframe
+   :dedent: 4
 
 We then come back to the question of whether or not we're using common
 random numbers in our system. In the ``setup`` method, our criteria for
@@ -377,31 +400,23 @@ were specified as the randomness ``key_columns`` in the configuration.
 These ``key_columns`` are what the randomness system uses to uniquely
 identify simulants across simulations.
 
-.. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 113-120
-   :dedent: 4
-   :linenos:
-   :lineno-start: 13
-
-If we are using CRN, we must generate these columns before any other calls
+Note that if we are using CRN, we must generate these columns before any other calls
 are made to the randomness system with the population index. We then
 register these simulants with the randomness system using ``self.register``,
-a reference to ``register_simulants`` method in the randomness management
+a reference to the ``register_simulants`` method in the randomness management
 system. This is responsible for mapping the attributes of interest (here
 ``'entrance_time'`` and ``'age'``) to a particular set of random numbers
 that will be used across simulations with the same random seed.
 
+.. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
+   :start-after: # docs-start: crn_registration
+   :end-before: # docs-end: crn_registration
+   :dedent: 4
+
 Once registered, we can generate the remaining attributes of our simulants
 with guarantees around reproducibility.
 
-If we're not using CRN, we can just generate the full set of simulant
-attributes straightaway.
-
-.. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 121-130
-   :dedent: 4
-   :linenos:
-   :lineno-start: 21
+If we're not using CRN, we simply don't register the simulants and move on.
 
 In either case, we are hanging on to a table representing some attributes of
 our new simulants. However, this table does not matter yet because the
@@ -411,17 +426,38 @@ inform the simulation by passing in the ``DataFrame`` to our
 ``update`` method. This method is the only way to modify the underlying
 population table.
 
-.. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 132
-   :dedent: 4
-   :linenos:
-   :lineno-start: 32
+.. note::
+    
+   **Population Views**
+
+   A :class:`~vivarium.framework.population.population_view.PopulationView` is a
+   read/write interface to the population state table. It provides a number of
+   convenience methods for getting and setting attributes, private columns,
+   and other bits of information about the population.
 
 .. warning::
 
    The data generated and passed into the population view's ``update`` method
    must have the same index that was passed in with the ``pop_data``.
    You can potentially cause yourself a great deal of headache otherwise.
+
+.. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
+   :start-after: # docs-start: update_entrance_time_and_age
+   :end-before: # docs-end: update_entrance_time_and_age
+   :dedent: 4
+
+The ``initialize_sex`` method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
+   :start-after: # docs-start: initialize_sex
+   :end-before: # docs-end: initialize_sex
+   :dedent: 4
+
+Thankfully, the ``initialize_sex`` method is much simpler than the previous
+initializer. Here, we simply call another randomness stream convenience method
+``self.sex_randomness.choice`` to randomly assign a sex to each simulant. We then
+update the population via population view with these new values just like before.
 
 The ``on_time_step`` method
 +++++++++++++++++++++++++++
@@ -430,13 +466,13 @@ The last piece of our population component is the ``'time_step'`` listener
 method ``on_time_step``.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 134, 144-146
+   :start-after: # docs-start: on_time_step
+   :end-before: # docs-end: on_time_step
    :dedent: 4
-   :linenos:
 
-This method takes in an :class:`~vivarium.framework.event.Event` argument
+This method takes in an :class:`~ <vivarium.framework.event.manager.Event>` argument
 provided by the simulation. This is very similar to the ``SimulantData``
-argument provided to ``on_initialize_simulants``. It carries around
+argument provided to initializer methods. It carries around
 some information about what's happening in the event.
 
 .. note::
@@ -456,22 +492,34 @@ some information about what's happening in the event.
    It also supports some method for generating new events that we don't care
    about here.
 
-In order to age our simulants, we first acquire a copy of the current
-population state from our population view. In addition to the ``update``
-method, population views also support a ``get`` method that takes in
-an index and an optional ``query`` used to filter down the returned
-population. Here, we only want to increase the age of people still living.
-The ``query`` argument needs to be consistent with the
-:meth:`pandas.DataFrame.query` method.
+In order to age our simulants, we first acquire a copy of the current ages via
+the :meth:`vivarium.framework.population.population_view.PopulationView.get_private_columns`
+method. This method takes in an index and optional ``private_columns`` and/or ``query``
+arguments used request specific columns and to filter down the returned
+population, respectively. Here, we only need the simulant ages and we only want
+to increase the age of people still living. Note that the ``query`` argument needs
+to be consistent with the :meth:`pandas.DataFrame.query` method. What we get back
+is a ``pandas.Series`` of simulant ages containing the filtered rows corresponding 
+to the index we passed in.
 
-What we get back is another ``pandas.DataFrame`` containing the filtered
-rows corresponding to the index we passed in. The columns of the returned
-``DataFrame`` are precisely the columns this component created (as well as 
-any additional ``columns_required``, of which this component has none).
+.. note::
+
+   **Private Columns vs. Attributes**
+
+   Population views provide methods to get both attributes and private columns.
+   If you want attributes, you can use :meth:`vivarium.framework.population.population_view.PopulationView.get_attributes`
+   or :meth:`vivarium.framework.population.population_view.PopulationView.get_attribute_frame`.
+   If you want private columns, use :meth:`vivarium.framework.population.population_view.PopulationView.get_private_columns`.
+   
+   Knowing whether you need a private column or an attribute depends on context,
+   but when you need to update the state table as we're doing here, it's important 
+   to understand that what you are really updating are the appropriate private columns
+   that act as the source of the attributes you care about. Refer to the 
+   :ref:`population management documentation <population_concept>` for more details.
 
 We next update the age of our simulants by adding on the width of the time step
 to their current age and passing the updated table to the ``update`` method
-of our population view as we did in ``on_initialize_simulants``
+of our population view as we did in our initializer methods.
 
 Examining our work
 ++++++++++++++++++
@@ -487,16 +535,16 @@ Now that we've done all this hard work, let's see what it gives us.
 
    sim = InteractiveContext(components=[BasePopulation()], configuration=config)
 
-   print(sim.get_population().head())
+   print(sim.get_population(['age', 'sex']).head())
 
 ::
 
-          tracked     sex        age entrance_time  alive
-    0     True  Female  13.806775818385496  2005-07-01  alive
-    1     True  Male    59.17289327893596   2005-07-01  alive
-    2     True  Female  11.030887339897     2005-07-01  alive
-    3     True  Female  27.72319127598699   2005-07-01  alive
-    4     True  Female  51.05218820533359   2005-07-01  alive
+            age     sex
+   0  13.806776  Female
+   1  59.172893    Male
+   2  11.030887  Female
+   3  27.723191  Female
+   4  51.052188  Female
 
 .. testcode::
    :hide:
@@ -508,11 +556,17 @@ Now that we've done all this hard work, let's see what it gives us.
 
    config = {'randomness': {'key_columns': ['entrance_time', 'age']}}
    sim = InteractiveContext(components=[BasePopulation()], configuration=config)
-   expected = pd.DataFrame({
-      'age': [13.806775818385496, 59.17289327893596, 11.030887339897, 27.72319127598699, 51.05218820533359],
-      'sex': ['Female', 'Male', 'Female', 'Female', 'Female'],
-   })
-   pd.testing.assert_frame_equal(sim.get_population().head()[['age', 'sex']], expected)
+
+   print(sim.get_population(['age', 'sex']).head())
+
+.. testoutput::
+
+            age     sex
+   0  13.806776  Female
+   1  59.172893    Male
+   2  11.030887  Female
+   3  27.723191  Female
+   4  51.052188  Female
 
 Great!  We generate a population with a non-trivial age and sex distribution.
 Let's see what happens when our simulation takes a time step.
@@ -520,16 +574,16 @@ Let's see what happens when our simulation takes a time step.
 .. code-block:: python
 
    sim.step()
-   print(sim.get_population().head())
+   print(sim.get_population(['age', 'sex']).head())
 
 ::
 
-          tracked     sex        age entrance_time  alive
-    0     True  Female  13.806775818385496  2005-07-01  alive
-    1     True  Male    59.17289327893596   2005-07-01  alive
-    2     True  Female  11.030887339897     2005-07-01  alive
-    3     True  Female  27.72319127598699   2005-07-01  alive
-    4     True  Female  51.05218820533359   2005-07-01  alive
+            age     sex
+   0  13.809516  Female
+   1  59.175633    Male
+   2  11.033627  Female
+   3  27.725931  Female
+   4  51.054928  Female
 
 
 .. testcode::
@@ -538,7 +592,17 @@ Let's see what happens when our simulation takes a time step.
    import numpy as np 
 
    sim.step()
-   assert np.isclose((sim.get_population().head()['age'] - expected['age'])*365, 1, 0.000001).all()
+
+   print(sim.get_population(['age', 'sex']).head())
+
+.. testoutput::
+
+            age     sex
+   0  13.809516  Female
+   1  59.175633    Male
+   2  11.033627  Female
+   3  27.725931  Female
+   4  51.054928  Female
 
 Everyone gets older by exactly one time step! We could just keep taking steps in 
 our simulation and people would continue getting infinitely older. This, of 
@@ -547,11 +611,14 @@ course, does not reflect how the world goes. Time to introduce the grim reaper.
 Mortality
 ---------
 
-Now that we have population generation and aging working, the next step
-is introducing mortality into our simulation.
+Now that we have demonstrated that population generation and aging works, let's 
+investigate the Mortality component. Note that Mortality is a sub-component
+of the BasePopulation component and comes for free when we request BasePopulation
+via the model specification; there is no need to add Mortality separately.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
    :caption: **File**: :file:`~/code/vivarium/examples/disease_model/mortality.py`
+   :linenos:
 
 The purpose of this component is to determine who dies every time step based
 on a mortality rate. You'll see many of the same framework features we used
@@ -566,24 +633,14 @@ Since we're building our disease model without data to inform it, we'll
 expose all the important bits of the model as parameters in the configuration.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 16-17, 23-27
+   :start-after: # docs-start: configuration_defaults
+   :end-before: # docs-end: configuration_defaults
 
 Here we're specifying the overall mortality rate in our simulation. Rates have
 units! We'll phrase our model with rates specified in terms of events per
 person-year. So here we're specifying a uniform mortality rate of 0.01 deaths
 per person-year. This is obviously not realistic, but using toy data like this is
 often extremely useful in validating a model.
-
-Columns Required
-++++++++++++++++
-
-.. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 29-31
-
-While this component does not create any new columns like the ``BasePopulation``
-component, it does require the ``'tracked'`` and ``'alive'`` columns to be 
-present in the population table. You'll see that these columns are indeed used 
-in the ``on_time_step`` and ``on_time_step_prepare`` methods.
 
 The ``setup`` method
 ++++++++++++++++++++
@@ -592,35 +649,64 @@ There is not a whole lot going on in this setup method, but there is one new con
 we should discuss.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 38, 50-55
+   :start-after: # docs-start: setup
+   :end-before: # docs-end: setup
 
-The first two lines are simply adding some useful attributes: the mortality-specific
-configuration and the mortality randomness stream (which is used to answer the 
-question "which simulants died at this time step?").
+The first line simply adds a useful class attribute: the mortality randomness stream 
+(which is used to answer the question "which simulants died at this time step?").
 
-The main feature of note is the introduction of the
-:class:`values system <vivarium.framework.values.manager.ValuesInterface>`.
+The next bit is the main feature of note: the introduction of the
+:class:`values system <vivarium.framework.values.interface.ValuesInterface>`.
 The values system provides a way of distributing the computation of a
 value over multiple components. This can be a bit difficult to grasp,
 but is vital to the way we think about components in Vivarium. The best
 way to understand this system is by :doc:`example. </concepts/values>`
 
-In our current context we register a named value "pipeline" into the
+.. note::
+
+    **Values vs Attributes**
+
+    A :term:`value <value>` is generic and is simply something that is computed from
+    a :term: `pipeline <pipeline>`. An :term:`attribute <attribute>` is a specific
+    kind of value that is simulant-specific, stored in the population state table,
+    and is computed from a :term:`attribute pipeline <attribute pipeline>`. Most
+    values in vivarium are attributes. 
+
+In our current context we register a named attribute pipeline into the
 simulation called ``'mortality_rate'`` via the ``builder.value.register_rate_producer`` 
-method. The source for a value is always a callable function or method 
-(``self.base_mortality_rate`` in this case) which typically takes in a 
-``pandas.Index`` as its only argument. Other things are possible, but not 
+method. The source for a value is always a callable which typically takes in a 
+``pandas.Index`` as its only argument. In this case, the source is a LookupTable,
+which is callable, so meets this requirement. Other things are possible, but not 
 necessary for our current use case.
 
 The ``'mortality_rate'`` source is then responsible for returning a
 ``pandas.Series`` containing a base mortality rate for each simulant
 in the index to the values system. Other components may register themselves
 as modifiers to this base rate. We'll see more of this once we get to the
-disease modelling portion of the tutorial.
+disease modeling portion of the tutorial.
 
 The value system will coordinate how the base value is modified behind the
 scenes and return the results of all computations whenever the pipeline is
 called (in the ``on_time_step`` method in this case - see below).
+
+Finally, we register an initializer method which is responsible for creating an
+``'is_alive'`` column in the state table.
+
+The ``on_initialize_simulants`` method
+++++++++++++++++++++++++++++++++++++++
+
+.. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
+   :start-after: # docs-start: on_initialize_simulants
+   :end-before: # docs-end: on_initialize_simulants
+   :dedent: 4
+
+This very simple initializer method simply creates an ``'is_alive'`` column in the state
+table and sets it to True for all simulants being initialized. Note again
+that we need to call the population view's ``update`` method to actually modify
+the state table.
+
+Notice also that when registering this method, we did not specify any required resources
+(since every simulant is set as alive regardless of anything else).
 
 The ``on_time_step`` method
 +++++++++++++++++++++++++++
@@ -629,62 +715,38 @@ Similar to how we aged simulants in the population component, we determine which
 simulants die during ``'time_step'`` events.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 61, 71-77
+   :start-after: # docs-start: on_time_step
+   :end-before: # docs-end: on_time_step
    :dedent: 4
-   :linenos:
 
-Line 2 is where we actually call the pipeline we constructed during setup.
-It will return the effective mortality rate for each person in the simulation.
+The very first thing we do is get the ``'mortality_rate'`` attribute (which is calculated
+from the attribute pipeline we constructed during setup); these are the effective
+mortality rate for each person in the simulation.
 Right now this will just be the base mortality rate, but we'll see how
 this changes once we bring in a disease. Importantly for now though, the
 pipeline is automatically rescaling the rate down to the size of the time
 steps we're taking.
 
-In lines 3-5, we determine who died this time step. We turn our mortality rate
+We then determine who died this time step. We turn our mortality rate
 into a probability of death in the given time step by assuming deaths are
 `exponentially distributed <https://en.wikipedia.org/wiki/Exponential_distribution#Occurrence_of_events>`_
 and using the inverse distribution function. We then draw a uniformly distributed 
 random number for each person and determine who died by comparing that number to 
 the computed probability of death for the individual.
 
-Finally, we update the state table ``'alive'`` column with the newly dead simulants.
+Finally, we update the state table ``is_alive`` column with the newly dead simulants.
 
-Note that when getting a view of the state table to update, we are using the 
-``subview`` method which returns only the columns requested.
-
-The ``on_time_step_prepare`` method
-+++++++++++++++++++++++++++++++++++
-
-This method simply updates any simulants who died during the previous time step 
-to be marked as untracked (that is, their ``'tracked'`` value is set to ``False``).
-
-.. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 79, 92-96
-
-Why didn't we update the newly-dead simulants ``'tracked'`` values at the same time 
-as their ``'alive'`` values in the ``on_time_step`` method? The reason is that the 
-deaths observer (discussed later) records the number of deaths that occurred during 
-the previous time step during the ``collect_metrics`` phase. By updating 
-the ``'alive'`` column during the ``time_step`` phase (which occurs *before* 
-``collect_metrics``) and the ``'tracked'`` column during the ``time_step_prepare``
-phase (which occurs *after* ``collect_metrics``), we ensure that the observer 
-can distinguish which simulants died specifically during the previous time step.
 
 Supplying a base mortality rate
 +++++++++++++++++++++++++++++++
 
-As discussed above, the ``base_mortality_rate`` method is the source for
-the ``'mortality_rate'`` value. Here we take in an index and build
-a ``pandas.Series`` that assigns each individual the mortality rate
-specified in the configuration.
-
-.. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 102, 115
+As discussed above, the source for the ``'mortality_rate'`` value is a LookupTable
+defined in component's configuration.
 
 In an actual simulation, we'd inform the base mortality rate with data
 specific to the age, sex, location, year (and potentially other demographic
 factors) that represent each simulant. We might disaggregate or interpolate
-our data here as well. Which is all to say, the source of a data pipeline can
+our data here as well. Which is all to say, the source of a pipeline can
 do some pretty complicated stuff.
 
 Did it work?
@@ -699,94 +761,108 @@ can see the impact of our mortality component without taking too many steps.
 
    from vivarium import InteractiveContext
    from vivarium.examples.disease_model.population import BasePopulation
-   from vivarium.examples.disease_model.mortality import Mortality
 
    config = {
-       'population': {
-           'population_size': 100_000
-       },
-       'randomness': {
-           'key_columns': ['entrance_time', 'age']
-       }
+      'population': {
+         'population_size': 100_000
+      },
+      'randomness': {
+         'key_columns': ['entrance_time', 'age']
+      }
    }
 
-   sim = InteractiveContext(components=[BasePopulation(), Mortality()], configuration=config)
-   print(sim.get_population().head())
+   sim = InteractiveContext(components=[BasePopulation()], configuration=config)
+   print(sim.get_population(['age', 'sex', 'mortality_rate', 'is_alive']).head())
 
 ::
 
-          tracked     sex        age entrance_time  alive
-    0     True  Female  13.806775818385496  2005-07-01  alive
-    1     True  Male    59.17289327893596   2005-07-01  alive
-    2     True  Female  11.030887339897     2005-07-01  alive
-    3     True  Female  27.72319127598699   2005-07-01  alive
-    4     True  Female  51.05218820533359   2005-07-01  alive
+            age     sex  mortality_rate  is_alive
+   0  13.806776  Female        0.000027      True
+   1  59.172893    Male        0.000027      True
+   2  11.030887  Female        0.000027      True
+   3  27.723191  Female        0.000027      True
+   4  51.052188  Female        0.000027      True
 
 .. testcode::
    :hide:
    
-   from vivarium.examples.disease_model.mortality import Mortality
-
    config = {
-       'population': {
-           'population_size': 100_000
-       },
-       'randomness': {
-           'key_columns': ['entrance_time', 'age']
-       }
+         'population': {
+            'population_size': 100_000
+         },
+         'randomness': {
+            'key_columns': ['entrance_time', 'age']
+         }
    }
-   sim = InteractiveContext(components=[BasePopulation(), Mortality()], configuration=config)
+   sim = InteractiveContext(components=[BasePopulation()], configuration=config)
 
-   expected = pd.DataFrame({
-      'age': [13.806775818385496, 59.17289327893596, 11.030887339897, 27.72319127598699, 51.05218820533359],
-      'sex': ['Female', 'Male', 'Female', 'Female', 'Female'],
-   })
-   pd.testing.assert_frame_equal(sim.get_population().head()[['age', 'sex']], expected)
+   print(sim.get_population(['age', 'sex', 'mortality_rate', 'is_alive']).head())
 
-This looks (exactly!) the same as it did prior to implementing mortality. Good - 
-we haven't taken a time step yet and so no one should have died.
+.. testoutput::
+
+            age     sex  mortality_rate  is_alive
+   0  13.806776  Female        0.000027      True
+   1  59.172893    Male        0.000027      True
+   2  11.030887  Female        0.000027      True
+   3  27.723191  Female        0.000027      True
+   4  51.052188  Female        0.000027      True
+
+Note that aside from modifying the population size in the config, we haven't actually
+done anything different than before. Indeed, the ages and sexes of the first five
+simulants are the same. Here, however, we are not subsetting the dataframe to only
+show the ``'age'`` and ``'sex'`` columns, however, and so we see various others 
+(notably, the ``'mortality_rate'`` and ``'is_alive'`` columns created by the Mortality 
+component).
+
+As we haven't taken a time step yet, everyone should still be alive.
 
 .. code-block:: python
 
-   print(sim.get_population().alive.value_counts())
+   print(sim.get_population("is_alive").value_counts())
 
 ::
 
-    alive
-    alive    100000
-    Name: count, dtype: int64
+   is_alive
+   True     100000
+   Name: count, dtype: int64
 
 .. testcode::
    :hide:
    
-   assert sim.get_population().alive.value_counts().alive == 100_000
+   print(sim.get_population("is_alive").value_counts())
 
-Just checking that everyone is alive. Let's run our simulation for a while
-and see what happens.
+.. testoutput::
+
+   is_alive
+   True    100000
+   Name: count, dtype: int64
+
+
+Now let's run our simulation for a while and see what happens.
 
 .. code-block:: python
 
    sim.take_steps(365)  # Run for one year with one day time steps
-   sim.get_population('tracked==True').alive.value_counts()
+   sim.get_population("is_alive").value_counts()
 
 ::
 
-   alive
-   alive    99015
-   dead       985
+   is_alive
+   True     99023
+   False      977
    Name: count, dtype: int64
 
-We simulated somewhere between 99,015 (if everyone died in the first time step)
+We simulated somewhere between 99,023 (if everyone died in the first time step)
 and 100,000 (if everyone died in the last time step) living person-years and
-saw 985 deaths. This means our empirical mortality rate is somewhere close
-to 0.0099 deaths per person-year, very close to the 0.01 rate we provided.
+saw 977 deaths. This means our empirical mortality rate is somewhere close
+to 0.0098 deaths per person-year, very close to the 0.01 rate we provided.
 
 .. testcode::
    :hide:
-
-   sim = InteractiveContext(components=[BasePopulation(), Mortality()], configuration=config)
-   sim.take_steps(2)
-   assert sim.get_population('tracked==True')['alive'].value_counts()['dead'] == 6
+   
+   # It takes too long to run 365 steps in the test, so we just run 10 steps here
+   sim.take_steps(10)
+   assert sim.get_population("is_alive").value_counts()[False] == 27
 
 Disease
 -------
@@ -815,7 +891,7 @@ the simulation itself to record more sophisticated output. Further, we frequentl
 work in non-interactive (or even distributed) environments where we simply don't 
 have access to the simulation object and so would like to write our output to disk. 
 These recorded outputs (i.e. results) are referred to in vivarium as **observations** 
-and it is the job of so-called **observers** to register them to the simulation. 
+and it is the job of **observers** to register them to the simulation. 
 :class:`Observers <vivarium.framework.results.observer.Observer>` are vivarium 
 :class:`components <vivarium.component.Component>` that are created by the user 
 and added to the simulation via the model specification.
@@ -824,11 +900,26 @@ This example's observers are shown below.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/observer.py
    :caption: **File**: :file:`~/code/vivarium/examples/disease_model/observer.py`
+   :linenos:
 
 There are two observers that have each registered a single observation to the 
 simulation: deaths and years of life lost (YLLs). It is important to note that 
 neither of those observations are population state table columns; they are 
-more complex results that require some computation to determine. 
+more complex results that require some computation to determine.
+
+Note that the deaths observer actually creates a private column called ``'previous_alive'``.
+The purpose of this column is to distinguish newly-dead simulants (for adding purposes) 
+from those that died in previous time steps. We update this column in the 
+``on_time_step_prepare`` method of the observer.
+
+Why didn't we update the ``'previous_alive'`` values at the same time 
+as the ``'is_alive'`` values in the Mortality component's ``on_time_step`` method?
+The reason is that the deaths observer records the number of deaths that occurred during 
+the previous time step during the ``collect_metrics`` phase. By updating 
+the ``'is_alive'`` column during the ``time_step`` phase (which occurs *before* 
+``collect_metrics``) and the ``'previous_alive'`` column during the ``time_step_prepare``
+phase (which occurs *after* ``collect_metrics``), we ensure that the observer 
+can distinguish which simulants died specifically during the previous time step.
 
 In an interactive setting, we can access these observations via the 
 ``sim.get_results()`` command. This will return a dictionary of all  
@@ -838,7 +929,6 @@ observations up to this point in the simulation.
 
    from vivarium import InteractiveContext
    from vivarium.examples.disease_model.population import BasePopulation
-   from vivarium.examples.disease_model.mortality import Mortality
    from vivarium.examples.disease_model.observer import DeathsObserver, YllsObserver
 
    config = {
@@ -853,27 +943,26 @@ observations up to this point in the simulation.
    sim = InteractiveContext(
       components=[
          BasePopulation(),
-         Mortality(),
          DeathsObserver(),
          YllsObserver(),
       ],
       configuration=config
    )
    sim.take_steps(365)  # Run for one year with one day time steps
-   
+
    print(sim.get_results()["dead"])
    print(sim.get_results()["ylls"])
 
 ::
 
-   stratification  value
-   0            all  985.0
+     stratification  value
+   0            all  977.0
 
-   stratification         value
-   0            all  27966.647762
+     stratification         value
+   0            all  27720.319912
 
-We see that after 365 days of simulation, 985 simlants have died and there has
-been a total of 27,987 years of life lost.
+We see that after 365 days of simulation, 977 simlants have died and there has
+been a total of 27,720 years of life lost.
 
 .. testcode::
    :hide:
@@ -883,19 +972,20 @@ been a total of 27,987 years of life lost.
    sim = InteractiveContext(
       components=[
          BasePopulation(),
-         Mortality(),
          DeathsObserver(),
          YllsObserver(),
       ],
       configuration=config
    )
-   sim.take_steps(2)
+
+   # It takes too long to run 365 steps in the test, so we just run 10 steps here
+   sim.take_steps(10)
    dead = sim.get_results()["dead"]
    assert len(dead) == 1
-   assert dead["value"][0] == 6
+   assert dead["value"][0] == 27
    ylls = sim.get_results()["ylls"]
    assert len(ylls) == 1
-   assert ylls["value"][0] == 333.9956932528944
+   assert ylls["value"][0] == 1030.7382838676458
 
 .. note::
 

@@ -14,7 +14,9 @@ def test_disease_model(fuzzy_checker: FuzzyChecker, disease_model_spec: Path) ->
         {
             "configuration": {
                 "mortality": {
-                    "mortality_rate": 20.0,
+                    "data_sources": {
+                        "mortality_rate": 20.0,
+                    },
                 },
                 "lower_respiratory_infections": {
                     "incidence_rate": 25.0,
@@ -29,18 +31,34 @@ def test_disease_model(fuzzy_checker: FuzzyChecker, disease_model_spec: Path) ->
 
     pop = simulation.get_population()
     expected_columns = {
-        "tracked",
-        "alive",
+        "is_alive",
+        "previous_alive",
         "age",
         "sex",
         "entrance_time",
+        "mortality_rate",
         "lower_respiratory_infections",
+        "lower_respiratory_infections.cause_specific_mortality_rate",
         "child_wasting_propensity",
+        "child_wasting.proportion_exposed",
+        "child_wasting.base_proportion_exposed",
+        "child_wasting.exposure",
+        "susceptible_to_lower_respiratory_infections.initialization_weights",
+        "susceptible_to_lower_respiratory_infections.excess_mortality_rate",
+        "susceptible_to_lower_respiratory_infections.excess_mortality_rate.population_attributable_fraction",
+        "infected_with_lower_respiratory_infections.initialization_weights",
+        "infected_with_lower_respiratory_infections.incidence_rate.population_attributable_fraction",
+        "infected_with_lower_respiratory_infections.remission_rate",
+        "infected_with_lower_respiratory_infections.excess_mortality_rate.population_attributable_fraction",
+        "infected_with_lower_respiratory_infections.excess_mortality_rate",
+        "infected_with_lower_respiratory_infections.incidence_rate",
+        "infected_with_lower_respiratory_infections.remission_rate.population_attributable_fraction",
+        "effect_of_child_wasting_on_infected_with_lower_respiratory_infections.incidence_rate.relative_risk",
+        "sqlns.effect_size",
     }
     assert set(pop.columns) == expected_columns
     assert len(pop) == 100_000
-    assert np.all(pop["tracked"] == True)
-    assert np.all(pop["alive"] == "alive")
+    assert np.all(pop["is_alive"] == True)
     assert np.all((pop["age"] >= 0) & (pop["age"] <= 5))
     assert np.all(pop["entrance_time"] == datetime(2021, 12, 31, 12))
 
@@ -57,8 +75,8 @@ def test_disease_model(fuzzy_checker: FuzzyChecker, disease_model_spec: Path) ->
     assert np.all((pop["child_wasting_propensity"] >= 0) & (pop["child_wasting_propensity"] <= 1))
 
     simulation.step()
-    pop = simulation.get_population()
-    is_alive = pop["alive"] == "alive"
+    pop = simulation.get_population(["is_alive", "lower_respiratory_infections"])
+    is_alive = pop["is_alive"] == True
 
     alive_target = from_yearly(20, timedelta(days=0.5))
     assert isinstance(alive_target, float)

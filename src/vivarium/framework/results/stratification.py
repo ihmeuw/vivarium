@@ -12,7 +12,6 @@ from typing import Any
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
-from vivarium.framework.values import Pipeline
 from vivarium.types import ScalarMapper, VectorMapper
 
 STRATIFICATION_COLUMN_SUFFIX: str = "mapped_values"
@@ -23,42 +22,42 @@ STRATIFICATION_COLUMN_SUFFIX: str = "mapped_values"
 @dataclass
 class Stratification:
     """Class for stratifying observed quantities by specified characteristics.
+
     Each Stratification represents a set of mutually exclusive and collectively
     exhaustive categories into which simulants can be assigned.
     This class includes a :meth:`stratify <stratify>` method that produces an
     output column by calling the mapper on the source columns.
+
     """
 
     name: str
     """Name of the stratification."""
-    requires_columns: list[str]
-    """A list of the columns needed as input for the `mapper`."""
-    requires_values: list[Pipeline]
-    """A list of the values needed as input for the `mapper`."""
+    requires_attributes: list[str]
+    """The population attributes needed as input for the `mapper`."""
     categories: list[str]
     """Exhaustive list of all possible stratification values."""
     excluded_categories: list[str]
     """List of possible stratification values to exclude from results processing.
     If None (the default), will use exclusions as defined in the configuration."""
     mapper: VectorMapper | ScalarMapper | None
-    """A callable that maps the columns and value pipelines specified by the
-    `requires_columns` and `requires_values` arguments to the stratification
-    categories. It can either map the entire population or an individual
-    simulant. A simulation will fail if the `mapper` ever produces an invalid
-    value."""
+    """A callable that maps the population attributes specified by the
+    `requires_attributes` argument to the stratification categories. It can either 
+    map the entire population or an individual simulant. A simulation will fail if 
+    the `mapper` ever produces an invalid value."""
     is_vectorized: bool = False
     """True if the `mapper` function will map the entire population, and False
     if it will only map a single simulant."""
 
     def __str__(self) -> str:
         return (
-            f"Stratification '{self.name}' with sources {self._sources}, "
+            f"Stratification '{self.name}' with required attributes {self.requires_attributes}, "
             f"categories {self.categories}, and mapper {getattr(self.mapper, '__name__', repr(self.mapper))}"
         )
 
     def __post_init__(self) -> None:
-        """Assign a default `mapper` if none was provided and check for non-empty
-        `categories` and `sources` otherwise.
+        """Assigns a default `mapper` if none was provided and check for non-empty
+        `categories` and `requires_attributes` otherwise.
+
         Raises
         ------
         ValueError
@@ -66,24 +65,21 @@ class Stratification:
         ValueError
             If the categories argument is empty.
         ValueError
-            If the sources argument is empty.
+            If the requires_attributes argument is empty.
         """
-        self._sources = self.requires_columns + [
-            pipeline.name for pipeline in self.requires_values
-        ]
+
         self.vectorized_mapper = self._get_vectorized_mapper(self.mapper, self.is_vectorized)
         if not self.categories:
             raise ValueError("The categories argument must be non-empty.")
-        if not self._sources:
-            raise ValueError("The sources argument must be non-empty.")
+        if not self.requires_attributes:
+            raise ValueError("The requires_attributes argument must be non-empty.")
 
     def stratify(self, population: pd.DataFrame) -> pd.Series[CategoricalDtype]:
-        """Apply the `mapper` to the population `sources` columns to create a new
-        Series to be added to the population.
+        """Applies the `mapper` to the population `sources` columns.
 
-        Any `excluded_categories` (which have already been removed from `categories`)
-        will be converted to NaNs in the new column and dropped later at the
-        observation level.
+        This creates a new Series to be added to the population. Any `excluded_categories`
+        (which have already been removed from `categories`) will be converted to
+        NaNs in the new column and dropped later at the observation level.
 
         Parameters
         ----------
@@ -99,7 +95,7 @@ class Stratification:
         ValueError
             If the mapper returns any values not in `categories` or `excluded_categories`.
         """
-        mapped_column = self.vectorized_mapper(population[self._sources])
+        mapped_column = self.vectorized_mapper(population[self.requires_attributes])
         unknown_categories = set(mapped_column) - set(
             self.categories + self.excluded_categories
         )
@@ -121,14 +117,12 @@ class Stratification:
         user_provided_mapper: VectorMapper | ScalarMapper | None,
         is_vectorized: bool,
     ) -> VectorMapper:
-        """
-        Choose a VectorMapper based on the inputted callable mapper.
-        """
+        """Chooses a VectorMapper based on the provided callable mapper."""
         if user_provided_mapper is None:
-            if len(self._sources) != 1:
+            if len(self.requires_attributes) != 1:
                 raise ValueError(
-                    f"No mapper but {len(self._sources)} stratification sources are "
-                    f"provided for stratification {self.name}. The list of sources "
+                    f"No mapper but {len(self.requires_attributes)} required attributes are "
+                    f"provided for stratification {self.name}. The list of required attributes "
                     "must be of length 1 if no mapper is provided."
                 )
             return self._default_mapper
@@ -139,7 +133,7 @@ class Stratification:
 
     @staticmethod
     def _default_mapper(pop: pd.DataFrame) -> pd.Series[Any]:
-        """Default stratification mapper that squeezes a DataFrame to a Series.
+        """Squeezes a DataFrame to a Series.
 
         Parameters
         ----------
@@ -159,12 +153,12 @@ class Stratification:
 
 
 def get_mapped_col_name(col_name: str) -> str:
-    """Return a new column name to be used for mapped values"""
+    """Returns a new column name to be used for mapped values"""
     return f"{col_name}_{STRATIFICATION_COLUMN_SUFFIX}"
 
 
 def get_original_col_name(col_name: str) -> str:
-    """Return the original column name given a modified mapped column name."""
+    """Returns the original column name given a modified mapped column name."""
     return (
         col_name[: -(len(STRATIFICATION_COLUMN_SUFFIX)) - 1]
         if col_name.endswith(f"_{STRATIFICATION_COLUMN_SUFFIX}")

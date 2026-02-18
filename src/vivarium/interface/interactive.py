@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from math import ceil
-from typing import Any
+from typing import Any, Literal, overload
 
 import pandas as pd
 
@@ -164,29 +164,55 @@ class InteractiveContext(SimulationContext):
             for _ in range(number_of_steps):
                 self.step(step_size)
 
-    def get_population(self, untracked: bool = False) -> pd.DataFrame:
+    @overload
+    def get_population(self, attributes: str | None = None) -> pd.Series[Any] | pd.DataFrame:
+        ...
+
+    @overload
+    def get_population(self, attributes: list[str] | tuple[str, ...] = ...) -> pd.DataFrame:
+        ...
+
+    def get_population(
+        self, attributes: str | list[str] | tuple[str, ...] | None = None
+    ) -> pd.Series[Any] | pd.DataFrame:
         """Get a copy of the population state table.
 
         Parameters
         ----------
-        untracked
-            Whether or not to return simulants who are no longer being tracked
-            by the simulation.
+        attributes
+            The attribute pipelines to include in the returned table. If None, all
+            attributes are included.
 
         Returns
         -------
-            The population state table.
+            The current state of requested population attributes.
         """
-        return self._population.get_population(untracked)
+        returned_attributes: list[str] | tuple[str, ...] | Literal["all"] = "all"
+        squeeze: Literal[True, False] = True
+        if isinstance(attributes, str):
+            returned_attributes = [attributes]
+        elif attributes is not None:
+            squeeze = False
+            returned_attributes = list(attributes)
+        return self._population.get_population(
+            attributes=returned_attributes, squeeze=squeeze
+        )
+
+    def get_attribute_names(self) -> list[str]:
+        """List all attributes in the population state table."""
+        return self._population.get_all_attribute_names()
 
     def list_values(self) -> list[str]:
-        """List the names of all pipelines in the simulation."""
-        return list(self._values.keys())
+        """List the names of all value pipelines in the simulation."""
+        return list(self._values.get_value_pipelines().keys())
 
     def get_value(self, value_pipeline_name: str) -> Pipeline:
         """Get the value pipeline associated with the given name."""
         if value_pipeline_name not in self.list_values():
-            raise ValueError(f"No value pipeline '{value_pipeline_name}' registered.")
+            raise ValueError(
+                f"No value pipeline '{value_pipeline_name}' registered. "
+                "Are you looking for an attribute pipeline?"
+            )
         return self._values.get_value(value_pipeline_name)
 
     def list_events(self) -> list[str]:

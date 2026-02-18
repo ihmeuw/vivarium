@@ -1,7 +1,6 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -10,19 +9,18 @@ from vivarium import Component
 from vivarium.framework.engine import Builder
 
 
+# docs-start: force_base_class
 class Force(Component, ABC):
     ##############
     # Properties #
     ##############
     @property
-    def configuration_defaults(self) -> dict[str, Any]:
+    def configuration_defaults(self) -> dict[str, dict[str, float]]:
         return {
             self.__class__.__name__.lower(): {
                 "max_force": 0.03,
             },
         }
-
-    columns_required = []
 
     #####################
     # Lifecycle methods #
@@ -32,21 +30,23 @@ class Force(Component, ABC):
         self.config = builder.configuration[self.__class__.__name__.lower()]
         self.max_speed = builder.configuration.movement.max_speed
 
-        self.neighbors = builder.value.get_value("neighbors")
-
-        builder.value.register_value_modifier(
+        # docs-start: register_acceleration_modifier
+        builder.value.register_attribute_modifier(
             "acceleration",
             modifier=self.apply_force,
-            required_resources=self.columns_required + [self.neighbors],
+            required_resources=["x", "y", "vx", "vy", "neighbors"],
         )
+        # docs-end: register_acceleration_modifier
 
     ##################################
     # Pipeline sources and modifiers #
     ##################################
 
     def apply_force(self, index: pd.Index[int], acceleration: pd.DataFrame) -> pd.DataFrame:
-        neighbors = self.neighbors(index)
-        pop = self.population_view.get(index)
+        neighbors = self.population_view.get_attributes(index, "neighbors")
+        pop = self.population_view.get_attributes(index, ["x", "y", "vx", "vy"])
+        if not (isinstance(neighbors, pd.Series) and isinstance(pop, pd.DataFrame)):
+            raise ValueError("Neighbors must be a pd.Series of ints and population a pd.DataFrame")
         pairs = self._get_pairs(neighbors, pop)
 
         raw_force = self.calculate_force(pairs)
@@ -57,7 +57,8 @@ class Force(Component, ABC):
             max_speed=self.max_speed,
         )
 
-        acceleration.loc[force.index, ["x", "y"]] += force[["x", "y"]]
+        acceleration.loc[force.index, "acc_x"] += force["x"]
+        acceleration.loc[force.index, "acc_y"] += force["y"]
         return acceleration
 
     ##################
@@ -68,7 +69,7 @@ class Force(Component, ABC):
     def calculate_force(self, neighbors: pd.DataFrame) -> pd.DataFrame:
         pass
 
-    def _get_pairs(self, neighbors: pd.Series[int], pop: pd.DataFrame) -> pd.DataFrame:
+    def _get_pairs(self, neighbors: pd.Series[int | float], pop: pd.DataFrame) -> pd.DataFrame:
         pairs = (
             pop.join(neighbors.rename("neighbors"))
             .reset_index()
@@ -114,8 +115,10 @@ class Force(Component, ABC):
 
     def _magnitude(self, df: pd.DataFrame) -> pd.Series[float]:
         return pd.Series(np.sqrt(np.square(df.x) + np.square(df.y)), dtype=float)
+# docs-end: force_base_class
 
 
+# docs-start: concrete_force_classes
 class Separation(Force):
     """Push boids apart when they get too close."""
 
@@ -170,3 +173,4 @@ class Alignment(Force):
             .sum()
             .rename(columns=lambda c: c.replace("v", "").replace("_other", ""))
         )
+# docs-end: concrete_force_classes
