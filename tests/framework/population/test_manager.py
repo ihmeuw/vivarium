@@ -25,29 +25,7 @@ from tests.helpers import (
 from vivarium import Component, InteractiveContext
 from vivarium.framework.engine import Builder
 from vivarium.framework.population.exceptions import PopulationError
-from vivarium.framework.population.manager import (
-    InitializerComponentSet,
-    PopulationManager,
-    SimulantData,
-)
-
-
-def test_initializer_set_fail_type() -> None:
-    component_set = InitializerComponentSet()
-
-    with pytest.raises(TypeError):
-        component_set.add(lambda _: None, ["test_column"])
-
-    def initializer(simulant_data: SimulantData) -> None:
-        pass
-
-    with pytest.raises(TypeError):
-        component_set.add(initializer, ["test_column"])
-
-
-class NonComponent:
-    def initializer(self, simulant_data: SimulantData) -> None:
-        pass
+from vivarium.framework.population.manager import PopulationManager, SimulantData
 
 
 class InitializingComponent(Component):
@@ -64,35 +42,6 @@ class InitializingComponent(Component):
 
     def other_initializer(self, simulant_data: SimulantData) -> None:
         pass
-
-
-def test_initializer_set_fail_attr() -> None:
-    component_set = InitializerComponentSet()
-
-    with pytest.raises(AttributeError):
-        component_set.add(NonComponent().initializer, ["test_column"])
-
-
-def test_initializer_set_duplicate_columns() -> None:
-    component_set = InitializerComponentSet()
-    component1 = InitializingComponent("test1")
-    component2 = InitializingComponent("test2")
-    columns = ["test_column"]
-
-    component_set.add(component1.initializer, columns)
-    with pytest.raises(PopulationError, match="both registered initializers"):
-        component_set.add(component2.initializer, columns)
-
-    with pytest.raises(PopulationError, match="both registered initializers"):
-        component_set.add(component2.initializer, ["sneaky_column"] + columns)
-
-
-def test_initializer_set() -> None:
-    component_set = InitializerComponentSet()
-    for i in range(10):
-        component = InitializingComponent(str(i))
-        columns = [f"test_column_{i}_{j}" for j in range(5)]
-        component_set.add(component.initializer, columns)
 
 
 @pytest.mark.parametrize("private_columns", [[], ["age", "sex"]])
@@ -441,6 +390,44 @@ def test_register_initializer(mocker: MockerFixture) -> None:
     mock_add_private_cols.assert_any_call(
         columns=["qux"], required_resources=[], initializer=component3.on_initialize_simulants
     )
+
+
+def test_register_initializer_not_a_method_raises(mocker: MockerFixture) -> None:
+    mgr = PopulationManager()
+    mocker.patch.object(
+        mgr, "_get_current_component_or_manager", return_value=mocker.Mock(), create=True
+    )
+
+    with pytest.raises(TypeError, match="Population initializers must be methods"):
+        mgr.register_initializer(lambda _: None, ["test_column"])
+
+    def initializer(simulant_data: SimulantData) -> None:
+        pass
+
+    with pytest.raises(TypeError, match="Population initializers must be methods"):
+        mgr.register_initializer(initializer, ["test_column"])
+
+
+def test_register_initializer_unnamed_component_raises(mocker: MockerFixture) -> None:
+    class UnnamedComponent(Component):
+        def initializer(self, simulant_data: SimulantData) -> None:
+            pass
+
+        @property
+        def name(self) -> str:
+            """Raise here so that 'hasattr(component, "name")' returns False in the population manager."""
+            raise AttributeError("no name")
+
+    component = UnnamedComponent()
+    mgr = PopulationManager()
+    mocker.patch.object(
+        mgr, "_get_current_component_or_manager", return_value=component, create=True
+    )
+    with pytest.raises(
+        AttributeError,
+        match="Population initializers must be methods of named simulation components.",
+    ):
+        mgr.register_initializer(component.initializer, ["test_column"])
 
 
 @pytest.mark.parametrize(

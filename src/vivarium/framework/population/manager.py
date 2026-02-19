@@ -6,7 +6,7 @@ Population Manager
 """
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from types import MethodType
 from typing import TYPE_CHECKING, Any, Literal, overload
@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Literal, overload
 import pandas as pd
 
 import vivarium.framework.population.utilities as pop_utils
+from vivarium.component import Component
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.population.exceptions import PopulationError
@@ -22,7 +23,6 @@ from vivarium.framework.resource import Resource
 from vivarium.manager import Manager
 
 if TYPE_CHECKING:
-    from vivarium import Component
     from vivarium.framework.engine import Builder
     from vivarium.types import ClockStepSize, ClockTime
 
@@ -47,76 +47,6 @@ class SimulantData:
     creation_window: ClockStepSize
     """The span of time over which the simulants are created. Useful for, e.g., distributing 
     ages over the window."""
-
-
-class InitializerComponentSet:
-    """Set of unique components with population initializers."""
-
-    def __init__(self) -> None:
-        self._components: dict[str, list[str]] = {}
-        self._columns_produced: dict[str, str] = {}
-
-    def add(
-        self, initializer: Callable[[SimulantData], None], columns_produced: Iterable[str]
-    ) -> None:
-        """Adds an initializer and columns to the set, enforcing uniqueness.
-
-        Parameters
-        ----------
-        initializer
-            The population initializer to add to the set.
-        columns_produced
-            The columns the initializer produces.
-
-        Raises
-        ------
-        TypeError
-            If the initializer is not an object method.
-        AttributeError
-            If the object bound to the method does not have a name attribute.
-        PopulationError
-            If the component bound to the method already has an initializer
-            registered or if the columns produced are duplicates of columns
-            another initializer produces.
-        """
-        if not isinstance(initializer, MethodType):
-            raise TypeError(
-                "Population initializers must be methods of vivarium Components "
-                "or the simulation's PopulationManager. "
-                f"You provided {initializer} which is of type {type(initializer)}."
-            )
-        component = initializer.__self__
-        # TODO: raise error once all active Component implementations have been refactored
-        # if not (isinstance(component, Component) or isinstance(component, PopulationManager)):
-        #     raise AttributeError(
-        #         "Population initializers must be methods of vivarium Components "
-        #         "or the simulation's PopulationManager. "
-        #         f"You provided {initializer} which is bound to {component} that "
-        #         f"is of type {type(component)} which does not inherit from "
-        #         "Component."
-        #     )
-        if not hasattr(component, "name"):
-            raise AttributeError(
-                "Population initializers must be methods of named simulation components. "
-                f"You provided {initializer} which is bound to {component} that has no "
-                f"'name' attribute."
-            )
-
-        component_name = component.name
-        for column in columns_produced:
-            if column in self._columns_produced:
-                raise PopulationError(
-                    f"Component {component_name} and component {self._columns_produced[column]} "
-                    f"have both registered initializers for column {column}."
-                )
-            self._columns_produced[column] = component_name
-        self._components[component_name] = list(columns_produced)
-
-    def __repr__(self) -> str:
-        return repr(self._components)
-
-    def __str__(self) -> str:
-        return str(self._components)
 
 
 class PopulationManager(Manager):
@@ -157,7 +87,6 @@ class PopulationManager(Manager):
     def __init__(self) -> None:
         self._private_columns: pd.DataFrame | None = None
         self._private_column_metadata: defaultdict[str, list[str]] = defaultdict(list)
-        self._initializer_components = InitializerComponentSet()
         self.creating_initial_population = False
         self.adding_simulants = False
         self._last_id = -1
@@ -480,11 +409,34 @@ class PopulationManager(Manager):
 
         Raises
         ------
+        TypeError
+            If the ``initializer`` is not a method type.
+        AttributeError
+            If the ``initializer`` is not bound to a Component or the PopulationManager
+            or if the bound component does not have a name attribute.
         PopulationError
             If this component name has already registered private columns.
         """
 
         component = self._get_current_component_or_manager()
+        if not isinstance(initializer, MethodType):
+            raise TypeError(
+                "Population initializers must be methods of vivarium Components or managers. "
+                f"You provided {initializer} which is of type {type(initializer)}."
+            )
+        if not (isinstance(component, Component) or isinstance(component, Manager)):
+            raise AttributeError(
+                "Population initializers must be methods of vivarium Components or Managers. "
+                f"You provided {initializer} which is bound to {component} that "
+                f"is of type {type(component)}."
+            )
+        if not hasattr(component, "name"):
+            raise AttributeError(
+                "Population initializers must be methods of named simulation components. "
+                f"You provided {initializer} which is bound to {component} that has no "
+                f"'name' attribute."
+            )
+
         if columns is None:
             columns = []
         elif isinstance(columns, str):
@@ -509,7 +461,6 @@ class PopulationManager(Manager):
         self._private_column_metadata[component.name].extend(columns)
 
         # Register the initializer as a resource
-        self._initializer_components.add(initializer, columns)
         self.resources.add_private_columns(
             initializer=initializer,
             columns=columns,
