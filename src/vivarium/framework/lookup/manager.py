@@ -15,23 +15,14 @@ the individuals represented by that index. See the
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any
-from typing import SupportsFloat as Numeric
-from typing import overload
+from typing import TYPE_CHECKING, Any, overload
 
 import pandas as pd
 from layered_config_tree import LayeredConfigTree
 
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
-from vivarium.framework.lookup.table import (
-    DEFAULT_VALUE_COLUMN,
-    CategoricalTable,
-    InterpolatedTable,
-    LookupTable,
-    ScalarTable,
-)
+from vivarium.framework.lookup.table import DEFAULT_VALUE_COLUMN, LookupTable
 from vivarium.manager import Manager
 from vivarium.types import LookupTableData
 
@@ -62,14 +53,14 @@ class LookupTableManager(Manager):
         super().__init__()
         self.tables: dict[str, LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]] = {}
 
-    def setup(self, builder: "Builder") -> None:
+    def setup(self, builder: Builder) -> None:
         self._logger = builder.logging.get_logger(self.name)
         self._configuration = builder.configuration
-        self._pop_view_builder = builder.population.get_view
+        self._get_view = builder.population.get_view
         self.clock = builder.time.clock()
-        self._interpolation_order = builder.configuration.interpolation.order
-        self._extrapolate = builder.configuration.interpolation.extrapolate
-        self._validate = builder.configuration.interpolation.validate
+        self.interpolation_order = builder.configuration.interpolation.order
+        self.extrapolate = builder.configuration.interpolation.extrapolate
+        self.validate_interpolation = builder.configuration.interpolation.validate
         self._add_resources = builder.resources.add_resources
         self._add_constraint = builder.lifecycle.add_constraint
         self._get_current_component = builder.components.get_current_component
@@ -125,7 +116,7 @@ class LookupTableManager(Manager):
         table = self._build_table(component, data, name, value_columns)
         self._add_resources(component, table, table.required_resources)
         self._add_constraint(
-            table.call,
+            table._call,
             restrict_during=[
                 lifecycle_states.INITIALIZATION,
                 lifecycle_states.SETUP,
@@ -150,38 +141,15 @@ class LookupTableManager(Manager):
             data = pd.DataFrame(data)
 
         value_columns_ = value_columns if value_columns else DEFAULT_VALUE_COLUMN
-        validate_build_table_parameters(data, value_columns_)
 
-        table: LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]
-        if isinstance(data, pd.DataFrame):
-            parameter_columns, key_columns = self._get_columns(value_columns_, data)
-            if parameter_columns:
-                table = InterpolatedTable(
-                    name=name,
-                    component=component,
-                    data=data,
-                    population_view_builder=self._pop_view_builder,
-                    key_columns=key_columns,
-                    parameter_columns=parameter_columns,
-                    value_columns=value_columns_,
-                    interpolation_order=self._interpolation_order,
-                    clock=self.clock,
-                    extrapolate=self._extrapolate,
-                    validate=self._validate,
-                )
-            else:
-                table = CategoricalTable(
-                    name=name,
-                    component=component,
-                    data=data,
-                    population_view_builder=self._pop_view_builder,
-                    key_columns=key_columns,
-                    value_columns=value_columns_,
-                )
-        else:
-            table = ScalarTable(
-                name=name, component=component, data=data, value_columns=value_columns_
-            )
+        table = LookupTable(
+            name=name,
+            component=component,
+            data=data,
+            value_columns=value_columns_,
+            manager=self,
+            population_view=self._get_view(),
+        )
 
         self.tables[table.name] = table
 
@@ -189,68 +157,3 @@ class LookupTableManager(Manager):
 
     def __repr__(self) -> str:
         return "LookupTableManager()"
-
-    @staticmethod
-    def _get_columns(
-        value_columns: list[str] | tuple[str, ...] | str, data: pd.DataFrame
-    ) -> tuple[list[str], list[str]]:
-        if isinstance(value_columns, str):
-            value_columns = [value_columns]
-
-        all_columns = list(data.columns)
-
-        potential_parameter_columns = [
-            str(col).removesuffix("_start")
-            for col in all_columns
-            if str(col).endswith("_start")
-        ]
-        parameter_columns = []
-        bin_edge_columns = []
-        for column in potential_parameter_columns:
-            if f"{column}_end" in all_columns:
-                parameter_columns.append(column)
-                bin_edge_columns += [f"{column}_start", f"{column}_end"]
-
-        key_columns = [
-            col
-            for col in all_columns
-            if col not in value_columns and col not in bin_edge_columns
-        ]
-
-        return parameter_columns, key_columns
-
-
-def validate_build_table_parameters(
-    data: LookupTableData,
-    value_columns: list[str] | tuple[str, ...] | str,
-) -> None:
-    """Makes sure the data format agrees with the provided column layout."""
-    if (
-        data is None
-        or (isinstance(data, pd.DataFrame) and data.empty)
-        or (isinstance(data, (list, tuple)) and not data)
-    ):
-        raise ValueError("Must supply some data")
-
-    acceptable_types = (Numeric, datetime, timedelta, list, tuple, pd.DataFrame)
-    if not isinstance(data, acceptable_types):
-        raise TypeError(
-            f"The only allowable types for data are {acceptable_types}. "
-            f"You passed {type(data)}."
-        )
-
-    if isinstance(data, (list, tuple)):
-        if isinstance(value_columns, str):
-            raise ValueError(
-                "When supplying multiple values, value_columns must be a list or tuple of strings."
-            )
-        if len(value_columns) != len(data):
-            raise ValueError(
-                "The number of value columns must match the number of values."
-                f"You supplied values: {data} and value_columns: {value_columns}"
-            )
-    elif not isinstance(data, pd.DataFrame):
-        if not isinstance(value_columns, str):
-            raise ValueError(
-                "When supplying a single value, value_columns must be a string if provided."
-            )
