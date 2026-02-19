@@ -64,9 +64,8 @@ class ValuesInterface(Interface):
         source
             A callable source for the dynamic value pipeline.
         required_resources
-            A list of resources that need to be properly sourced before the
-            pipeline source is called. This is a list of strings, pipelines,
-            or randomness streams.
+            A list of resources that the producer requires. A string represents
+            a population attribute.
         preferred_combiner
             A strategy for combining the source and the results of any calls
             to mutators in the pipeline. ``vivarium`` provides the strategies
@@ -113,9 +112,8 @@ class ValuesInterface(Interface):
             component, or a list of population attributes. If a private column name
             is passed, `source_is_private_column` must also be set to True.
         required_resources
-            A list of resources that need to be properly sourced before the
-            pipeline source is called. This is a list of strings, pipelines,
-            or randomness streams.
+            A list of resources that the producer requires. A string represents
+            a population attribute.
         preferred_combiner
             A strategy for combining the source and the results of any calls
             to mutators in the pipeline. ``vivarium`` provides the strategies
@@ -164,9 +162,8 @@ class ValuesInterface(Interface):
             the component that is registering this attribute producer must be the
             one that creates those columns.
         required_resources
-            A list of resources that need to be properly sourced before the
-            pipeline source is called. This is a list of strings, pipelines,
-            or randomness streams.
+            A list of resources that the producer requires. A string represents
+            a population attribute.
         """
         self.register_attribute_producer(
             rate_name,
@@ -196,9 +193,8 @@ class ValuesInterface(Interface):
             the pipeline modifiers should have the same signature as the pipeline
             source.
         required_resources
-            A list of resources that need to be properly sourced before the
-            pipeline modifier is called. This is a list of strings, pipelines,
-            or randomness streams.
+            A list of resources that the producer requires. A string represents
+            a population attribute.
         """
         self._manager.register_value_modifier(value_name, modifier, required_resources)
 
@@ -223,9 +219,8 @@ class ValuesInterface(Interface):
             the ``list_combiner`` strategy, the pipeline modifiers should have the
             same signature as the pipeline source.
         required_resources
-            A list of resources that need to be properly sourced before the
-            pipeline modifier is called. This is a list of strings, pipelines,
-            or randomness streams.
+            A list of resources that the producer requires. A string represents
+            a population attribute.
         """
         self._manager.register_attribute_modifier(
             value_name,

@@ -86,6 +86,7 @@ class PopulationManager(Manager):
     def __init__(self) -> None:
         self._private_columns: pd.DataFrame | None = None
         self._private_column_metadata: defaultdict[str, list[str]] = defaultdict(list)
+        self._registered_initializers: list[Callable[[SimulantData], None]] = []
         self.creating_initial_population = False
         self.adding_simulants = False
         self._last_id = -1
@@ -409,8 +410,15 @@ class PopulationManager(Manager):
         Raises
         ------
         PopulationError
-            If this component name has already registered private columns.
+            If this initializer has already been registered or if the columns being
+            created by this initializer overlap with columns created by another initializer.
         """
+
+        if initializer in self._registered_initializers:
+            raise PopulationError(
+                f"The initializer '{initializer.__qualname__}' has already been registered. "
+                "Each initializer may only be registered once."
+            )
 
         component = self._get_current_component_or_manager()
 
@@ -436,6 +444,9 @@ class PopulationManager(Manager):
 
         # Register private column metadata
         self._private_column_metadata[component.name].extend(columns)
+
+        # Track the initializer to prevent duplicate registration
+        self._registered_initializers.append(initializer)
 
         # Register the initializer as a resource
         self.resources.add_private_columns(

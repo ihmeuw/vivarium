@@ -77,6 +77,7 @@ Miscellaneous
 - Fix mypy error in setup.py.
 - Fix mypy errors in disease model example.
 - Create a Component.logger property for better type-checking.
+- Removed unnecessary InitializerComponentSet class.
 
 **3.6.10 - 03/25/26**
 

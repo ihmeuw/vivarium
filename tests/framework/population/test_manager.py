@@ -392,6 +392,30 @@ def test_register_initializer(mocker: MockerFixture) -> None:
     )
 
 
+def test_register_initializer_duplicate_raises(mocker: MockerFixture) -> None:
+    component = ColumnCreator()
+    mgr = PopulationManager()
+    mocker.patch.object(
+        mgr, "_get_current_component_or_manager", return_value=component, create=True
+    )
+    mocker.patch.object(mgr, "_register_attribute_producer", mocker.Mock(), create=True)
+    mock_resources = mocker.Mock()
+    mocker.patch.object(mgr, "resources", mock_resources, create=True)
+
+    # First registration should succeed
+    mgr.register_initializer(
+        initializer=component.on_initialize_simulants,
+        columns=["col_a"],
+    )
+
+    # Registering the same initializer again should raise
+    with pytest.raises(PopulationError, match="has already been registered"):
+        mgr.register_initializer(
+            initializer=component.on_initialize_simulants,
+            columns=["col_b"],
+        )
+
+
 @pytest.mark.parametrize(
     "components, index, columns",
     [
