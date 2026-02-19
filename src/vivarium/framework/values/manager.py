@@ -123,9 +123,8 @@ class ValuesManager(Manager):
         source
             A callable source for the dynamic value pipeline.
         required_resources
-            A list of resources that need to be properly sourced before the
-            pipeline source is called. This is a list of strings, pipelines,
-            or randomness streams.
+            A list of resources that the producer requires. A string represents
+            a population attribute.
         preferred_combiner
             A strategy for combining the source and the results of any calls
             to mutators in the pipeline. ``vivarium`` provides the strategies
@@ -175,9 +174,8 @@ class ValuesManager(Manager):
             component, or a list of population attributes. If a private column name
             is passed, `source_is_private_column` must also be set to True.
         required_resources
-            A list of resources that need to be properly sourced before the
-            pipeline source is called. This is a list of strings, pipelines,
-            or randomness streams.
+            A list of resources that the producer requires. A string represents
+            a population attribute.
         preferred_combiner
             A strategy for combining the source and the results of any calls
             to mutators in the pipeline. ``vivarium`` provides the strategies
@@ -226,9 +224,8 @@ class ValuesManager(Manager):
             the pipeline modifiers should have the same signature as the pipeline
             source.
         required_resources
-            A list of resources that need to be properly sourced before the
-            pipeline modifier is called. This is a list of strings, pipelines,
-            or randomness streams.
+            A list of resources that the producer requires. A string represents
+            a population attribute.
         """
         self._configure_modifier(
             self.get_value(value_name),
@@ -258,7 +255,7 @@ class ValuesManager(Manager):
             same signature as the pipeline source.
         required_resources
             A list of resources that need to be properly sourced before the
-            pipeline modifier is called. This is a list of strings, pipelines,
+            pipeline modifier is called. This is a list of attribute names, pipelines,
             or randomness streams.
         """
         modifier = self.get_attribute(modifier) if isinstance(modifier, str) else modifier

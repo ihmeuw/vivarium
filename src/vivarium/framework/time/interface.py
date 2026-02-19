@@ -67,10 +67,8 @@ class TimeInterface(Interface):
             Modifier of the step size pipeline. Modifiers can take an index
             and should return a series of step sizes.
         required_resources
-            A list of resources that need to be properly sourced before the
-            pipeline source is called. This is a list of strings, pipelines,
-            or randomness streams.
-
+            A list of resources that the producer requires. A string represents
+            a population attribute.
         """
         return self._manager.register_step_modifier(
             modifier=modifier, required_resources=required_resources
