@@ -409,11 +409,6 @@ class PopulationManager(Manager):
 
         Raises
         ------
-        TypeError
-            If the ``initializer`` is not a method type.
-        AttributeError
-            If the ``initializer`` is not bound to a Component or the PopulationManager
-            or if the bound component does not have a name attribute.
         PopulationError
             If this initializer has already been registered or if the columns being
             created by this initializer overlap with columns created by another initializer.
