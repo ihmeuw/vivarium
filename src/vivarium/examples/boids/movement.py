@@ -36,7 +36,7 @@ class Movement(Component):
         # docs-end: register_attribute_producer
         self.randomness = builder.randomness.get_stream(self.name)
         builder.population.register_initializer(
-            initializer=self.on_initialize_simulants,
+            initializer=self.initialize_movement,
             columns=["x", "y", "vx", "vy"],
             required_resources=[self.randomness]
         )
@@ -54,7 +54,7 @@ class Movement(Component):
     # Event-driven methods #
     ########################
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    def initialize_movement(self, pop_data: SimulantData) -> None:
         # Start randomly distributed, with random velocities
         new_population = pd.DataFrame(
             {

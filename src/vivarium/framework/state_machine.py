@@ -573,7 +573,7 @@ class Machine(Component):
     def setup(self, builder: Builder) -> None:
         self.randomness = builder.randomness.get_stream(self.name)
         builder.population.register_initializer(
-            initializer=self.on_initialize_simulants,
+            initializer=self.initialize_state,
             columns=self.state_column,
             required_resources=[self.randomness, *self.initialization_weights_pipelines],
         )
@@ -595,7 +595,7 @@ class Machine(Component):
                 " initialization weights to states."
             )
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    def initialize_state(self, pop_data: SimulantData) -> None:
         state_ids = [s.state_id for s in self.states]
         state_weights = self.population_view.get_attributes(
             pop_data.index, self.initialization_weights_pipelines

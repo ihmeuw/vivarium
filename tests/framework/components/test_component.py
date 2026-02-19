@@ -152,7 +152,7 @@ def test_component_initializer_is_registered_and_called_if_defined() -> None:
     assert isinstance(population, pd.DataFrame)
     # Assert that simulant initializer has been registered
     assert (
-        component.on_initialize_simulants
+        component.initialize_test_columns
         in simulation._resource.get_population_initializers()
     )
     # and that created columns are correctly initialized

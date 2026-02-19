@@ -213,10 +213,10 @@ def test_side_effects() -> None:
         def setup(self, builder: Builder) -> None:
             super().setup(builder)
             builder.population.register_initializer(
-                initializer=self.on_initialize_simulants, columns="count"
+                initializer=self.initialize_count, columns="count"
             )
 
-        def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+        def initialize_count(self, pop_data: SimulantData) -> None:
             self.population_view.update(pd.Series(0, index=pop_data.index, name="count"))
 
         def transition_side_effect(self, index: pd.Index[int], _: ClockTime) -> None:
