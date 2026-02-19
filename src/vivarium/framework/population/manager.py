@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from types import MethodType
 from typing import TYPE_CHECKING, Any, Literal, overload
 
 import pandas as pd
@@ -419,22 +418,12 @@ class PopulationManager(Manager):
         """
 
         component = self._get_current_component_or_manager()
-        if not isinstance(initializer, MethodType):
-            raise TypeError(
-                "Population initializers must be methods of vivarium Components or managers. "
-                f"You provided {initializer} which is of type {type(initializer)}."
-            )
+
         if not (isinstance(component, Component) or isinstance(component, Manager)):
             raise AttributeError(
                 "Population initializers must be methods of vivarium Components or Managers. "
                 f"You provided {initializer} which is bound to {component} that "
                 f"is of type {type(component)}."
-            )
-        if not hasattr(component, "name"):
-            raise AttributeError(
-                "Population initializers must be methods of named simulation components. "
-                f"You provided {initializer} which is bound to {component} that has no "
-                f"'name' attribute."
             )
 
         if columns is None:
