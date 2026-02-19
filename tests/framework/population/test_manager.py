@@ -338,7 +338,7 @@ def test_register_initializer(mocker: MockerFixture) -> None:
         mgr, "_get_current_component_or_manager", return_value=component1, create=True
     )
     mgr.register_initializer(
-        initializer=component1.on_initialize_simulants,
+        initializer=component1.initialize_test_columns,
         columns=["foo", "bar"],
         required_resources=["dep1", "dep2"],
     )
@@ -348,7 +348,7 @@ def test_register_initializer(mocker: MockerFixture) -> None:
         mgr, "_get_current_component_or_manager", return_value=component2, create=True
     )
     mgr.register_initializer(
-        initializer=component2.on_initialize_simulants,
+        initializer=component2.initialize_test_columns,
         columns=None,
         required_resources=["dep3", "dep4"],
     )
@@ -358,7 +358,7 @@ def test_register_initializer(mocker: MockerFixture) -> None:
         mgr, "_get_current_component_or_manager", return_value=component3, create=True
     )
     mgr.register_initializer(
-        initializer=component3.on_initialize_simulants, columns="qux", required_resources=[]
+        initializer=component3.initialize_test_columns, columns="qux", required_resources=[]
     )
 
     # Check that register_attribute_producer was called appropriately
@@ -380,15 +380,15 @@ def test_register_initializer(mocker: MockerFixture) -> None:
     mock_add_private_cols.assert_any_call(
         columns=["foo", "bar"],
         required_resources=["dep1", "dep2"],
-        initializer=component1.on_initialize_simulants,
+        initializer=component1.initialize_test_columns,
     )
     mock_add_private_cols.assert_any_call(
         columns=[],
         required_resources=["dep3", "dep4"],
-        initializer=component2.on_initialize_simulants,
+        initializer=component2.initialize_test_columns,
     )
     mock_add_private_cols.assert_any_call(
-        columns=["qux"], required_resources=[], initializer=component3.on_initialize_simulants
+        columns=["qux"], required_resources=[], initializer=component3.initialize_test_columns
     )
 
 
@@ -404,14 +404,14 @@ def test_register_initializer_duplicate_raises(mocker: MockerFixture) -> None:
 
     # First registration should succeed
     mgr.register_initializer(
-        initializer=component.on_initialize_simulants,
+        initializer=component.initialize_test_columns,
         columns=["col_a"],
     )
 
     # Registering the same initializer again should raise
     with pytest.raises(PopulationError, match="has already been registered"):
         mgr.register_initializer(
-            initializer=component.on_initialize_simulants,
+            initializer=component.initialize_test_columns,
             columns=["col_b"],
         )
 
@@ -511,7 +511,7 @@ def test_get_population_index() -> None:
 
 def test_forget_to_create_columns() -> None:
     class ColumnForgetter(ColumnCreator):
-        def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+        def initialize_test_columns(self, pop_data: SimulantData) -> None:
             pass
 
     with pytest.raises(PopulationError, match="not actually created"):

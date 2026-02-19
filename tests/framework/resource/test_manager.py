@@ -51,7 +51,7 @@ def manager_with_resources(
     attribute_D = AttributePipeline("D", D_component)
     mocker.patch.object(D_component, "initialize_D", create=True)
     null_resource_component = resource_producers[4]
-    mocker.patch.object(null_resource_component, "on_initialize_simulants", create=True)
+    mocker.patch.object(null_resource_component, "initialize_nothing", create=True)
 
     manager.add_resources(
         component=D_component,
@@ -98,7 +98,7 @@ def manager_with_resources(
 
     manager.add_resources(
         component=null_resource_component,
-        initializer=null_resource_component.on_initialize_simulants,
+        initializer=null_resource_component.initialize_nothing,
         resources=[],
         required_resources=[stream],
     )
@@ -133,7 +133,7 @@ class ResourceProducer(Component):
     def initialize_D(self, pop_data: SimulantData) -> None:
         pass
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    def initialize_nothing(self, pop_data: SimulantData) -> None:
         pass
 
 
@@ -161,7 +161,7 @@ def test_resource_manager_get_resource_group(
 
     group = manager._get_resource_group(
         component=component,
-        initializer=component.on_initialize_simulants if initialized else None,
+        initializer=component.initialize_test_columns if initialized else None,
         resources=[resource_class(*init_args, component=component)],
         required_resources=[],
     )
@@ -170,7 +170,7 @@ def test_resource_manager_get_resource_group(
     assert group.names == [r.resource_id for r in group.resources.values()]
     assert not group.required_resources
     assert group.is_initialized == initialized
-    assert group.initializer == (component.on_initialize_simulants if initialized else None)
+    assert group.initializer == (component.initialize_test_columns if initialized else None)
 
 
 def test_resource_manager_get_resource_group_null(manager: ResourceManager) -> None:
@@ -179,25 +179,25 @@ def test_resource_manager_get_resource_group_null(manager: ResourceManager) -> N
 
     group_1 = manager._get_resource_group(
         component=component_1,
-        initializer=component_1.on_initialize_simulants,
+        initializer=component_1.initialize_test_columns,
         resources=[],
         required_resources=[],
     )
     group_2 = manager._get_resource_group(
         component=component_2,
-        initializer=component_2.on_initialize_simulants,
+        initializer=component_2.initialize_test_column_4,
         resources=[],
         required_resources=[],
     )
 
     assert group_1.type == "null"
     assert group_1.names == ["null.0"]
-    assert group_1.initializer == component_1.on_initialize_simulants
+    assert group_1.initializer == component_1.initialize_test_columns
     assert not group_1.required_resources
 
     assert group_2.type == "null"
     assert group_2.names == ["null.1"]
-    assert group_2.initializer == component_2.on_initialize_simulants
+    assert group_2.initializer == component_2.initialize_test_column_4
     assert not group_2.required_resources
 
 
@@ -242,7 +242,7 @@ def test_add_resource_wrong_component(manager: ResourceManager) -> None:
     with pytest.raises(ResourceError, match=error_message):
         manager.add_resources(
             component=component,
-            initializer=component.on_initialize_simulants,
+            initializer=component.initialize_test_columns,
             resources=resource,
             required_resources=[],
         )
@@ -267,7 +267,7 @@ def test_resource_manager_add_same_resource_twice(
     r2 = [resource_creator(str(i), c2) for i in range(5, 10)] + [resource_creator("1", c2)]
     manager.add_resources(
         component=c1,
-        initializer=c1.on_initialize_simulants,
+        initializer=c1.initialize_test_columns,
         resources=r1,
         required_resources=[],
     )
@@ -278,7 +278,7 @@ def test_resource_manager_add_same_resource_twice(
     with pytest.raises(ResourceError, match=error_message):
         manager.add_resources(
             component=c2,
-            initializer=c2.on_initialize_simulants,
+            initializer=c2.initialize_test_column_4,
             resources=r2,
             required_resources=[],
         )
@@ -291,7 +291,7 @@ def test_resource_manager_sorted_nodes_two_node_cycle(
     column = Column("c_1", mocker.Mock())
     manager.add_resources(
         component=component,
-        initializer=component.on_initialize_simulants,
+        initializer=component.initialize_test_column_4,
         resources=[column],
         required_resources=[randomness_stream],
     )
@@ -316,7 +316,7 @@ def test_resource_manager_sorted_nodes_three_node_cycle(
     column = Column("c_1", component)
     manager.add_resources(
         component=component,
-        initializer=component.on_initialize_simulants,
+        initializer=component.initialize_test_column_4,
         resources=[column],
         required_resources=[randomness_stream],
     )
@@ -358,13 +358,13 @@ def test_large_dependency_chain(manager: ResourceManager, mocker: MockerFixture)
     for i in range(9, 0, -1):
         manager.add_resources(
             component=component,
-            initializer=component.on_initialize_simulants,
+            initializer=component.initialize_test_columns,
             resources=AttributePipeline(f"c_{i}", component),
             required_resources=[AttributePipeline(f"c_{i-1}", mocker.Mock())],
         )
     manager.add_resources(
         component=component,
-        initializer=component.on_initialize_simulants,
+        initializer=component.initialize_test_columns,
         resources=AttributePipeline("c_0", component),
         required_resources=[],
     )
@@ -397,4 +397,4 @@ def test_get_population_initializers(
     assert len(initializers) == 3
     assert initializers[0] == resource_producers[0].initialize_A
     assert resource_producers[3].initialize_D in initializers
-    assert resource_producers[4].on_initialize_simulants in initializers
+    assert resource_producers[4].initialize_nothing in initializers
