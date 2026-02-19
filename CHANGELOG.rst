@@ -44,6 +44,7 @@ Major changes
 
 - Replace all Pipelines with AttributePipelines throughout.
 - Support attribute names as source and/or modifiers to AttributePipelines.
+- Add support for python 3.12 and 3.13
 
 Other changes
 -------------
