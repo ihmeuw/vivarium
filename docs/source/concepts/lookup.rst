@@ -41,55 +41,32 @@ population in a simulation.
 The lookup table system is built in layers. At the top is the
 :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>` object which
 is responsible for providing a uniform interface to the user regardless
-of the underlying implementation. From the user's perspective, it takes in
-a data set or scalar value on initialization and then lets them query against
-that data with a population index.
+of the underlying data. From the user's perspective, it takes in a data set
+or scalar value on initialization and then lets them query against that data
+with a population index.
 
-The next layer is selected at initialization time based on the type of data
-provided. The :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`
-picks a :class:`ScalarTable <vivarium.framework.lookup.table.ScalarTable>`
-if a single value is provided as the data, a
-:class:`CategoricalTable <vivarium.framework.lookup.table.CategoricalTable>` if a
-:class:`pandas.DataFrame` with only categorical variables is provided as the
-data, and a :class:`InterpolatedTable <vivarium.framework.lookup.table.InterpolatedTable>`
-if a :class:`pandas.DataFrame` which has at least one continuous variable is
-provided as the data.
-
-.. note::
-
-   The :class:`InterpolatedTable <vivarium.framework.lookup.table.InterpolatedTable>`
-   is a misnomer here. It confuses the data handling strategy with the
-   underlying data representation.  A better name would be ``BinnedDataTable``
-   to indicate that it wraps data where the continuous parameters are
-   represented by bin edges in the provided data.  This would allow us
-   to easily think about and extend the lookup system to wrap data where the
-   continuous parameters are represented by points and to tables where all
-   parameters are categorical.
-
-If the underlying data is a single value or consists only of categorical variables,
-this is the last layer of abstraction. The
-:class:`ScalarTable <vivarium.framework.lookup.table.ScalarTable>` and
-:class:`CategoricalTable <vivarium.framework.lookup.table.CategoricalTable>` each
-have only one reasonable strategy which is to broadcast the value over the
-population index. If we have continuous variables and therefore an
-:class:`InterpolatedTable <vivarium.framework.lookup.table.InterpolatedTable>`,
-there are additional layers to the lookup system to allow the user to
-control the strategy for turning the population index into values based on
-the data.  The
-:class:`InterpolatedTable <vivarium.framework.lookup.table.InterpolatedTable>`
-is then responsible for turning the population index into a set of
-attributes relevant to the value production based on the structure of
-the input data and then providing those attributes to the value production
-strategy.
+At initialization time, the
+:class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>` examines the
+provided data and configures itself accordingly. If the data is a scalar value
+(or list/tuple of scalars), the table simply broadcasts those values over the
+population index when called. If the data is a :class:`pandas.DataFrame`, the
+table delegates to an
+:class:`Interpolation <vivarium.framework.lookup.interpolation.Interpolation>`
+object that handles both categorical and continuous parameter lookups. The
+:class:`Interpolation <vivarium.framework.lookup.interpolation.Interpolation>`
+groups the data by any categorical (key) columns and then, for each group,
+finds the correct bin for any continuous parameters. Tables with only
+categorical parameters are simply the special case where there are no
+continuous parameters to bin on.
 
 .. note::
 
-   I'm being careful with language here.  We have objects named
-   ``Interpolation`` and ``InterpolatedTable`` though the operation they
-   perform is actually disaggregation.  If we extend the system to
-   work with point estimates for the continuous parameters, then
-   interpolation would appropriately describe what we do.  Both are
-   value production strategies based on the structure of the input data.
+   The ``Interpolation`` name is somewhat of a misnomer. For order 0
+   (the only currently supported order), the operation is really
+   disaggregation -- finding the correct bin a value belongs to rather
+   than interpolating between points. If the system is extended to work
+   with point estimates for continuous parameters, then interpolation
+   would appropriately describe the operation.
 
 More information about the value production strategies can be found in
 :ref:`here <interpolation_concept>`.
@@ -223,8 +200,8 @@ When building a lookup table from a :class:`pandas.DataFrame` using ``data_sourc
 the component automatically determines key columns, parameter columns, and value columns
 based on the data structure:
 
-- **Value columns** are assumed by the structure of the artifact to be ``["value"]``. In principle,
-  this could be configured by implementing a custom :class:`~vivarium.framework.artifact.manager.ArtifactManager`.
+- **Value columns** can be provided as an argument to :meth:`~vivarium.component.Component.build_lookup_table`
+  If value columns are not provided, it will default to ``"value"``.
 - **Parameter columns** are detected by finding columns ending in ``_start``
   that have corresponding ``_end`` columns (e.g., ``age_start``/``age_end``).
 - **Key columns** are all remaining columns that are neither value columns
@@ -296,11 +273,15 @@ integrating a lookup table into a :term:`component <Component>`, which is primar
 how they are used. Assuming you have a valid simulation object named ``sim`` and 
 the data from the above table in a :class:`pandas.DataFrame` named ``data``, you 
 can construct a lookup table in the following way, using the interface from the builder.
+You don't have to provide a name for the table, but it is recommended to do so for clarity
+and for ease of debugging. If you don't provide value column names, it will default to
+``"value"``.
+ 
 
 .. code-block:: python
 
       # value_columns implicitly set to remaining columns
-    > bmi = sim.builder.lookup.build_table(data, key_columns=['sex'], parameter_columns=['age'])
+    > bmi = sim.builder.lookup.build_table(data, name="bmi")
     > population = sim.get_population()
     > bmi(population.index).head()  # returns BMI values for the population
 
@@ -316,7 +297,7 @@ can construct a lookup table in the following way, using the interface from the 
    Constructing a lookup table currently requires your data meet specific
    conditions. These are a consequence of the method the lookup table uses to
    arrive at the correct data. Specifically, your parameter columns must
-   represent bins and they must overlap.
+   represent bins and they must not overlap or have gaps.
 
 Estimating Unknown Values
 -------------------------
