@@ -75,7 +75,7 @@ class ResourceInterface(Interface):
 
     def add_private_columns(
         self,
-        initializer: Callable[[SimulantData], None] | None,
+        initializer: Callable[[SimulantData], None],
         columns: Iterable[str] | str,
         required_resources: Iterable[str | Resource],
     ) -> None:
