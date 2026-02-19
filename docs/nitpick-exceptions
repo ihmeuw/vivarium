@@ -73,5 +73,8 @@ py:class Logger
 py:class Path
 py:class LookupTableData
 
+# pathlib internals
+py:class pathlib._local.Path
+
 # typing
 py:data typing.Union
