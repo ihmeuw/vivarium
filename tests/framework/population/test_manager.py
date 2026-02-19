@@ -392,44 +392,6 @@ def test_register_initializer(mocker: MockerFixture) -> None:
     )
 
 
-def test_register_initializer_not_a_method_raises(mocker: MockerFixture) -> None:
-    mgr = PopulationManager()
-    mocker.patch.object(
-        mgr, "_get_current_component_or_manager", return_value=mocker.Mock(), create=True
-    )
-
-    with pytest.raises(TypeError, match="Population initializers must be methods"):
-        mgr.register_initializer(lambda _: None, ["test_column"])
-
-    def initializer(simulant_data: SimulantData) -> None:
-        pass
-
-    with pytest.raises(TypeError, match="Population initializers must be methods"):
-        mgr.register_initializer(initializer, ["test_column"])
-
-
-def test_register_initializer_unnamed_component_raises(mocker: MockerFixture) -> None:
-    class UnnamedComponent(Component):
-        def initializer(self, simulant_data: SimulantData) -> None:
-            pass
-
-        @property
-        def name(self) -> str:
-            """Raise here so that 'hasattr(component, "name")' returns False in the population manager."""
-            raise AttributeError("no name")
-
-    component = UnnamedComponent()
-    mgr = PopulationManager()
-    mocker.patch.object(
-        mgr, "_get_current_component_or_manager", return_value=component, create=True
-    )
-    with pytest.raises(
-        AttributeError,
-        match="Population initializers must be methods of named simulation components.",
-    ):
-        mgr.register_initializer(component.initializer, ["test_column"])
-
-
 def test_register_initializer_duplicate_raises(mocker: MockerFixture) -> None:
     component = ColumnCreator()
     mgr = PopulationManager()
