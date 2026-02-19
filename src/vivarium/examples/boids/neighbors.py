@@ -27,7 +27,7 @@ class Neighbors(Component):
             "neighbors", source=self.get_neighbors, required_resources=["x", "y"]
         )
         builder.population.register_initializer(
-            initializer=self.on_initialize_simulants,
+            initializer=self.initialize_neighbors,
             columns=None,
             required_resources=[],
         )
@@ -36,7 +36,7 @@ class Neighbors(Component):
     # Event-driven methods #
     ########################
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    def initialize_neighbors(self, pop_data: SimulantData) -> None:
         self._neighbors = pd.Series([[]] * len(pop_data.index), index=pop_data.index)
 
     def on_time_step(self, event: Event) -> None:

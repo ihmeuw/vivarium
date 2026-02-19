@@ -51,7 +51,7 @@ class Mortality(Component):
             "mortality_rate", source=self.build_lookup_table(builder, "mortality_rate")
         )
         builder.population.register_initializer(
-            initializer=self.on_initialize_simulants,
+            initializer=self.initialize_alive,
             columns="is_alive",
             required_resources=[]
         )
@@ -61,8 +61,8 @@ class Mortality(Component):
     # Event-driven methods #
     ########################
 
-    # docs-start: on_initialize_simulants
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    # docs-start: initialize_alive
+    def initialize_alive(self, pop_data: SimulantData) -> None:
         """Called by the simulation whenever new simulants are added.
 
         This component is responsible for creating and filling the 'is_alive' column
@@ -78,7 +78,7 @@ class Mortality(Component):
         """
         self.population_view.update(pd.Series(True, index=pop_data.index, name="is_alive"))
 
-    # docs-end: on_initialize_simulants
+    # docs-end: initialize_alive
 
     # docs-start: on_time_step
     def on_time_step(self, event: Event) -> None:

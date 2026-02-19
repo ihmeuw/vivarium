@@ -71,7 +71,7 @@ class Hogwarts(Component):
             required_resources=["power_level"],
         )
         builder.population.register_initializer(
-            initializer=self.on_initialize_simulants,
+            initializer=self.initialize_hogwarts,
             columns=[
                 "student_id",
                 "student_house",
@@ -85,7 +85,7 @@ class Hogwarts(Component):
             ],
         )
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    def initialize_hogwarts(self, pop_data: SimulantData) -> None:
         size = len(pop_data.index)
         initialization_data = pd.DataFrame(
             {

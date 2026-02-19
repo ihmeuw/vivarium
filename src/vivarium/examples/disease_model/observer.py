@@ -16,7 +16,7 @@ class DeathsObserver(Observer):
 
     def setup(self, builder: Builder) -> None:
         builder.population.register_initializer(
-            initializer=self.on_initialize_simulants,
+            initializer=self.initialize_previous_alive,
             columns="previous_alive",
             required_resources=["is_alive"]
         )
@@ -32,7 +32,7 @@ class DeathsObserver(Observer):
     # Event-driven methods #
     ########################
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    def initialize_previous_alive(self, pop_data: SimulantData) -> None:
         """Initialize simulants as alive"""
         self.population_view.update(pd.Series(True, index=pop_data.index, name="previous_alive"))
 
