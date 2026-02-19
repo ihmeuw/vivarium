@@ -21,7 +21,7 @@ from tests.helpers import (
 from vivarium import Artifact, InteractiveContext
 from vivarium.framework.engine import Builder
 from vivarium.framework.lifecycle import lifecycle_states
-from vivarium.framework.lookup.table import CategoricalTable, InterpolatedTable, ScalarTable
+from vivarium.framework.lookup.table import LookupTable
 from vivarium.framework.population import PopulationError
 
 
@@ -287,14 +287,13 @@ def test_component_lookup_table_configuration(hdf_file_path: Path) -> None:
     )
     sim.setup()
 
-    # check that tables have correct type
-    assert isinstance(component.favorite_team_table, CategoricalTable)
-    assert isinstance(component.favorite_color_table, InterpolatedTable)
-    assert isinstance(component.favorite_number_table, InterpolatedTable)
-    assert isinstance(component.favorite_scalar_table, ScalarTable)
-    assert isinstance(component.favorite_list_table, ScalarTable)
-    assert isinstance(component.baking_time_table, ScalarTable)
-    assert isinstance(component.cooling_time_table, CategoricalTable)
+    # Check that lookup table backing data is of the correct type
+    assert isinstance(component.favorite_team_table.data, pd.DataFrame)
+    assert isinstance(component.favorite_color_table.data, pd.DataFrame)
+    assert isinstance(component.favorite_number_table.data, pd.DataFrame)
+    assert isinstance(component.favorite_scalar_table.data, float)
+    assert isinstance(component.favorite_list_table.data, list)
+    assert isinstance(component.cooling_time_table.data, pd.DataFrame)
 
     # Check for correct columns in lookup tables
     assert component.favorite_team_table.key_columns == ["test_column_1"]
@@ -378,8 +377,6 @@ def test_value_column_order_is_maintained() -> None:
     """
     component = OrderedColumnsLookupCreator()
     sim = InteractiveContext(components=[component])
-    assert isinstance(component.categorical_table, CategoricalTable)
-    assert isinstance(component.interpolated_table, InterpolatedTable)
     columns = list(component.categorical_table(sim.get_population_index()).columns)
     assert columns == OrderedColumnsLookupCreator.VALUE_COLUMNS
     columns = list(component.interpolated_table(sim.get_population_index()).columns)
