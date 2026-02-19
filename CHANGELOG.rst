@@ -27,6 +27,7 @@ Population management system refactor
   initializer methods per component.
 
   - Remove columns_created, columns_required, and initialization_requirements properties throughout.
+  - Changed the names of all initializer methods (no longer 'on_initialize_simulants').
 
 - Population manager: 'get_population()' now requires an explicit attribute request ("all" is allowed).
 - Stop returning AttributePipelines (previously Pipelines) when registering them.

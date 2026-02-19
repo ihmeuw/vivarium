@@ -115,7 +115,7 @@ class SimulationClock(Manager):
             self._simulant_step_size_pipeline,
         )
         builder.population.register_initializer(
-            initializer=self.on_initialize_simulants, columns=None
+            initializer=self.initialize_individual_clock, columns=None
         )
         builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
         self._individual_clocks = pd.DataFrame()
@@ -126,7 +126,7 @@ class SimulationClock(Manager):
             # and remove the dataframe
             self._individual_clocks = None
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    def initialize_individual_clock(self, pop_data: SimulantData) -> None:
         """Sets the next_event_time and step_size columns for each simulant"""
         if self._individual_clocks is not None:
             clocks_to_initialize = pd.DataFrame(

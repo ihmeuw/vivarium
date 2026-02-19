@@ -56,7 +56,7 @@ class Risk(Component):
         )
         self.randomness = builder.randomness.get_stream(self.risk)
         builder.population.register_initializer(
-            initializer=self.on_initialize_simulants,
+            initializer=self.initialize_propensity,
             columns=self.propensity_column,
             required_resources=[self.randomness]
         )
@@ -65,7 +65,7 @@ class Risk(Component):
     # Event-driven methods #
     ########################
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    def initialize_propensity(self, pop_data: SimulantData) -> None:
         draw = self.randomness.get_draw(pop_data.index)
         self.population_view.update(pd.Series(draw, name=self.propensity_column))
 

@@ -33,10 +33,10 @@ CUBE_DF = pd.DataFrame(
 class PieComponent(Component):
     def setup(self, builder: Builder) -> None:
         builder.population.register_initializer(
-            initializer=self.on_initialize_simulants, columns=PIE_COL_NAMES
+            initializer=self.make_pie, columns=PIE_COL_NAMES
         )
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    def make_pie(self, pop_data: SimulantData) -> None:
         self.population_view.update(self.get_initial_state(pop_data.index))
 
     def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:
@@ -46,10 +46,10 @@ class PieComponent(Component):
 class CubeComponent(Component):
     def setup(self, builder: Builder) -> None:
         builder.population.register_initializer(
-            initializer=self.on_initialize_simulants, columns=CUBE_COL_NAMES
+            initializer=self.cubify, columns=CUBE_COL_NAMES
         )
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    def cubify(self, pop_data: SimulantData) -> None:
         self.population_view.update(self.get_initial_state(pop_data.index))
 
     def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:

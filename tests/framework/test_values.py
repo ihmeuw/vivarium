@@ -777,10 +777,10 @@ def test_source_callable(
                 source=source,  # type: ignore [arg-type] # we are testing invalid types too
             )
             builder.population.register_initializer(
-                initializer=self.on_initialize_simulants, columns=["attr1", "attr2"]
+                initializer=self.initialize_attr1_attr2, columns=["attr1", "attr2"]
             )
 
-        def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+        def initialize_attr1_attr2(self, pop_data: SimulantData) -> None:
             update = pd.DataFrame({"attr1": [10.0], "attr2": [20.0]}, index=pop_data.index)
             self.population_view.update(update)
 

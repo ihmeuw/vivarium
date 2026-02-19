@@ -141,11 +141,11 @@ class Listener(MockComponentB):
 class ColumnCreator(Component):
     def setup(self, builder: Builder) -> None:
         builder.population.register_initializer(
-            initializer=self.on_initialize_simulants,
+            initializer=self.initialize_test_columns,
             columns=["test_column_1", "test_column_2", "test_column_3"],
         )
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    def initialize_test_columns(self, pop_data: SimulantData) -> None:
         self.population_view.update(self.get_initial_state(pop_data.index))
 
     def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:
@@ -161,7 +161,7 @@ class ColumnCreator(Component):
 class SingleColumnCreator(ColumnCreator):
     def setup(self, builder: Builder) -> None:
         builder.population.register_initializer(
-            initializer=self.on_initialize_simulants, columns=["test_column_1"]
+            initializer=self.initialize_test_columns, columns=["test_column_1"]
         )
 
     def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:
@@ -318,10 +318,10 @@ class OrderedColumnsLookupCreator(Component):
             builder, "interpolated", value_columns=self.VALUE_COLUMNS
         )
         builder.population.register_initializer(
-            initializer=self.on_initialize_simulants, columns=["foo", "bar"]
+            initializer=self.initialize_foo_bar, columns=["foo", "bar"]
         )
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    def initialize_foo_bar(self, pop_data: SimulantData) -> None:
         initialization_data = pd.DataFrame(
             {
                 "foo": "key1",
@@ -349,12 +349,12 @@ class ColumnCreatorAndRequirer(Component):
         self.pipeline = builder.value.get_value("pipeline_1")
         self.randomness = builder.randomness.get_stream("stream_1")
         builder.population.register_initializer(
-            initializer=self.on_initialize_simulants,
+            initializer=self.initialize_test_column_4,
             columns="test_column_4",
             required_resources=["test_column_2", self.pipeline, self.randomness],
         )
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    def initialize_test_column_4(self, pop_data: SimulantData) -> None:
         initialization_data = pd.DataFrame({"test_column_4": 8}, index=pop_data.index)
         self.population_view.update(initialization_data)
 

@@ -29,7 +29,7 @@ class Population(Component):
         self.colors = builder.configuration.population.colors
         self.randomness = builder.randomness.get_stream(self.name)
         builder.population.register_initializer(
-            initializer=self.on_initialize_simulants,
+            initializer=self.initialize_population,
             columns=["color", "entrance_time"],
             required_resources=[self.randomness]
         )
@@ -39,7 +39,7 @@ class Population(Component):
     # Event-driven methods #
     ########################
 
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+    def initialize_population(self, pop_data: SimulantData) -> None:
         new_population = pd.DataFrame(
             {
                 "color": self.randomness.choice(pop_data.index, self.colors),
