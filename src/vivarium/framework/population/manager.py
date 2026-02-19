@@ -408,23 +408,11 @@ class PopulationManager(Manager):
 
         Raises
         ------
-        TypeError
-            If the ``initializer`` is not a method type.
-        AttributeError
-            If the ``initializer`` is not bound to a Component or the PopulationManager
-            or if the bound component does not have a name attribute.
         PopulationError
             If this component name has already registered private columns.
         """
 
         component = self._get_current_component_or_manager()
-
-        if not (isinstance(component, Component) or isinstance(component, Manager)):
-            raise AttributeError(
-                "Population initializers must be methods of vivarium Components or Managers. "
-                f"You provided {initializer} which is bound to {component} that "
-                f"is of type {type(component)}."
-            )
 
         if columns is None:
             columns = []
