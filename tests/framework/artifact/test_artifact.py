@@ -323,6 +323,7 @@ def test_remove_bad_key(hdf_mock: MagicMock, artifact_path: Path) -> None:
     assert key not in a
     assert key not in a._cache
     hdf_mock.remove.assert_not_called()
+    hdf_mock.write.assert_not_called()
     assert a.keys == initial_keys
 
 
@@ -446,8 +447,8 @@ def test_replace_nonexistent_key(hdf_mock: MagicMock, artifact_path: Path) -> No
     key = "new.key"
 
     a = Artifact(artifact_path, filter_terms=filter_terms)
+    hdf_mock.load.assert_called_once_with(artifact_path, "metadata.keyspace", None, None)
     assert key not in a
-
     hdf_mock.reset_mock()
     with pytest.raises(ArtifactException):
         a.replace(key, "new_data")
