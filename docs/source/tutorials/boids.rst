@@ -111,7 +111,7 @@ that's been extended to support dot-style attribute access. Our access here
 mirrors what's in the ``configuration_defaults`` at the top of the class
 definition.
 
-Note that the setup method is registering a method called ``on_initialize_simulants``
+Note that the setup method is registering a method called ``initialize_population``
 as an initializer that will create two private columns (``color`` and ``entrance_time``)
 and requires the randomness stream to do so. This tells Vivarium what columns 
 (or "attributes") the component will add to the population table and how. See the 
@@ -132,11 +132,11 @@ next section for where we actually create these columns.
 Initializers
 ++++++++++++
 
-Finally we look at the ``on_initialize_simulants`` method which was registered
+Finally we look at the ``initialize_population`` method which was registered
 as the one and only initializer method. Any registered initializers will be automatically 
 called by Vivarium when new simulants are being added to the simulation.
 
-We see that, like the ``setup`` method, initializer methods (``on_initialize_simulants``
+We see that, like the ``setup`` method, initializer methods (``initialize_population``
 in this case) take in a special argument that we don't provide. This argument, 
 ``pop_data``, is an instance of :class:`~vivarium.framework.population.manager.SimulantData` 
 containing a handful of information useful when initializing simulants.

@@ -200,12 +200,12 @@ for this decision point of whether to move left or not. Here's how we'd do it:
             self.randomness = builder.randomness.get_stream(self.name)
 
             builder.population.register_initializer(
-                initializer=self.on_initialize_simulants,
+                initializer=self.initialize_location,
                 columns='location',
                 required_resources=[self.randomness],
             )
 
-        def on_initialize_simulants(self, pop_data):
+        def initialize_location(self, pop_data):
             # all simulants start at position 10
             self.population_view.update(pd.Series(10, index=pop_data.index, name='location'))
 

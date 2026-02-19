@@ -692,12 +692,12 @@ called (in the ``on_time_step`` method in this case - see below).
 Finally, we register an initializer method which is responsible for creating an
 ``'is_alive'`` column in the state table.
 
-The ``on_initialize_simulants`` method
+The ``initialize_is_alive`` method
 ++++++++++++++++++++++++++++++++++++++
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :start-after: # docs-start: on_initialize_simulants
-   :end-before: # docs-end: on_initialize_simulants
+   :start-after: # docs-start: initialize_is_alive
+   :end-before: # docs-end: initialize_is_alive
    :dedent: 4
 
 This very simple initializer method simply creates an ``'is_alive'`` column in the state

@@ -31,7 +31,7 @@ def test_resource_group(resource_type: str, mocker: MockerFixture) -> None:
     rg = ResourceGroup(
         initialized_resources=resources,
         required_resources=r_required_resources,
-        initializer=component.on_initialize_simulants,
+        initializer=component.initialize_test_columns,
     )
 
     assert rg.component == component
@@ -41,7 +41,7 @@ def test_resource_group(resource_type: str, mocker: MockerFixture) -> None:
         if isinstance(resources, list)
         else ["test.some_resource"]
     )
-    assert rg.initializer == component.on_initialize_simulants
+    assert rg.initializer == component.initialize_test_columns
     assert rg.required_resources == [
         "attribute.an_interesting_attribute",
         "value.baz",
