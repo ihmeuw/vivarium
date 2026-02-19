@@ -419,13 +419,13 @@ class PopulationManager(Manager):
             created by this initializer overlap with columns created by another initializer.
         """
 
-        component = self._get_current_component_or_manager()
-
         if initializer in self._registered_initializers:
             raise PopulationError(
                 f"The initializer '{initializer.__qualname__}' has already been registered. "
                 "Each initializer may only be registered once."
             )
+
+        component = self._get_current_component_or_manager()
 
         if columns is None:
             columns = []
