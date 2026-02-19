@@ -25,29 +25,7 @@ from tests.helpers import (
 from vivarium import Component, InteractiveContext
 from vivarium.framework.engine import Builder
 from vivarium.framework.population.exceptions import PopulationError
-from vivarium.framework.population.manager import (
-    InitializerComponentSet,
-    PopulationManager,
-    SimulantData,
-)
-
-
-def test_initializer_set_fail_type() -> None:
-    component_set = InitializerComponentSet()
-
-    with pytest.raises(TypeError):
-        component_set.add(lambda _: None, ["test_column"])
-
-    def initializer(simulant_data: SimulantData) -> None:
-        pass
-
-    with pytest.raises(TypeError):
-        component_set.add(initializer, ["test_column"])
-
-
-class NonComponent:
-    def initializer(self, simulant_data: SimulantData) -> None:
-        pass
+from vivarium.framework.population.manager import PopulationManager, SimulantData
 
 
 class InitializingComponent(Component):
@@ -64,35 +42,6 @@ class InitializingComponent(Component):
 
     def other_initializer(self, simulant_data: SimulantData) -> None:
         pass
-
-
-def test_initializer_set_fail_attr() -> None:
-    component_set = InitializerComponentSet()
-
-    with pytest.raises(AttributeError):
-        component_set.add(NonComponent().initializer, ["test_column"])
-
-
-def test_initializer_set_duplicate_columns() -> None:
-    component_set = InitializerComponentSet()
-    component1 = InitializingComponent("test1")
-    component2 = InitializingComponent("test2")
-    columns = ["test_column"]
-
-    component_set.add(component1.initializer, columns)
-    with pytest.raises(PopulationError, match="both registered initializers"):
-        component_set.add(component2.initializer, columns)
-
-    with pytest.raises(PopulationError, match="both registered initializers"):
-        component_set.add(component2.initializer, ["sneaky_column"] + columns)
-
-
-def test_initializer_set() -> None:
-    component_set = InitializerComponentSet()
-    for i in range(10):
-        component = InitializingComponent(str(i))
-        columns = [f"test_column_{i}_{j}" for j in range(5)]
-        component_set.add(component.initializer, columns)
 
 
 @pytest.mark.parametrize("private_columns", [[], ["age", "sex"]])
