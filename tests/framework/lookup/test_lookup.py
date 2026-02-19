@@ -12,9 +12,8 @@ from pytest_mock import MockerFixture
 from tests.helpers import LookupCreator
 from vivarium import Component, InteractiveContext
 from vivarium.framework.lifecycle import lifecycle_states
-from vivarium.framework.lookup import validate_build_table_parameters
 from vivarium.framework.lookup.manager import LookupTableManager
-from vivarium.framework.lookup.table import InterpolatedTable
+from vivarium.framework.lookup.table import LookupTable
 from vivarium.testing_utilities import TestPopulation, build_table
 from vivarium.types import LookupTableData, ScalarValue
 
@@ -55,7 +54,7 @@ def test_build_table_calls_methods_correctly(mocker: MockerFixture) -> None:
     # Assert correct constraint have been set on table.call
     manager._add_constraint.assert_called_once()  # type: ignore[attr-defined]
     call_args = manager._add_constraint.call_args  # type: ignore[attr-defined]
-    assert call_args[0][0] == mock_table.call
+    assert call_args[0][0] == mock_table._call
     assert call_args[1]["restrict_during"] == [
         lifecycle_states.INITIALIZATION,
         lifecycle_states.SETUP,
@@ -289,13 +288,13 @@ class TestLookupTableResource:
     def manager(self, mocker: MockerFixture) -> LookupTableManager:
         manager = LookupTableManager()
         manager.clock = mocker.Mock()
-        manager._pop_view_builder = mocker.Mock()
+        manager._get_view = mocker.Mock()
         manager._add_resources = mocker.Mock()
         manager._add_constraint = mocker.Mock()
         manager._get_current_component = mocker.Mock()
-        manager._interpolation_order = 0
-        manager._extrapolate = True
-        manager._validate = True
+        manager.interpolation_order = 0
+        manager.extrapolate = True
+        manager.validate_interpolation = True
         return manager
 
     def test_scalar_table_resource_attributes(self, manager: LookupTableManager) -> None:
@@ -352,7 +351,7 @@ class TestValidateBuildTableParameters:
     )
     def test_no_data(self, data: LookupTableData) -> None:
         with pytest.raises(ValueError, match="supply some data"):
-            validate_build_table_parameters(data, [])
+            LookupTable._validate_data_inputs(data, [])
 
     @pytest.mark.parametrize(
         "data, val_cols, match",
@@ -366,21 +365,21 @@ class TestValidateBuildTableParameters:
         self, data: LookupTableData, val_cols: str | list[str], match: str
     ) -> None:
         with pytest.raises(ValueError, match=match):
-            validate_build_table_parameters(data, val_cols)
+            LookupTable._validate_data_inputs(data, val_cols)
 
     @pytest.mark.parametrize("data", ["FAIL", pd.Interval(5, 10), "2019-05-17"])
     def test_validate_parameters_fail_other_data(self, data: LookupTableData) -> None:
         with pytest.raises(TypeError, match="only allowable types"):
-            validate_build_table_parameters(data, [])
+            LookupTable._validate_data_inputs(data, [])
 
     def test_validate_parameters_pass_scalar_data(self) -> None:
-        validate_build_table_parameters([1, 2, 3], ["a", "b", "c"])
+        LookupTable._validate_data_inputs([1, 2, 3], ["a", "b", "c"])
 
     def test_validate_parameters_pass_dataframe_data(self) -> None:
         data = pd.DataFrame(
             {"a": [1, 2], "b_start": [0, 5], "b_end": [5, 10], "c": [100, 150]}
         )
-        validate_build_table_parameters(data, ["c"])
+        LookupTable._validate_data_inputs(data, ["c"])
 
 
 def test__build_table_from_dict(base_config: LayeredConfigTree) -> None:
@@ -397,7 +396,7 @@ def test__build_table_from_dict(base_config: LayeredConfigTree) -> None:
     # this test is really going to just ensure we don't error out when we pass in a dict and
     # we get the expected return type from _build_table
     table = manager._build_table(component, data, "", value_columns=["c"])  # type: ignore [arg-type]
-    assert isinstance(table, InterpolatedTable)
+    assert isinstance(table, LookupTable)
     assert table.key_columns == ["b"]
     assert table.parameter_columns == ["a"]
     assert table.value_columns == ["c"]

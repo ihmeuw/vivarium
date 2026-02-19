@@ -145,11 +145,6 @@ def validate_parameters(
     if data.empty:
         raise ValueError("You must supply non-empty data to create the interpolation.")
 
-    if len(continuous_parameters) < 1:
-        raise ValueError(
-            "You must supply at least one continuous parameter over which to interpolate."
-        )
-
     for p in continuous_parameters:
         if not isinstance(p, (tuple, list)) or len(p) != 3:
             raise ValueError(
@@ -160,7 +155,6 @@ def validate_parameters(
             )
 
     # break out the individual columns from binned column name lists
-    param_cols = [col for p in continuous_parameters for col in p]
     if not value_columns:
         raise ValueError(
             f"No non-parameter data. Available columns: {data.columns}, "
@@ -343,12 +337,20 @@ class Order0Interp:
         Parameters
         ----------
         interpolants
-            Data frame containing the parameters to interpolate..
+            Data frame containing the parameters to interpolate.
 
         Returns
         -------
             A table with the interpolated values for the given interpolants.
         """
+        if not self.parameter_bins:
+            # No continuous parameters — just broadcast the data values.
+            # With only categorical parameters, each sub-table has a single row.
+            return pd.DataFrame(
+                {col: self.data[col].iloc[0] for col in self.value_columns},
+                index=interpolants.index,
+            )
+
         # build a dataframe where we have the start of each parameter bin for each interpolant
         interpolant_bins = pd.DataFrame(index=interpolants.index)
 
