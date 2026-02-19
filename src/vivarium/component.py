@@ -22,7 +22,6 @@ from layered_config_tree import ConfigurationError, LayeredConfigTree
 
 from vivarium.framework.artifact import ArtifactException
 from vivarium.framework.lifecycle import LifeCycleError, lifecycle_states
-from vivarium.framework.population import PopulationError
 from vivarium.types import LookupTableData
 
 if TYPE_CHECKING:
@@ -195,6 +194,8 @@ class Component(ABC):
             If the component does not have access to the state table.
         """
         if self._population_view is None:
+            from vivarium.framework.population.exceptions import PopulationError
+
             raise PopulationError(
                 f"Component '{self.name}' does not have access to the state table. "
                 "This is likely due to having called this prior to simulation setup."
