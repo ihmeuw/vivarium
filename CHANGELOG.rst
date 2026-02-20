@@ -70,6 +70,8 @@ Miscellaneous
 - LookupTables: Improve type hinting.
 - LookupTables: Register tables as resources.
 - LookupTables: Warn if unused tables are registered.
+- LookupTables: Consolidate to a single LookupTable class.
+- LookupTables: Enable changing the data of a LookupTable during the simulation loop.
 - Properly set Pipeline source dependencies.
 - Infer component when creating a Resource.
 - Clean up Resource registration.
