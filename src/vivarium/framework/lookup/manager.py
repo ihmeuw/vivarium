@@ -61,7 +61,7 @@ class LookupTableManager(Manager):
         self.interpolation_order = builder.configuration.interpolation.order
         self.extrapolate = builder.configuration.interpolation.extrapolate
         self.validate_interpolation = builder.configuration.interpolation.validate
-        self._add_resources = builder.resources.add_resources
+        self.add_resources = builder.resources.add_resources
         self._add_constraint = builder.lifecycle.add_constraint
         self._get_current_component = builder.components.get_current_component
 
@@ -114,13 +114,21 @@ class LookupTableManager(Manager):
         """Construct a lookup table from input data."""
         component = self._get_current_component()
         table = self._build_table(component, data, name, value_columns)
-        self._add_resources(component, table, table.required_resources)
+        self.add_resources(component, table, table.required_resources)
         self._add_constraint(
             table._call,
             restrict_during=[
                 lifecycle_states.INITIALIZATION,
                 lifecycle_states.SETUP,
                 lifecycle_states.POST_SETUP,
+            ],
+        )
+        self._add_constraint(
+            table.update_data,
+            restrict_during=[
+                lifecycle_states.INITIALIZATION,
+                lifecycle_states.SETUP,
+                lifecycle_states.POPULATION_CREATION,
             ],
         )
         return table

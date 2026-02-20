@@ -80,6 +80,9 @@ class ResourceManager(Manager):
             builder.components.get_current_component_or_manager
         )
         builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
+        builder.lifecycle.add_constraint(
+            self.add_resources, allow_during=[lifecycle_states.SETUP]
+        )
 
     def on_post_setup(self, _: Event) -> None:
         # Finalize the resource group dependencies
