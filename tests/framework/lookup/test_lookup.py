@@ -53,14 +53,24 @@ def test_build_table_calls_methods_correctly(mocker: MockerFixture) -> None:
         test_component, mock_table, ["resource1", "resource2"]
     )
 
-    # Assert correct constraint have been set on table.call
-    manager._add_constraint.assert_called_once()  # type: ignore[attr-defined]
-    call_args = manager._add_constraint.call_args  # type: ignore[attr-defined]
-    assert call_args[0][0] == mock_table._call
-    assert call_args[1]["restrict_during"] == [
+    # Assert correct constraints have been set on table._call and table.update_data
+    assert manager._add_constraint.call_count == 2  # type: ignore[attr-defined]
+    call_args_list = manager._add_constraint.call_args_list  # type: ignore[attr-defined]
+
+    # First call should be for table._call
+    assert call_args_list[0][0][0] == mock_table._call
+    assert call_args_list[0][1]["restrict_during"] == [
         lifecycle_states.INITIALIZATION,
         lifecycle_states.SETUP,
         lifecycle_states.POST_SETUP,
+    ]
+
+    # Second call should be for table.update_data
+    assert call_args_list[1][0][0] == mock_table.update_data
+    assert call_args_list[1][1]["restrict_during"] == [
+        lifecycle_states.INITIALIZATION,
+        lifecycle_states.SETUP,
+        lifecycle_states.POPULATION_CREATION,
     ]
 
     # Assert the table is returned
@@ -351,9 +361,11 @@ class TestValidateBuildTableParameters:
     @pytest.mark.parametrize(
         "data", [None, pd.DataFrame(), pd.DataFrame(columns=["a", "b", "c"]), [], tuple()]
     )
-    def test_no_data(self, data: LookupTableData) -> None:
+    def test_no_data(self, data: LookupTableData, mocker: MockerFixture) -> None:
         with pytest.raises(ValueError, match="supply some data"):
-            LookupTable._validate_data_inputs(data, [])
+            mock_table = mocker.Mock(spec=LookupTable)
+            mock_table._value_columns = []
+            LookupTable._validate_data_inputs(mock_table, data)
 
     @pytest.mark.parametrize(
         "data, val_cols, match",
@@ -364,24 +376,39 @@ class TestValidateBuildTableParameters:
         ],
     )
     def test_scalar_data_value_columns_mismatch(
-        self, data: LookupTableData, val_cols: str | list[str], match: str
+        self,
+        data: LookupTableData,
+        val_cols: str | list[str],
+        match: str,
+        mocker: MockerFixture,
     ) -> None:
         with pytest.raises(ValueError, match=match):
-            LookupTable._validate_data_inputs(data, val_cols)
+            mock_table = mocker.Mock(spec=LookupTable)
+            mock_table._value_columns = val_cols
+            LookupTable._validate_data_inputs(mock_table, data)
 
     @pytest.mark.parametrize("data", ["FAIL", pd.Interval(5, 10), "2019-05-17"])
-    def test_validate_parameters_fail_other_data(self, data: LookupTableData) -> None:
+    def test_validate_parameters_fail_other_data(
+        self, data: LookupTableData, mocker: MockerFixture
+    ) -> None:
         with pytest.raises(TypeError, match="only allowable types"):
-            LookupTable._validate_data_inputs(data, [])
+            mock_table = mocker.Mock(spec=LookupTable)
+            mock_table._value_columns = []
+            LookupTable._validate_data_inputs(mock_table, data)
 
-    def test_validate_parameters_pass_scalar_data(self) -> None:
-        LookupTable._validate_data_inputs([1, 2, 3], ["a", "b", "c"])
+    def test_validate_parameters_pass_scalar_data(self, mocker: MockerFixture) -> None:
+        mock_table = mocker.Mock(spec=LookupTable)
+        mock_table._value_columns = ["a", "b", "c"]
+        LookupTable._validate_data_inputs(mock_table, [1, 2, 3])
 
-    def test_validate_parameters_pass_dataframe_data(self) -> None:
+    def test_validate_parameters_pass_dataframe_data(self, mocker: MockerFixture) -> None:
         data = pd.DataFrame(
             {"a": [1, 2], "b_start": [0, 5], "b_end": [5, 10], "c": [100, 150]}
         )
-        LookupTable._validate_data_inputs(data, ["c"])
+        mock_table = mocker.Mock(spec=LookupTable)
+        mock_table._value_columns = ["c"]
+        mock_table.value_columns = ["c"]
+        LookupTable._validate_data_inputs(mock_table, data)
 
 
 def test__build_table_from_dict(base_config: LayeredConfigTree) -> None:
@@ -673,7 +700,7 @@ class TestLookupTableUpdateData:
                 pd.DataFrame({"sex": ["Female", "Male"], "value": [100, 200]}),
                 ["sex"],
                 [],
-                id="dataframe_same_structure"
+                id="dataframe_same_structure",
             ),
             pytest.param("list_update_component", [10, 20, 30], [], [], id="list_to_list"),
             pytest.param(
@@ -688,7 +715,7 @@ class TestLookupTableUpdateData:
                 ),
                 ["sex"],
                 ["age"],
-                id="with_parameter_columns"
+                id="with_parameter_columns",
             ),
             pytest.param(
                 "multiple_value_columns_component",
@@ -701,14 +728,14 @@ class TestLookupTableUpdateData:
                 ),
                 ["sex"],
                 [],
-                id="multiple_value_columns"
+                id="multiple_value_columns",
             ),
             pytest.param(
                 "scalar_to_dataframe_component",
                 pd.DataFrame({"sex": ["Female", "Male"], "value": [50, 60]}),
                 ["sex"],
                 [],
-                id="scalar_to_dataframe"
+                id="scalar_to_dataframe",
             ),
             pytest.param(
                 "change_key_columns_component",
@@ -717,7 +744,7 @@ class TestLookupTableUpdateData:
                 ),
                 ["location"],
                 [],
-                id="change_key_columns"
+                id="change_key_columns",
             ),
             pytest.param(
                 "add_parameter_columns_component",
@@ -731,7 +758,7 @@ class TestLookupTableUpdateData:
                 ),
                 ["sex"],
                 ["age"],
-                id="add_parameter_columns"
+                id="add_parameter_columns",
             ),
             pytest.param(
                 "change_parameter_columns_component",
@@ -745,7 +772,7 @@ class TestLookupTableUpdateData:
                 ),
                 ["sex"],
                 ["year"],
-                id="change_parameter_columns"
+                id="change_parameter_columns",
             ),
             pytest.param(
                 "add_key_columns_component",
@@ -758,9 +785,11 @@ class TestLookupTableUpdateData:
                 ),
                 ["sex", "location"],
                 [],
-                id="add_key_columns"
+                id="add_key_columns",
             ),
-            pytest.param("dataframe_to_scalar_component", 100, [], [], id="dataframe_to_scalar"),
+            pytest.param(
+                "dataframe_to_scalar_component", 100, [], [], id="dataframe_to_scalar"
+            ),
         ],
     )
     def test_update_data_on_time_step(
@@ -895,6 +924,7 @@ class TestLookupTableUpdateData:
 
         # After post_setup, the table data should be updated
         expected_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [100, 200]})
+        assert isinstance(update_component.table.data, pd.DataFrame)
         pd.testing.assert_frame_equal(update_component.table.data, expected_data)
 
     @pytest.mark.xfail(
@@ -962,6 +992,7 @@ class TestLookupTableUpdateData:
 
         # After post_setup, the table data should be a dataframe
         expected_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [50, 60]})
+        assert isinstance(update_component.table.data, pd.DataFrame)
         pd.testing.assert_frame_equal(update_component.table.data, expected_data)
 
     @pytest.mark.xfail(
