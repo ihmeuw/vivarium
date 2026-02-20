@@ -37,7 +37,7 @@ def test_build_table_calls_methods_correctly(mocker: MockerFixture) -> None:
     # Inject mocks into the manager
     manager._get_current_component = mocker.Mock(return_value=test_component)
     manager._build_table = mocker.Mock(return_value=mock_table)  # type: ignore[method-assign]
-    manager.add_resources = mocker.Mock()
+    manager._add_resources = mocker.Mock()
     manager._add_constraint = mocker.Mock()
 
     # Execute
@@ -49,7 +49,7 @@ def test_build_table_calls_methods_correctly(mocker: MockerFixture) -> None:
     )
 
     # Assert _add_resources was called with correct arguments
-    manager.add_resources.assert_called_once_with(  # type: ignore[attr-defined]
+    manager._add_resources.assert_called_once_with(  # type: ignore[attr-defined]
         test_component, mock_table, ["resource1", "resource2"]
     )
 
@@ -71,6 +71,7 @@ def test_build_table_calls_methods_correctly(mocker: MockerFixture) -> None:
         lifecycle_states.INITIALIZATION,
         lifecycle_states.SETUP,
         lifecycle_states.POPULATION_CREATION,
+        lifecycle_states.POST_SETUP,
     ]
 
     # Assert the table is returned
@@ -301,7 +302,7 @@ class TestLookupTableResource:
         manager = LookupTableManager()
         manager.clock = mocker.Mock()
         manager._get_view = mocker.Mock()
-        manager.add_resources = mocker.Mock()
+        manager._add_resources = mocker.Mock()
         manager._add_constraint = mocker.Mock()
         manager._get_current_component = mocker.Mock()
         manager.interpolation_order = 0
@@ -352,7 +353,7 @@ class TestLookupTableResource:
         component = LookupCreator()
         manager._get_current_component.return_value = component  # type: ignore [attr-defined]
         table = manager.build_table(5, "test_table", value_columns="value")
-        manager.add_resources.assert_called_once_with(  # type: ignore[attr-defined]
+        manager._add_resources.assert_called_once_with(  # type: ignore[attr-defined]
             component, table, table.required_resources
         )
 

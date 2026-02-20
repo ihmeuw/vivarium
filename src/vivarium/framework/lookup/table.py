@@ -204,14 +204,11 @@ class LookupTable(Resource, Generic[T]):
 
     def update_data(self, data: LookupTableData) -> None:
         """Update the data of this lookup table and re-initialize interpolation if necessary."""
+        # TODO MIC-6814: We want to be able to update the data of a lookup table during post-setup,
+        # which would require communicating to the ResourceManager that the lookup table's required
+        # resources may have changed. For now, we can only allow updates to the data during the
+        # simulation loop (i.e. after population creation).
         self._set_data(data)
-        try:
-            self._manager.add_resources(self.component, self, self.required_resources)
-        except LifeCycleError as e:
-            # Adding resources is not allowed after post-setup, but we still want to allow users
-            # to update the data of their lookup tables. After population creation, updating the
-            #  resource graph doesn't matter.
-            pass
 
     def __repr__(self) -> str:
         return "LookupTable()"
