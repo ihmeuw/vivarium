@@ -11,6 +11,8 @@ from pytest_mock import MockerFixture
 
 from tests.helpers import LookupCreator
 from vivarium import Component, InteractiveContext
+from vivarium.framework.engine import Builder
+from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.lookup.manager import LookupTableManager
 from vivarium.framework.lookup.table import LookupTable
@@ -447,86 +449,340 @@ class TestLookupTableUpdateData:
     while keeping the same structure (same required_resources).
     """
 
-    def test_update_data_scalar_to_scalar_on_time_step(
+    @pytest.fixture
+    def stepped_sim_with_components(
         self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test updating scalar data to another scalar during time_step.
-
-        This works because the required_resources don't change (both are empty).
+    ) -> InteractiveContext:
+        """Create a simulation with all components, step once, return the simulation.
+        Components have tables set up but don't automatically update - tests call update_data().
         """
 
         class ScalarUpdateComponent(Component):
-            def __init__(self) -> None:
-                super().__init__()
-                self.updated = False
-
             def setup(self, builder: Builder) -> None:
                 self.table = builder.lookup.build_table(
-                    5, "test_table", value_columns="value"
+                    5, "scalar_table", value_columns="value"
                 )
 
             def on_time_step(self, event: Event) -> None:
-                if not self.updated:
-                    self.table.update_data(20)
-                    self.updated = True
-
-        component = ScalarUpdateComponent()
-        simulation = InteractiveContext(components=[component], configuration=base_config)
-
-        # Initially, the table should return the original value
-        result = component.table(simulation.get_population_index())
-        assert isinstance(result, pd.Series)
-        assert np.all(result == 5)
-
-        # After one time step, the table should return the updated value
-        simulation.step()
-        result = component.table(simulation.get_population_index())
-        assert isinstance(result, pd.Series)
-        assert np.all(result == 20)
-
-    def test_update_data_dataframe_to_dataframe_same_structure_on_time_step(
-        self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test updating dataframe with same structure during time_step.
-
-        This works because the required_resources don't change.
-        """
+                self.table.update_data(10)
 
         class SameStructureComponent(Component):
-            def __init__(self) -> None:
-                super().__init__()
-                self.updated = False
-
             def setup(self, builder: Builder) -> None:
-                # Build initial table with sex as key
                 initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
                 self.table = builder.lookup.build_table(
-                    initial_data, "test_table", value_columns="value"
+                    initial_data, "same_structure_table", value_columns="value"
                 )
 
             def on_time_step(self, event: Event) -> None:
-                if not self.updated:
-                    # Update with new values but same structure
-                    new_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [100, 200]})
-                    self.table.update_data(new_data)
-                    self.updated = True
+                new_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [100, 200]})
+                self.table.update_data(new_data)
 
-        component = TestPopulation()
-        update_component = SameStructureComponent()
+        class ListUpdateComponent(Component):
+            def setup(self, builder: Builder) -> None:
+                self.table = builder.lookup.build_table(
+                    [1, 2, 3], "list_table", value_columns=["a", "b", "c"]
+                )
+
+            def on_time_step(self, event: Event) -> None:
+                self.table.update_data([10, 20, 30])
+
+        class ParameterColumnsComponent(Component):
+            def setup(self, builder: Builder) -> None:
+                initial_data = pd.DataFrame(
+                    {
+                        "sex": ["Female", "Female", "Male", "Male"],
+                        "age_start": [0.0, 50.0, 0.0, 50.0],
+                        "age_end": [50.0, 125.0, 50.0, 125.0],
+                        "value": [10, 20, 30, 40],
+                    }
+                )
+                self.table = builder.lookup.build_table(
+                    initial_data, "parameter_table", value_columns="value"
+                )
+
+            def on_time_step(self, event: Event) -> None:
+                new_data = pd.DataFrame(
+                    {
+                        "sex": ["Female", "Female", "Male", "Male"],
+                        "age_start": [0.0, 50.0, 0.0, 50.0],
+                        "age_end": [50.0, 125.0, 50.0, 125.0],
+                        "value": [100, 200, 300, 400],
+                    }
+                )
+                self.table.update_data(new_data)
+
+        class MultipleValueColumnsComponent(Component):
+            def setup(self, builder: Builder) -> None:
+                initial_data = pd.DataFrame(
+                    {"sex": ["Female", "Male"], "value1": [10, 20], "value2": [30, 40]}
+                )
+                self.table = builder.lookup.build_table(
+                    initial_data, "multi_value_table", value_columns=["value1", "value2"]
+                )
+
+            def on_time_step(self, event: Event) -> None:
+                new_data = pd.DataFrame(
+                    {
+                        "sex": ["Female", "Male"],
+                        "value1": [100, 200],
+                        "value2": [300, 400],
+                    }
+                )
+                self.table.update_data(new_data)
+
+        class ScalarToDataframeComponent(Component):
+            def setup(self, builder: Builder) -> None:
+                self.table = builder.lookup.build_table(
+                    5, "scalar_to_df_table", value_columns="value"
+                )
+
+            def on_time_step(self, event: Event) -> None:
+                new_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [50, 60]})
+                self.table.update_data(new_data)
+
+        class ChangeKeyColumnsComponent(Component):
+            def setup(self, builder: Builder) -> None:
+                initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
+                self.table = builder.lookup.build_table(
+                    initial_data, "change_key_table", value_columns="value"
+                )
+
+            def on_time_step(self, event: Event) -> None:
+                new_data = pd.DataFrame(
+                    {"location": ["USA", "Canada", "Mexico"], "value": [100, 200, 300]}
+                )
+                self.table.update_data(new_data)
+
+        class AddParameterColumnsComponent(Component):
+            def setup(self, builder: Builder) -> None:
+                initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
+                self.table = builder.lookup.build_table(
+                    initial_data, "add_param_table", value_columns="value"
+                )
+
+            def on_time_step(self, event: Event) -> None:
+                new_data = pd.DataFrame(
+                    {
+                        "sex": ["Female", "Female", "Male", "Male"],
+                        "age_start": [0.0, 50.0, 0.0, 50.0],
+                        "age_end": [50.0, 125.0, 50.0, 125.0],
+                        "value": [100, 150, 200, 250],
+                    }
+                )
+                self.table.update_data(new_data)
+
+        class ChangeParameterColumnsComponent(Component):
+            def setup(self, builder: Builder) -> None:
+                self.year_start = builder.configuration.time.start.year
+                self.year_end = builder.configuration.time.end.year
+                initial_data = pd.DataFrame(
+                    {
+                        "sex": ["Female", "Female", "Male", "Male"],
+                        "age_start": [0.0, 50.0, 0.0, 50.0],
+                        "age_end": [50.0, 125.0, 50.0, 125.0],
+                        "value": [10, 20, 30, 40],
+                    }
+                )
+                self.table = builder.lookup.build_table(
+                    initial_data, "change_param_table", value_columns="value"
+                )
+
+            def on_time_step(self, event: Event) -> None:
+                mid_year = (self.year_start + self.year_end) // 2
+                new_data = pd.DataFrame(
+                    {
+                        "sex": ["Female", "Female", "Male", "Male"],
+                        "year_start": [self.year_start, mid_year, self.year_start, mid_year],
+                        "year_end": [mid_year, self.year_end, mid_year, self.year_end],
+                        "value": [100, 150, 200, 250],
+                    }
+                )
+                self.table.update_data(new_data)
+
+        class AddKeyColumnsComponent(Component):
+            def setup(self, builder: Builder) -> None:
+                initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
+                self.table = builder.lookup.build_table(
+                    initial_data, "add_key_table", value_columns="value"
+                )
+
+            def on_time_step(self, event: Event) -> None:
+                new_data = pd.DataFrame(
+                    {
+                        "sex": [
+                            "Female",
+                            "Male",
+                            "Female",
+                            "Male",
+                            "Female",
+                            "Male",
+                        ],
+                        "location": [
+                            "USA",
+                            "USA",
+                            "Canada",
+                            "Canada",
+                            "Mexico",
+                            "Mexico",
+                        ],
+                        "value": [100, 200, 300, 400, 500, 600],
+                    }
+                )
+                self.table.update_data(new_data)
+
+        class DataframeToScalarComponent(Component):
+            def setup(self, builder: Builder) -> None:
+                initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
+                self.table = builder.lookup.build_table(
+                    initial_data, "df_to_scalar_table", value_columns="value"
+                )
+
+            def on_time_step(self, event: Event) -> None:
+                self.table.update_data(100)
+
+        # Create simulation with all components
         simulation = InteractiveContext(
-            components=[component, update_component], configuration=base_config
+            components=[
+                TestPopulation(),
+                ScalarUpdateComponent(),
+                SameStructureComponent(),
+                ListUpdateComponent(),
+                ParameterColumnsComponent(),
+                MultipleValueColumnsComponent(),
+                ScalarToDataframeComponent(),
+                ChangeKeyColumnsComponent(),
+                AddParameterColumnsComponent(),
+                ChangeParameterColumnsComponent(),
+                AddKeyColumnsComponent(),
+                DataframeToScalarComponent(),
+            ],
+            configuration=base_config,
         )
 
-        # After time step, values should be updated
+        # Take one time step
         simulation.step()
-        population = simulation.get_population(["sex"])
-        result = update_component.table(population.index)
-        assert isinstance(result, pd.Series)
 
-        female_mask = population["sex"] == "Female"
-        male_mask = population["sex"] == "Male"
-        assert np.all(result[female_mask] == 100)
-        assert np.all(result[male_mask] == 200)
+        return simulation
+
+    @pytest.mark.parametrize(
+        "component_name,expected_data,expected_key_columns,expected_parameter_columns",
+        [
+            pytest.param("scalar_update_component", 10, [], [], id="scalar_to_scalar"),
+            pytest.param(
+                "same_structure_component",
+                pd.DataFrame({"sex": ["Female", "Male"], "value": [100, 200]}),
+                ["sex"],
+                [],
+                id="dataframe_same_structure"
+            ),
+            pytest.param("list_update_component", [10, 20, 30], [], [], id="list_to_list"),
+            pytest.param(
+                "parameter_columns_component",
+                pd.DataFrame(
+                    {
+                        "sex": ["Female", "Female", "Male", "Male"],
+                        "age_start": [0.0, 50.0, 0.0, 50.0],
+                        "age_end": [50.0, 125.0, 50.0, 125.0],
+                        "value": [100, 200, 300, 400],
+                    }
+                ),
+                ["sex"],
+                ["age"],
+                id="with_parameter_columns"
+            ),
+            pytest.param(
+                "multiple_value_columns_component",
+                pd.DataFrame(
+                    {
+                        "sex": ["Female", "Male"],
+                        "value1": [100, 200],
+                        "value2": [300, 400],
+                    }
+                ),
+                ["sex"],
+                [],
+                id="multiple_value_columns"
+            ),
+            pytest.param(
+                "scalar_to_dataframe_component",
+                pd.DataFrame({"sex": ["Female", "Male"], "value": [50, 60]}),
+                ["sex"],
+                [],
+                id="scalar_to_dataframe"
+            ),
+            pytest.param(
+                "change_key_columns_component",
+                pd.DataFrame(
+                    {"location": ["USA", "Canada", "Mexico"], "value": [100, 200, 300]}
+                ),
+                ["location"],
+                [],
+                id="change_key_columns"
+            ),
+            pytest.param(
+                "add_parameter_columns_component",
+                pd.DataFrame(
+                    {
+                        "sex": ["Female", "Female", "Male", "Male"],
+                        "age_start": [0.0, 50.0, 0.0, 50.0],
+                        "age_end": [50.0, 125.0, 50.0, 125.0],
+                        "value": [100, 150, 200, 250],
+                    }
+                ),
+                ["sex"],
+                ["age"],
+                id="add_parameter_columns"
+            ),
+            pytest.param(
+                "change_parameter_columns_component",
+                pd.DataFrame(
+                    {
+                        "sex": ["Female", "Female", "Male", "Male"],
+                        "year_start": [1990, 2000, 1990, 2000],
+                        "year_end": [2000, 2010, 2000, 2010],
+                        "value": [100, 150, 200, 250],
+                    }
+                ),
+                ["sex"],
+                ["year"],
+                id="change_parameter_columns"
+            ),
+            pytest.param(
+                "add_key_columns_component",
+                pd.DataFrame(
+                    {
+                        "sex": ["Female", "Male", "Female", "Male", "Female", "Male"],
+                        "location": ["USA", "USA", "Canada", "Canada", "Mexico", "Mexico"],
+                        "value": [100, 200, 300, 400, 500, 600],
+                    }
+                ),
+                ["sex", "location"],
+                [],
+                id="add_key_columns"
+            ),
+            pytest.param("dataframe_to_scalar_component", 100, [], [], id="dataframe_to_scalar"),
+        ],
+    )
+    def test_update_data_on_time_step(
+        self,
+        stepped_sim_with_components: InteractiveContext,
+        component_name: str,
+        expected_data: Any,
+        expected_key_columns: list[str],
+        expected_parameter_columns: list[str],
+    ) -> None:
+        """Test updating lookup table data during time_step."""
+        component = stepped_sim_with_components.get_component(component_name)
+
+        # Check table data if expected_data is provided
+        if isinstance(expected_data, pd.DataFrame):
+            pd.testing.assert_frame_equal(component.table.data, expected_data)
+        else:
+            assert component.table.data == expected_data
+
+        # Check column properties
+        assert component.table.key_columns == expected_key_columns
+        assert component.table.parameter_columns == expected_parameter_columns
 
     def test_update_data_multiple_times_during_time_steps(
         self, base_config: LayeredConfigTree
@@ -548,179 +804,27 @@ class TestLookupTableUpdateData:
 
             def on_time_step(self, event: Event) -> None:
                 # Update with a different value each time step
-                new_value = (self.update_count + 1) * 100
-                self.table.update_data(new_value)
                 self.update_count += 1
+                new_value = (self.update_count) * 100
+                self.table.update_data(new_value)
 
         component = MultipleUpdateComponent()
         simulation = InteractiveContext(components=[component], configuration=base_config)
 
         # Initially value should be 0
-        result = component.table(simulation.get_population_index())
-        assert np.all(result == 0)
+        assert component.table.data == 0
 
         # After first time step, value should be 100
         simulation.step()
-        result = component.table(simulation.get_population_index())
-        assert np.all(result == 100)
+        assert component.table.data == 100
 
         # After second time step, value should be 200
         simulation.step()
-        result = component.table(simulation.get_population_index())
-        assert np.all(result == 200)
+        assert component.table.data == 200
 
         # After third time step, value should be 300
         simulation.step()
-        result = component.table(simulation.get_population_index())
-        assert np.all(result == 300)
-
-    def test_update_data_list_to_list_same_structure_on_time_step(
-        self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test updating list data to another list during time_step.
-
-        This works because the required_resources don't change (both are empty).
-        """
-
-        class ListUpdateComponent(Component):
-            def __init__(self) -> None:
-                super().__init__()
-                self.updated = False
-
-            def setup(self, builder: Builder) -> None:
-                # Build initial table with list data
-                self.table = builder.lookup.build_table(
-                    [1, 2, 3], "test_table", value_columns=["a", "b", "c"]
-                )
-
-            def on_time_step(self, event: Event) -> None:
-                if not self.updated:
-                    # Update with different list
-                    self.table.update_data([10, 20, 30])
-                    self.updated = True
-
-        component = ListUpdateComponent()
-        simulation = InteractiveContext(components=[component], configuration=base_config)
-
-        # After time step, the table should return the updated values
-        simulation.step()
-        result = component.table(simulation.get_population_index())
-        assert isinstance(result, pd.DataFrame)
-        assert result.columns.tolist() == ["a", "b", "c"]
-        assert np.all(result.a == 10)
-        assert np.all(result.b == 20)
-        assert np.all(result.c == 30)
-
-    def test_update_data_dataframe_with_parameter_columns_on_time_step(
-        self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test updating dataframe with parameter columns, keeping same structure.
-
-        This works because the required_resources (key and parameter columns) don't change.
-        """
-
-        class ParameterColumnsComponent(Component):
-            def __init__(self) -> None:
-                super().__init__()
-                self.updated = False
-
-            def setup(self, builder: Builder) -> None:
-                # Build initial table with age parameter
-                initial_data = pd.DataFrame(
-                    {
-                        "sex": ["Female", "Female", "Male", "Male"],
-                        "age_start": [0.0, 50.0, 0.0, 50.0],
-                        "age_end": [50.0, 125.0, 50.0, 125.0],
-                        "value": [10, 20, 30, 40],
-                    }
-                )
-                self.table = builder.lookup.build_table(
-                    initial_data, "test_table", value_columns="value"
-                )
-
-            def on_time_step(self, event: Event) -> None:
-                if not self.updated:
-                    # Update with new values but same structure
-                    new_data = pd.DataFrame(
-                        {
-                            "sex": ["Female", "Female", "Male", "Male"],
-                            "age_start": [0.0, 50.0, 0.0, 50.0],
-                            "age_end": [50.0, 125.0, 50.0, 125.0],
-                            "value": [100, 200, 300, 400],
-                        }
-                    )
-                    self.table.update_data(new_data)
-                    self.updated = True
-
-        pop_component = TestPopulation()
-        update_component = ParameterColumnsComponent()
-        simulation = InteractiveContext(
-            components=[pop_component, update_component], configuration=base_config
-        )
-
-        # After time step, values should be updated
-        simulation.step()
-        population = simulation.get_population(["sex", "age"])
-        result = update_component.table(population.index)
-        assert isinstance(result, pd.Series)
-        # Verify the structure is still correct
-        assert update_component.table.parameter_columns == ["age"]
-        assert update_component.table.key_columns == ["sex"]
-
-    def test_update_data_with_multiple_value_columns_on_time_step(
-        self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test updating dataframe with multiple value columns during time_step.
-
-        This works because the required_resources don't change.
-        """
-
-        class MultipleValueColumnsComponent(Component):
-            def __init__(self) -> None:
-                super().__init__()
-                self.updated = False
-
-            def setup(self, builder: Builder) -> None:
-                # Build initial table with two value columns
-                initial_data = pd.DataFrame(
-                    {"sex": ["Female", "Male"], "value1": [10, 20], "value2": [30, 40]}
-                )
-                self.table = builder.lookup.build_table(
-                    initial_data, "test_table", value_columns=["value1", "value2"]
-                )
-
-            def on_time_step(self, event: Event) -> None:
-                if not self.updated:
-                    # Update with new values but same structure
-                    new_data = pd.DataFrame(
-                        {
-                            "sex": ["Female", "Male"],
-                            "value1": [100, 200],
-                            "value2": [300, 400],
-                        }
-                    )
-                    self.table.update_data(new_data)
-                    self.updated = True
-
-        pop_component = TestPopulation()
-        update_component = MultipleValueColumnsComponent()
-        simulation = InteractiveContext(
-            components=[pop_component, update_component], configuration=base_config
-        )
-
-        # After time step, the table should return updated values
-        simulation.step()
-        population = simulation.get_population(["sex"])
-        result = update_component.table(population.index)
-        assert isinstance(result, pd.DataFrame)
-        assert result.columns.tolist() == ["value1", "value2"]
-
-        female_mask = population["sex"] == "Female"
-        male_mask = population["sex"] == "Male"
-        assert np.all(result.loc[female_mask, "value1"] == 100)
-        assert np.all(result.loc[female_mask, "value2"] == 300)
-        assert np.all(result.loc[male_mask, "value1"] == 200)
-        assert np.all(result.loc[male_mask, "value2"] == 400)
+        assert component.table.data == 300
 
     # ============================================================================
     # XFail Tests - Currently unsupported scenarios during post_setup
@@ -754,10 +858,8 @@ class TestLookupTableUpdateData:
         component = ScalarUpdateComponent()
         simulation = InteractiveContext(components=[component], configuration=base_config)
 
-        # After post_setup, the table should return the updated value
-        result = component.table(simulation.get_population_index())
-        assert isinstance(result, pd.Series)
-        assert np.all(result == 10)
+        # After post_setup, the table data should be updated
+        assert component.table.data == 10
 
     @pytest.mark.xfail(
         reason="update_data() during post_setup causes ResourceError "
@@ -791,15 +893,9 @@ class TestLookupTableUpdateData:
             components=[pop_component, update_component], configuration=base_config
         )
 
-        # After post_setup, the table should return the updated values
-        population = simulation.get_population(["sex"])
-        result = update_component.table(population.index)
-        assert isinstance(result, pd.Series)
-
-        female_mask = population["sex"] == "Female"
-        male_mask = population["sex"] == "Male"
-        assert np.all(result[female_mask] == 100)
-        assert np.all(result[male_mask] == 200)
+        # After post_setup, the table data should be updated
+        expected_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [100, 200]})
+        pd.testing.assert_frame_equal(update_component.table.data, expected_data)
 
     @pytest.mark.xfail(
         reason="update_data() during post_setup causes ResourceError "
@@ -828,13 +924,8 @@ class TestLookupTableUpdateData:
         component = ListUpdateComponent()
         simulation = InteractiveContext(components=[component], configuration=base_config)
 
-        # After post_setup, the table should return the updated values
-        result = component.table(simulation.get_population_index())
-        assert isinstance(result, pd.DataFrame)
-        assert result.columns.tolist() == ["a", "b", "c"]
-        assert np.all(result.a == 10)
-        assert np.all(result.b == 20)
-        assert np.all(result.c == 30)
+        # After post_setup, the table data should be updated
+        assert component.table.data == [10, 20, 30]
 
     @pytest.mark.xfail(
         reason="update_data() during post_setup with structure change causes ResourceError. "
@@ -869,15 +960,9 @@ class TestLookupTableUpdateData:
             components=[pop_component, update_component], configuration=base_config
         )
 
-        # After post_setup, the table should interpolate based on sex
-        population = simulation.get_population(["sex"])
-        result = update_component.table(population.index)
-        assert isinstance(result, pd.Series)
-
-        female_mask = population["sex"] == "Female"
-        male_mask = population["sex"] == "Male"
-        assert np.all(result[female_mask] == 50)
-        assert np.all(result[male_mask] == 60)
+        # After post_setup, the table data should be a dataframe
+        expected_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [50, 60]})
+        pd.testing.assert_frame_equal(update_component.table.data, expected_data)
 
     @pytest.mark.xfail(
         reason="update_data() during post_setup with structure change causes ResourceError. "
@@ -912,10 +997,8 @@ class TestLookupTableUpdateData:
             components=[pop_component, update_component], configuration=base_config
         )
 
-        # After post_setup, the table should return the scalar value
-        result = update_component.table(simulation.get_population_index())
-        assert isinstance(result, pd.Series)
-        assert np.all(result == 100)
+        # After post_setup, the table data should be scalar
+        assert update_component.table.data == 100
 
     @pytest.mark.xfail(
         reason="update_data() during post_setup with different key columns causes ResourceError. "
@@ -956,323 +1039,3 @@ class TestLookupTableUpdateData:
         # After post_setup, table should use location as key
         assert update_component.table.key_columns == ["location"]
         assert update_component.table.required_resources == ["location"]
-
-    # ============================================================================
-    # Tests - Structural changes during time_step (these work!)
-    # ============================================================================
-
-    def test_update_data_scalar_to_dataframe_on_time_step(
-        self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test changing from scalar to dataframe during time_step.
-
-        This works because update_data() properly handles changing required_resources
-        from [] to ["sex"] during time_step.
-        """
-
-        class ScalarToDataframeComponent(Component):
-            def __init__(self) -> None:
-                super().__init__()
-                self.updated = False
-
-            def setup(self, builder: Builder) -> None:
-                self.table = builder.lookup.build_table(
-                    5, "test_table", value_columns="value"
-                )
-
-            def on_time_step(self, event: Event) -> None:
-                if not self.updated:
-                    # Should update to dataframe with categorical data
-                    new_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [50, 60]})
-                    self.table.update_data(new_data)
-                    self.updated = True
-
-        pop_component = TestPopulation()
-        update_component = ScalarToDataframeComponent()
-        simulation = InteractiveContext(
-            components=[pop_component, update_component], configuration=base_config
-        )
-
-        # Initially, the table should return scalar value
-        result = update_component.table(simulation.get_population_index())
-        assert isinstance(result, pd.Series)
-        assert np.all(result == 5)
-
-        # After time step, the table should interpolate based on sex
-        simulation.step()
-        population = simulation.get_population(["sex"])
-        result = update_component.table(population.index)
-        assert isinstance(result, pd.Series)
-
-        female_mask = population["sex"] == "Female"
-        male_mask = population["sex"] == "Male"
-        assert np.all(result[female_mask] == 50)
-        assert np.all(result[male_mask] == 60)
-
-    def test_update_data_change_key_columns_on_time_step(
-        self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test changing key columns during time_step.
-
-        This works because update_data() properly handles changing required_resources
-        from ["sex"] to ["location"] during time_step.
-        """
-
-        class ChangeKeyColumnsComponent(Component):
-            def __init__(self) -> None:
-                super().__init__()
-                self.updated = False
-
-            def setup(self, builder: Builder) -> None:
-                initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
-                self.table = builder.lookup.build_table(
-                    initial_data, "test_table", value_columns="value"
-                )
-
-            def on_time_step(self, event: Event) -> None:
-                if not self.updated:
-                    # Should update with different key column
-                    new_data = pd.DataFrame(
-                        {"location": ["USA", "Canada", "Mexico"], "value": [100, 200, 300]}
-                    )
-                    self.table.update_data(new_data)
-                    self.updated = True
-
-        pop_component = TestPopulation()
-        update_component = ChangeKeyColumnsComponent()
-        simulation = InteractiveContext(
-            components=[pop_component, update_component], configuration=base_config
-        )
-
-        # Initially, table should use sex as key
-        assert update_component.table.key_columns == ["sex"]
-        assert update_component.table.required_resources == ["sex"]
-
-        # After time step, table should use location as key
-        simulation.step()
-        assert update_component.table.key_columns == ["location"]
-        assert update_component.table.required_resources == ["location"]
-
-    def test_update_data_add_parameter_columns_on_time_step(
-        self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test adding parameter columns during time_step.
-
-        This works because update_data() properly handles changing required_resources
-        from ["sex"] to ["sex", "age"] during time_step.
-        """
-
-        class AddParameterColumnsComponent(Component):
-            def __init__(self) -> None:
-                super().__init__()
-                self.updated = False
-
-            def setup(self, builder: Builder) -> None:
-                # Build initial table with only key columns
-                initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
-                self.table = builder.lookup.build_table(
-                    initial_data, "test_table", value_columns="value"
-                )
-
-            def on_time_step(self, event: Event) -> None:
-                if not self.updated:
-                    # Should update with parameter columns (age_start, age_end)
-                    new_data = pd.DataFrame(
-                        {
-                            "sex": ["Female", "Female", "Male", "Male"],
-                            "age_start": [0.0, 50.0, 0.0, 50.0],
-                            "age_end": [50.0, 125.0, 50.0, 125.0],
-                            "value": [100, 150, 200, 250],
-                        }
-                    )
-                    self.table.update_data(new_data)
-                    self.updated = True
-
-        pop_component = TestPopulation()
-        update_component = AddParameterColumnsComponent()
-        simulation = InteractiveContext(
-            components=[pop_component, update_component], configuration=base_config
-        )
-
-        # Initially, table should have no parameter columns
-        assert update_component.table.parameter_columns == []
-        assert update_component.table.key_columns == ["sex"]
-
-        # After time step, table should have age parameter
-        simulation.step()
-        assert update_component.table.parameter_columns == ["age"]
-        assert update_component.table.key_columns == ["sex"]
-        assert set(update_component.table.required_resources) == {"sex", "age"}
-
-        # Verify interpolation works correctly with age parameter
-        population = simulation.get_population(["sex", "age"])
-        result = update_component.table(population.index)
-        assert isinstance(result, pd.Series)
-
-    def test_update_data_change_parameter_columns_on_time_step(
-        self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test changing parameter columns during time_step.
-
-        This should work but currently fails because it changes required_resources
-        from ["sex", "age"] to ["sex", "year"].
-        """
-        year_start = base_config.time.start.year
-        year_end = base_config.time.end.year
-
-        class ChangeParameterColumnsComponent(Component):
-            def __init__(self) -> None:
-                super().__init__()
-                self.updated = False
-
-            def setup(self, builder: Builder) -> None:
-                # Build initial table with age parameter
-                initial_data = pd.DataFrame(
-                    {
-                        "sex": ["Female", "Female", "Male", "Male"],
-                        "age_start": [0.0, 50.0, 0.0, 50.0],
-                        "age_end": [50.0, 125.0, 50.0, 125.0],
-                        "value": [10, 20, 30, 40],
-                    }
-                )
-                self.table = builder.lookup.build_table(
-                    initial_data, "test_table", value_columns="value"
-                )
-
-            def on_time_step(self, event: Event) -> None:
-                if not self.updated:
-                    # Should update with year parameter instead of age
-                    # Create non-overlapping year bins (similar to original age bins)
-                    mid_year = (year_start + year_end) // 2
-                    new_data = pd.DataFrame(
-                        {
-                            "sex": ["Female", "Female", "Male", "Male"],
-                            "year_start": [year_start, mid_year, year_start, mid_year],
-                            "year_end": [mid_year, year_end, mid_year, year_end],
-                            "value": [100, 150, 200, 250],
-                        }
-                    )
-                    self.table.update_data(new_data)
-                    self.updated = True
-
-        pop_component = TestPopulation()
-        update_component = ChangeParameterColumnsComponent()
-        simulation = InteractiveContext(
-            components=[pop_component, update_component], configuration=base_config
-        )
-
-        # Initially, table should have age as parameter
-        assert update_component.table.parameter_columns == ["age"]
-
-        # After time step, table should have year as parameter instead of age
-        simulation.step()
-        assert update_component.table.parameter_columns == ["year"]
-        # Note: "year" is filtered out of required_resources by design
-        assert update_component.table.required_resources == ["sex"]
-
-    def test_update_data_add_key_columns_on_time_step(
-        self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test adding additional key columns during time_step.
-
-        This should work but currently fails because it changes required_resources
-        from ["sex"] to ["sex", "location"].
-        """
-
-        class AddKeyColumnsComponent(Component):
-            def __init__(self) -> None:
-                super().__init__()
-                self.updated = False
-
-            def setup(self, builder: Builder) -> None:
-                # Build initial table with sex as key
-                initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
-                self.table = builder.lookup.build_table(
-                    initial_data, "test_table", value_columns="value"
-                )
-
-            def on_time_step(self, event: Event) -> None:
-                if not self.updated:
-                    # Should update with sex AND location as keys
-                    new_data = pd.DataFrame(
-                        {
-                            "sex": [
-                                "Female",
-                                "Male",
-                                "Female",
-                                "Male",
-                                "Female",
-                                "Male",
-                            ],
-                            "location": [
-                                "USA",
-                                "USA",
-                                "Canada",
-                                "Canada",
-                                "Mexico",
-                                "Mexico",
-                            ],
-                            "value": [100, 200, 300, 400, 500, 600],
-                        }
-                    )
-                    self.table.update_data(new_data)
-                    self.updated = True
-
-        pop_component = TestPopulation()
-        update_component = AddKeyColumnsComponent()
-        simulation = InteractiveContext(
-            components=[pop_component, update_component], configuration=base_config
-        )
-
-        # Initially, table should have sex as only key
-        assert update_component.table.key_columns == ["sex"]
-        assert update_component.table.required_resources == ["sex"]
-
-        # After time step, table should have sex and location as keys
-        simulation.step()
-        assert set(update_component.table.key_columns) == {"sex", "location"}
-        assert set(update_component.table.required_resources) == {"sex", "location"}
-
-        # Verify values are correct
-        population = simulation.get_population(["sex", "location"])
-        result = update_component.table(population.index)
-        assert isinstance(result, pd.Series)
-
-    def test_update_data_dataframe_to_scalar_on_time_step(
-        self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test changing from dataframe to scalar during time_step."""
-
-        class DataframeToScalarComponent(Component):
-            def __init__(self) -> None:
-                super().__init__()
-                self.updated = False
-
-            def setup(self, builder: Builder) -> None:
-                initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
-                self.table = builder.lookup.build_table(
-                    initial_data, "test_table", value_columns="value"
-                )
-
-            def on_time_step(self, event: Event) -> None:
-                if not self.updated:
-                    # Should update to scalar data
-                    self.table.update_data(100)
-                    self.updated = True
-
-        pop_component = TestPopulation()
-        update_component = DataframeToScalarComponent()
-        simulation = InteractiveContext(
-            components=[pop_component, update_component], configuration=base_config
-        )
-
-        # Initially, table should interpolate based on sex
-        population = simulation.get_population(["sex"])
-        result = update_component.table(population.index)
-        assert isinstance(result, pd.Series)
-
-        # After time step, table should return scalar value
-        simulation.step()
-        result = update_component.table(simulation.get_population_index())
-        assert isinstance(result, pd.Series)
-        assert np.all(result == 100)
