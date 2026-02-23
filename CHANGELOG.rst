@@ -1,3 +1,7 @@
+**3.6.7 - 02/23/26**
+
+  - Bugfix: Remove duplicated pytest options
+
 **3.6.6 - 01/06/26**
 
   - Fail deployment if changelog date is not current date
