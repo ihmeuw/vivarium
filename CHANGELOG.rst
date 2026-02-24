@@ -1,3 +1,7 @@
+**4.1.0 - 12/16/25**
+
+  - Enable changing the data of a LookupTable during the simulation loop.
+
 **4.0.0 - TBD TBD TBD**
 -----------------------
 
