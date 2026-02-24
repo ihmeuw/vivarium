@@ -1,3 +1,7 @@
+**4.1.0 - TBD TBD TBD**
+
+  - Enable changing the data of a LookupTable during the simulation loop.
+
 **4.0.1 - 04/02/26**
 
 - Remove support for calling InteractiveContext.get_population() without an explicit attribute request

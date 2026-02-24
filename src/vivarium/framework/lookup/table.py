@@ -51,6 +51,21 @@ class LookupTable(Resource, Generic[T]):
 
     """
 
+    @property
+    def value_columns(self) -> list[str]:
+        """The name(s) of the column(s) in the data that will be returned by this lookup table."""
+        return (
+            list(self._value_columns)
+            if not isinstance(self._value_columns, str)
+            else [self._value_columns]
+        )
+
+    @property
+    def required_resources(self) -> list[str]:
+        """The resources required by this lookup table."""
+        lookup_columns = list(self.key_columns) + list(self.parameter_columns)
+        return [col for col in lookup_columns if col != "year"]
+
     def __init__(
         self,
         component: Component,
@@ -61,35 +76,43 @@ class LookupTable(Resource, Generic[T]):
         population_view: PopulationView,
     ):
         super().__init__("lookup_table", self.get_name(component.name, name), component)
-        self._validate_data_inputs(data, value_columns)
-
-        self.data: LookupTableData = data
-        """The data this table will use to produce values."""
-        self.return_type: type[T] = (
-            pd.Series if isinstance(value_columns, str) else pd.DataFrame
-        )
-        """The type of data returned by the lookup table (pd.Series or pd.DataFrame)."""
-        self.key_columns: list[str] = []
-        """Column names to be used as categorical parameters in Interpolation
-        to select between interpolation functions."""
-        self.parameter_columns: list[str] = []
-        """Column names to be used as continuous parameters in Interpolation."""
-        self.value_columns: list[str] = (
-            list(value_columns) if not isinstance(value_columns, str) else [value_columns]
-        )
+        self._value_columns: list[str] | tuple[str, ...] | str = value_columns
         """Names of value columns that will be returned by the lookup table."""
         self._manager: LookupTableManager = manager
         """The manager that created this lookup table."""
         self.population_view: PopulationView = population_view
         """PopulationView to use to get attributes for interpolation or categorization."""
+
+        self.return_type: type[T] = (
+            pd.Series if isinstance(self._value_columns, str) else pd.DataFrame
+        )
+        """The type of data returned by the lookup table (pd.Series or pd.DataFrame)."""
+
+        self.data: LookupTableData
+        """The data this table will use to produce values."""
+        self.key_columns: list[str] = []
+        """Column names to be used as categorical parameters in Interpolation
+        to select between interpolation functions."""
+        self.parameter_columns: list[str] = []
+        """Column names to be used as continuous parameters in Interpolation."""
         self.interpolation: Interpolation | None = None
         """Interpolation object to use when data is a DataFrame. Will be None if data is
         a scalar or list of scalars."""
 
+        self._set_data(data)
+
+    def _set_data(self, data: LookupTableData) -> None:
+        """Set the data and associated attributes for the lookup table.
+
+        This method is called during initialization and when updating the data of the lookup
+        table.  It is responsible for validating and setting the data. If the data is a
+        DataFrame, it also sets the key_columns and parameter_columns attributes and
+        initializes the Interpolation object.
+        """
+        self._validate_data_inputs(data)
+        self.data = data
         if isinstance(data, pd.DataFrame):
-            self.parameter_columns, self.key_columns = self._get_columns(
-                self.value_columns, data
-            )
+            self.parameter_columns, self.key_columns = self._get_columns(data)
             parameter_columns_with_edges: list[tuple[str, str, str]] = [
                 (p, f"{p}_start", f"{p}_end") for p in self.parameter_columns
             ]
@@ -113,11 +136,10 @@ class LookupTable(Resource, Generic[T]):
                 extrapolate=self._manager.extrapolate,
                 validate=self._manager.validate_interpolation,
             )
-
-    @property
-    def required_resources(self) -> list[str]:
-        lookup_columns = list(self.key_columns) + list(self.parameter_columns)
-        return [col for col in lookup_columns if col != "year"]
+        else:
+            self.key_columns = []
+            self.parameter_columns = []
+            self.interpolation = None
 
     def __call__(self, index: pd.Index[int]) -> T:
         """Get the mapped values for the given index.
@@ -179,6 +201,14 @@ class LookupTable(Resource, Generic[T]):
                     )
             return self.interpolation(pop)
 
+    def update_data(self, data: LookupTableData) -> None:
+        """Update the data of this lookup table and re-initialize interpolation if necessary."""
+        # TODO MIC-6814: We want to be able to update the data of a lookup table during post-setup,
+        # which would require communicating to the ResourceManager that the lookup table's required
+        # resources may have changed. For now, we can only allow updates to the data during the
+        # simulation loop (i.e. after population creation).
+        self._set_data(data)
+
     def __repr__(self) -> str:
         return "LookupTable()"
 
@@ -200,10 +230,7 @@ class LookupTable(Resource, Generic[T]):
         """
         return f"{component_name}.{table_name}"
 
-    @staticmethod
-    def _get_columns(
-        value_columns: list[str], data: pd.DataFrame
-    ) -> tuple[list[str], list[str]]:
+    def _get_columns(self, data: pd.DataFrame) -> tuple[list[str], list[str]]:
         all_columns = list(data.columns)
 
         potential_parameter_columns = [
@@ -221,16 +248,12 @@ class LookupTable(Resource, Generic[T]):
         key_columns = [
             col
             for col in all_columns
-            if col not in value_columns and col not in bin_edge_columns
+            if col not in self.value_columns and col not in bin_edge_columns
         ]
 
         return parameter_columns, key_columns
 
-    @staticmethod
-    def _validate_data_inputs(
-        data: LookupTableData,
-        value_columns: list[str] | tuple[str, ...] | str,
-    ) -> None:
+    def _validate_data_inputs(self, data: LookupTableData) -> None:
         """Makes sure the data format agrees with the provided column layout."""
         if (
             data is None
@@ -247,17 +270,24 @@ class LookupTable(Resource, Generic[T]):
             )
 
         if isinstance(data, (list, tuple)):
-            if isinstance(value_columns, str):
+            if isinstance(self._value_columns, str):
                 raise ValueError(
                     "When supplying multiple values, value_columns must be a list or tuple of strings."
                 )
-            if len(value_columns) != len(data):
+            if len(self._value_columns) != len(data):
                 raise ValueError(
                     "The number of value columns must match the number of values."
-                    f"You supplied values: {data} and value_columns: {value_columns}"
+                    f"You supplied values: {data} and value_columns: {self._value_columns}"
                 )
-        elif not isinstance(data, pd.DataFrame):
-            if not isinstance(value_columns, str):
+        elif isinstance(data, pd.DataFrame):
+            if missing_columns := [
+                col for col in self.value_columns if col not in data.columns
+            ]:
+                raise ValueError(
+                    f"Data is missing the following value columns: {missing_columns}"
+                )
+        else:
+            if not isinstance(self._value_columns, str):
                 raise ValueError(
                     "When supplying a single value, value_columns must be a string if provided."
                 )
