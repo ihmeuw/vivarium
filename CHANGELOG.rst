@@ -1,3 +1,7 @@
+**4.1.0 - 04/16/26**
+
+- Enable changing the data of a LookupTable during the simulation loop.
+
 **4.0.3 - 04/16/26**
 
 - Tighten vivarium_build_utils pin
