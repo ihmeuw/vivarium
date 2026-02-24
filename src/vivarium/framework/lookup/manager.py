@@ -123,6 +123,15 @@ class LookupTableManager(Manager):
                 lifecycle_states.POST_SETUP,
             ],
         )
+        self._add_constraint(
+            table.update_data,
+            restrict_during=[
+                lifecycle_states.INITIALIZATION,
+                lifecycle_states.SETUP,
+                lifecycle_states.POPULATION_CREATION,
+                lifecycle_states.POST_SETUP,
+            ],
+        )
         return table
 
     def _build_table(
