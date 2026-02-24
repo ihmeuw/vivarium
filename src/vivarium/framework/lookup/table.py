@@ -21,7 +21,6 @@ from typing import TypeVar
 import pandas as pd
 
 from vivarium.component import Component
-from vivarium.framework.lifecycle import LifeCycleError
 from vivarium.framework.lookup.interpolation import Interpolation
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.framework.resource import Resource

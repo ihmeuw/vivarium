@@ -1,3 +1,7 @@
+**4.1.0 - 12/16/25**
+
+  - Enable changing the data of a LookupTable during the simulation loop.
+
 **4.0.0 - TBD TBD TBD**
 -----------------------
 
@@ -70,8 +74,6 @@ Miscellaneous
 - LookupTables: Improve type hinting.
 - LookupTables: Register tables as resources.
 - LookupTables: Warn if unused tables are registered.
-- LookupTables: Consolidate to a single LookupTable class.
-- LookupTables: Enable changing the data of a LookupTable during the simulation loop.
 - Properly set Pipeline source dependencies.
 - Infer component when creating a Resource.
 - Clean up Resource registration.
@@ -81,6 +83,10 @@ Miscellaneous
 - Fix mypy errors in disease model example.
 - Create a Component.logger property for better type-checking.
 - Removed unnecessary InitializerComponentSet class.
+
+**3.6.7 - 02/23/26**
+
+  - Bugfix: Remove duplicated pytest options
 
 **3.6.6 - 01/06/26**
 

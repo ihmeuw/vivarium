@@ -14,7 +14,7 @@ jobs:
       - name: Validate Release Date
         run: |
           CHANGELOG_DATE=$(head -n 1 CHANGELOG.rst | grep -oP '\d{2}/\d{2}/\d{2}')          
-          TODAY=$(date +%m/%d/%y)          
+          TODAY=$(TZ='America/Los_Angeles' date +%m/%d/%y)      
           if [ "$CHANGELOG_DATE" != "$TODAY" ]; then
             echo "CHANGELOG date: $CHANGELOG_DATE"
             echo "Today's date: $TODAY"
