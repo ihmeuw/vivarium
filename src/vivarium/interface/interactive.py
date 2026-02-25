@@ -188,26 +188,23 @@ class InteractiveContext(SimulationContext):
         -------
             The current state of requested population attributes.
         """
-        returned_attributes: str | list[str] | tuple[str, ...]
         if attributes is None:
-            returned_attributes = self.get_attribute_names()
-            if len(returned_attributes) == 1:
-                returned_attributes = returned_attributes[0]
-        else:
-            returned_attributes = attributes
+            attributes = self.get_attribute_names()
+            if len(attributes) == 1:
+                attributes = attributes[0]
         try:
             return self._population_view.get_attributes(
-                index=self.get_population_index(), attributes=returned_attributes
+                index=self.get_population_index(), attributes=attributes
             )
         except ValueError as e:
             if "call `get_attribute_frame()` instead" in str(e):
-                if not isinstance(returned_attributes, str):
+                if not isinstance(attributes, str):
                     raise RuntimeError(
                         "ValueError was raised about squeezing but the provided "
                         "attribute was not a single string. This should never happen."
                     )
                 return self._population_view.get_attribute_frame(
-                    index=self.get_population_index(), attribute=returned_attributes
+                    index=self.get_population_index(), attribute=attributes
                 )
             raise
 
