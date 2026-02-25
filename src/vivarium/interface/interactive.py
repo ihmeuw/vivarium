@@ -188,25 +188,19 @@ class InteractiveContext(SimulationContext):
         -------
             The current state of requested population attributes.
         """
+        index = self.get_population_index()
         if attributes is None:
             attributes = self.get_attribute_names()
             if len(attributes) == 1:
                 attributes = attributes[0]
-        try:
-            return self._population_view.get_attributes(
-                index=self.get_population_index(), attributes=attributes
-            )
-        except ValueError as e:
-            if "call `get_attribute_frame()` instead" in str(e):
-                if not isinstance(attributes, str):
-                    raise RuntimeError(
-                        "ValueError was raised about squeezing but the provided "
-                        "attribute was not a single string. This should never happen."
-                    )
-                return self._population_view.get_attribute_frame(
-                    index=self.get_population_index(), attribute=attributes
-                )
-            raise
+        if isinstance(attributes, str):
+            try:
+                return self._population_view.get_attributes(index, attributes)
+            except ValueError as e:
+                if "call `get_attribute_frame()` instead" in str(e):
+                    return self._population_view.get_attribute_frame(index, attributes)
+                raise
+        return self._population_view.get_attributes(index, attributes)
 
     def get_attribute_names(self) -> list[str]:
         """List all attributes in the population state table."""
