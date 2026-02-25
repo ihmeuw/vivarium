@@ -19,11 +19,21 @@ def test_add_private_columns(mocker: MockerFixture) -> None:
         columns=["private_col_1", "private_col_2"],
         required_resources=[],
     )
-    resource_map = mgr._resource_group_map
-    resource_ids = ["column.private_col_1", "column.private_col_2"]
-    assert set(resource_map.keys()) == set(resource_ids)
-    for resource_id in resource_ids:
-        resource = resource_map[resource_id].resources[resource_id]
+    column_ids = ["column.private_col_1", "column.private_col_2"]
+
+    # Should have exactly the two columns and one initializer resource
+    assert len(mgr._resources) == 3
+
+    # Check that both columns exist
+    for resource_id in column_ids:
+        assert resource_id in mgr._resources
+        resource = mgr._resources[resource_id]
         assert isinstance(resource, Column)
         assert resource.name == resource_id.split(".", 1)[1]
         assert resource.resource_type == "column"
+
+    # Check that there's exactly one initializer resource
+    initializer_resources = [
+        r for r in mgr._resources.values() if r.resource_type == "initializer"
+    ]
+    assert len(initializer_resources) == 1

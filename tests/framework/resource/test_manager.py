@@ -14,7 +14,7 @@ from vivarium.framework.randomness import RandomnessStream
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.resource import Resource, ResourceManager
 from vivarium.framework.resource.exceptions import ResourceError
-from vivarium.framework.resource.resource import Column, NullResource
+from vivarium.framework.resource.resource import Column, Initializer
 from vivarium.framework.values import AttributePipeline, Pipeline, ValueModifier, ValueSource
 
 
@@ -22,6 +22,7 @@ from vivarium.framework.values import AttributePipeline, Pipeline, ValueModifier
 def manager(mocker: MockerFixture) -> ResourceManager:
     manager = ResourceManager()
     manager.logger = mocker.Mock()
+    manager._get_attribute_pipelines = mocker.Mock(return_value={})
     return manager
 
 
@@ -36,6 +37,10 @@ def manager_with_resources(
     resource_producers: dict[int, ResourceProducer],
     mocker: MockerFixture,
 ) -> ResourceManager:
+    a_component = resource_producers[0]
+    resource_a = Resource("A", a_component)
+    manager.add_resource(resource_a)
+
     stream = RandomnessStream(
         key="B",
         clock=lambda: datetime.now(),
@@ -43,70 +48,35 @@ def manager_with_resources(
         index_map=IndexMap(),
         component=resource_producers[1],
     )
-    pipeline = Pipeline("C", resource_producers[2])
-    A_component = resource_producers[0]
-    attribute_A = AttributePipeline("A", A_component)
-    mocker.patch.object(A_component, "initialize_A", create=True)
-    D_component = resource_producers[3]
-    attribute_D = AttributePipeline("D", D_component)
-    mocker.patch.object(D_component, "initialize_D", create=True)
-    null_resource_component = resource_producers[4]
-    mocker.patch.object(null_resource_component, "initialize_nothing", create=True)
+    manager.add_resource(stream)
 
-    manager.add_resources(
-        component=D_component,
-        initializer=None,
-        resources=attribute_D,
-        required_resources=[stream, pipeline],
-    )
-    # Add the private column resource
-    manager.add_resources(
-        component=D_component,
-        initializer=D_component.initialize_D,
-        resources=[Column("D", D_component)],
-        required_resources=[stream, pipeline],
+    resource_c = Resource("C", resource_producers[2], [resource_a])
+    manager.add_resource(resource_c)
+
+    d_component = resource_producers[3]
+    resource_d = Resource("D", d_component, [stream, resource_c])
+    manager.add_resource(resource_d)
+
+    manager._get_current_component_or_manager = mocker.Mock(return_value=d_component)
+    manager.add_private_columns(
+        initializer=d_component.initialize_D,
+        columns=["D"],
+        required_resources=[stream, resource_c],
     )
 
-    stream_component = stream.component
-    assert isinstance(stream_component, Component)
-    manager.add_resources(
-        component=stream_component,
-        initializer=None,
-        resources=stream,
-        required_resources=["A"],
+    manager._get_current_component_or_manager = mocker.Mock(return_value=a_component)
+    manager.add_private_columns(
+        initializer=a_component.initialize_A, columns=["A"], required_resources=[]
     )
 
-    pipeline_component = pipeline.component
-    assert isinstance(pipeline_component, Component)
-    manager.add_resources(
-        component=pipeline_component,
-        initializer=None,
-        resources=pipeline,
-        required_resources=["A"],
+    manager._get_current_component_or_manager = mocker.Mock(
+        return_value=resource_producers[4]
     )
-
-    manager.add_resources(
-        component=A_component, initializer=None, resources=attribute_A, required_resources=[]
-    )
-    # Add the private column resource
-    manager.add_resources(
-        component=A_component,
-        initializer=A_component.initialize_A,
-        resources=[Column("A", A_component)],
-        required_resources=[],
-    )
-
-    manager.add_resources(
-        component=null_resource_component,
-        initializer=null_resource_component.initialize_nothing,
-        resources=[],
+    manager.add_private_columns(
+        initializer=resource_producers[4].initialize_nothing,
+        columns=[],
         required_resources=[stream],
     )
-
-    # Call each resource group's on_post_setup to finalize dependencies
-    attribute_pipelines = {"A": attribute_A, "D": attribute_D}
-    for rg in manager._resource_group_map.values():
-        rg.set_required_resources(attribute_pipelines)
 
     return manager
 
@@ -138,117 +108,6 @@ class ResourceProducer(Component):
 
 
 @pytest.mark.parametrize(
-    "resource_class, init_args, type_string",
-    [
-        (Pipeline, ["foo"], "value"),
-        (AttributePipeline, ["foo"], "attribute"),
-        (ValueSource, [Pipeline("foo"), lambda: 1], "value_source"),
-        (ValueModifier, [Pipeline("foo"), lambda: 1], "value_modifier"),
-        (Column, ["foo"], "column"),
-        (NullResource, [1], "null"),
-    ],
-    ids=lambda x: [x.__name__ if isinstance(x, type) else x],
-)
-@pytest.mark.parametrize("initialized", [True, False])
-def test_resource_manager_get_resource_group(
-    resource_class: type,
-    init_args: list[Any],
-    type_string: str,
-    initialized: bool,
-    manager: ResourceManager,
-) -> None:
-    component = ColumnCreator()
-
-    group = manager._get_resource_group(
-        component=component,
-        initializer=component.initialize_test_columns if initialized else None,
-        resources=[resource_class(*init_args, component=component)],
-        required_resources=[],
-    )
-
-    assert group.type == type_string
-    assert group.names == [r.resource_id for r in group.resources.values()]
-    assert not group.required_resources
-    assert group.is_initialized == initialized
-    assert group.initializer == (component.initialize_test_columns if initialized else None)
-
-
-def test_resource_manager_get_resource_group_null(manager: ResourceManager) -> None:
-    component_1 = ColumnCreator()
-    component_2 = ColumnCreatorAndRequirer()
-
-    group_1 = manager._get_resource_group(
-        component=component_1,
-        initializer=component_1.initialize_test_columns,
-        resources=[],
-        required_resources=[],
-    )
-    group_2 = manager._get_resource_group(
-        component=component_2,
-        initializer=component_2.initialize_test_column_4,
-        resources=[],
-        required_resources=[],
-    )
-
-    assert group_1.type == "null"
-    assert group_1.names == ["null.0"]
-    assert group_1.initializer == component_1.initialize_test_columns
-    assert not group_1.required_resources
-
-    assert group_2.type == "null"
-    assert group_2.names == ["null.1"]
-    assert group_2.initializer == component_2.initialize_test_column_4
-    assert not group_2.required_resources
-
-
-def test_get_resource_group_multiple_initializers(manager: ResourceManager) -> None:
-    class SomeComponent(Component):
-        def initializer_1(self, pop_data: SimulantData) -> None:
-            pass
-
-        def initializer_2(self, pop_data: SimulantData) -> None:
-            pass
-
-    component = SomeComponent()
-
-    group = manager._get_resource_group(
-        component=component,
-        initializer=component.initializer_1,
-        resources=[Column("foo", component), Column("bar", component)],
-        required_resources=[],
-    )
-
-    assert group.type == "column"
-    assert group.names == ["column.foo", "column.bar"]
-    assert group.initializer == component.initializer_1
-
-    # Create another group with the same resources but a different initializer
-    group2 = manager._get_resource_group(
-        component=component,
-        initializer=component.initializer_2,
-        resources=Resource("test", "baz", component),
-        required_resources=[],
-    )
-
-    assert group2.type == "test"
-    assert group2.names == ["test.baz"]
-    assert group2.initializer == component.initializer_2
-
-
-def test_add_resource_wrong_component(manager: ResourceManager) -> None:
-    resource = Pipeline("foo", ColumnCreatorAndRequirer())
-    error_message = "All initialized resources in this resource group must have the component 'column_creator'."
-    component = ColumnCreator()
-    with pytest.raises(ResourceError, match=error_message):
-        manager.add_resources(
-            component=component,
-            initializer=component.initialize_test_columns,
-            resources=resource,
-            required_resources=[],
-        )
-
-
-@pytest.mark.parametrize(
     "resource_type, resource_creator",
     [
         ("column", lambda name, component: Column(name, component)),
@@ -263,44 +122,26 @@ def test_resource_manager_add_same_resource_twice(
 ) -> None:
     c1 = ColumnCreator()
     c2 = ColumnCreatorAndRequirer()
-    r1 = [resource_creator(str(i), c1) for i in range(5)]
-    r2 = [resource_creator(str(i), c2) for i in range(5, 10)] + [resource_creator("1", c2)]
-    manager.add_resources(
-        component=c1,
-        initializer=c1.initialize_test_columns,
-        resources=r1,
-        required_resources=[],
-    )
+    resource = resource_creator("test_resource", c1)
+
+    manager.add_resource(resource)
+
+    duplicate_resource = resource_creator("test_resource", c2)
     error_message = (
         f"Component '{c2.name}' is attempting to register resource"
-        f" '{resource_type}.1' but it is already registered by '{c1.name}'."
+        f" '{resource_type}.test_resource' but it is already registered by '{c1.name}'."
     )
     with pytest.raises(ResourceError, match=error_message):
-        manager.add_resources(
-            component=c2,
-            initializer=c2.initialize_test_column_4,
-            resources=r2,
-            required_resources=[],
-        )
+        manager.add_resource(duplicate_resource)
 
 
 def test_resource_manager_sorted_nodes_two_node_cycle(
     manager: ResourceManager, randomness_stream: RandomnessStream, mocker: MockerFixture
 ) -> None:
-    component = ColumnCreatorAndRequirer()
-    column = Column("c_1", mocker.Mock())
-    manager.add_resources(
-        component=component,
-        initializer=component.initialize_test_column_4,
-        resources=[column],
-        required_resources=[randomness_stream],
-    )
-    manager.add_resources(
-        component=randomness_stream.component,
-        initializer=None,
-        resources=randomness_stream,
-        required_resources=[column],
-    )
+    column = Column("c_1", ColumnCreatorAndRequirer(), [randomness_stream])
+    randomness_stream._required_resources.append(column)
+    manager.add_resource(column)
+    manager.add_resource(randomness_stream)
 
     with pytest.raises(ResourceError, match="The resource pool contains at least one cycle"):
         _ = manager.sorted_nodes
@@ -308,30 +149,21 @@ def test_resource_manager_sorted_nodes_two_node_cycle(
 
 def test_resource_manager_sorted_nodes_three_node_cycle(
     manager: ResourceManager,
-    randomness_stream: RandomnessStream,
-    mocker: MockerFixture,
 ) -> None:
-    pipeline = Pipeline("some_pipeline", mocker.Mock())
-    component = ColumnCreatorAndRequirer()
-    column = Column("c_1", component)
-    manager.add_resources(
-        component=component,
-        initializer=component.initialize_test_column_4,
-        resources=[column],
-        required_resources=[randomness_stream],
-    )
-    manager.add_resources(
-        component=pipeline.component,
-        initializer=None,
-        resources=pipeline,
-        required_resources=[column],
-    )
-    manager.add_resources(
-        component=randomness_stream.component,
-        initializer=None,
-        resources=randomness_stream,
-        required_resources=[pipeline],
-    )
+    component = ColumnCreator()
+    # Create a three-node cycle: A -> B -> C -> A
+    resource_a = Resource("A", component, [])
+    resource_b = Resource("B", component, [])
+    resource_c = Resource("C", component, [])
+
+    # Set up the cycle
+    resource_a._required_resources.append(resource_b)
+    resource_b._required_resources.append(resource_c)
+    resource_c._required_resources.append(resource_a)
+
+    manager.add_resource(resource_a)
+    manager.add_resource(resource_b)
+    manager.add_resource(resource_c)
 
     with pytest.raises(ResourceError, match="The resource pool contains at least one cycle"):
         _ = manager.sorted_nodes
@@ -339,54 +171,57 @@ def test_resource_manager_sorted_nodes_three_node_cycle(
 
 def test_resource_manager_sorted_nodes_large_cycle(manager: ResourceManager) -> None:
     component = ColumnCreator()
+    resources = [Resource(f"resource_{i}", component, []) for i in range(10)]
     for i in range(10):
-        resource = Resource("test", f"resource{i}", component)
-        dependency = Resource("test", f"resource{(i + 1) % 10}", component)
-        manager.add_resources(
-            component=component,
-            initializer=None,
-            resources=resource,
-            required_resources=[dependency],
-        )
+        resources[i]._required_resources.append(resources[(i + 1) % 10])
+        manager.add_resource(resources[i])
 
     with pytest.raises(ResourceError, match="The resource pool contains at least one cycle"):
         _ = manager.sorted_nodes
 
 
-def test_large_dependency_chain(manager: ResourceManager, mocker: MockerFixture) -> None:
+def test_large_dependency_chain(manager: ResourceManager) -> None:
     component = ColumnCreator()
-    for i in range(9, 0, -1):
-        manager.add_resources(
-            component=component,
-            initializer=component.initialize_test_columns,
-            resources=AttributePipeline(f"c_{i}", component),
-            required_resources=[AttributePipeline(f"c_{i-1}", mocker.Mock())],
-        )
-    manager.add_resources(
-        component=component,
-        initializer=component.initialize_test_columns,
-        resources=AttributePipeline("c_0", component),
-        required_resources=[],
-    )
+
+    initializer = Initializer(0, component, lambda _: None, [])
+    manager.add_resource(initializer)
+    initializers = [initializer]
+
+    for i in range(1, 10):
+        initializer = Initializer(i, component, lambda _: None, [initializers[0]])
+        initializers.insert(0, initializer)
+        manager.add_resource(initializer)
 
     for i, resource in enumerate(manager.sorted_nodes):
-        assert str(resource) == f"(attribute.c_{i})"
+        assert resource.resource_id == initializers[9 - i].resource_id
 
 
 def test_resource_manager_sorted_nodes_acyclic(
     manager_with_resources: ResourceManager,
 ) -> None:
 
-    nodes = [str(node) for node in manager_with_resources.sorted_nodes]
+    nodes = [node.resource_id for node in manager_with_resources.sorted_nodes]
 
-    assert nodes.index("(attribute.A)") < nodes.index("(stream.B)")
-    assert nodes.index("(attribute.A)") < nodes.index("(value.C)")
-    assert nodes.index("(attribute.A)") < nodes.index("(attribute.D)")
+    assert nodes.index("generic_resource.A") < nodes.index("stream.B")
+    assert nodes.index("generic_resource.A") < nodes.index("generic_resource.C")
+    assert nodes.index("generic_resource.A") < nodes.index("generic_resource.D")
 
-    assert nodes.index("(stream.B)") < nodes.index("(attribute.D)")
-    assert nodes.index("(value.C)") < nodes.index("(attribute.D)")
+    assert nodes.index("stream.B") < nodes.index("generic_resource.D")
+    assert nodes.index("generic_resource.C") < nodes.index("generic_resource.D")
 
-    assert nodes.index("(stream.B)") < nodes.index(f"(null.0)")
+    assert nodes.index("initializer.0.test_3.initialize_D") < nodes.index("column.D")
+    assert nodes.index("stream.B") < nodes.index("initializer.0.test_3.initialize_D")
+    assert nodes.index("generic_resource.C") < nodes.index(
+        "initializer.0.test_3.initialize_D"
+    )
+
+    assert nodes.index("initializer.1.test_0.initialize_A") < nodes.index("column.A")
+
+    assert nodes.index("stream.B") < nodes.index("initializer.2.test_4.initialize_nothing")
+
+
+# TODO MIC-6839: Add tests for add_private_columns
+# TODO MIC-6840: Add tests for get_graph
 
 
 def test_get_population_initializers(

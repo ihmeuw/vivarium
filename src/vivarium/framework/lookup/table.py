@@ -24,6 +24,7 @@ from vivarium.component import Component
 from vivarium.framework.lookup.interpolation import Interpolation
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.framework.resource import Resource
+from vivarium.framework.values import AttributePipeline
 from vivarium.types import LookupTableData
 
 if TYPE_CHECKING:
@@ -52,6 +53,10 @@ class LookupTable(Resource, Generic[T]):
     """
 
     @property
+    def resource_type(self) -> str:
+        return "lookup_table"
+
+    @property
     def value_columns(self) -> list[str]:
         """The name(s) of the column(s) in the data that will be returned by this lookup table."""
         return (
@@ -63,8 +68,10 @@ class LookupTable(Resource, Generic[T]):
     @property
     def required_resources(self) -> list[str]:
         """The resources required by this lookup table."""
-        lookup_columns = list(self.key_columns) + list(self.parameter_columns)
-        return [col for col in lookup_columns if col != "year"]
+        lookup_columns = [*self.key_columns, *self.parameter_columns]
+        return [
+            AttributePipeline.get_resource_id(col) for col in lookup_columns if col != "year"
+        ]
 
     def __init__(
         self,
@@ -75,7 +82,7 @@ class LookupTable(Resource, Generic[T]):
         manager: LookupTableManager,
         population_view: PopulationView,
     ):
-        super().__init__("lookup_table", self.get_name(component.name, name), component)
+        super().__init__(self.get_name(component.name, name), component)
         self._value_columns: list[str] | tuple[str, ...] | str = value_columns
         """Names of value columns that will be returned by the lookup table."""
         self._manager: LookupTableManager = manager
