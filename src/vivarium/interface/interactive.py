@@ -44,6 +44,7 @@ class InteractiveContext(SimulationContext):
     def setup(self) -> None:
         super().setup()
         self.initialize_simulants()
+        self._population_view = self._builder.population.get_view()
 
     def step(self, step_size: ClockStepSize | None = None) -> None:
         """Advance the simulation one step.
@@ -187,16 +188,31 @@ class InteractiveContext(SimulationContext):
         -------
             The current state of requested population attributes.
         """
-        returned_attributes: list[str] | tuple[str, ...] | Literal["all"] = "all"
-        squeeze: Literal[True, False] = True
-        if isinstance(attributes, str):
-            returned_attributes = [attributes]
-        elif attributes is not None:
-            squeeze = False
-            returned_attributes = list(attributes)
-        return self._population.get_population(
-            attributes=returned_attributes, squeeze=squeeze
-        )
+        returned_attributes: str | list[str] | tuple[str, ...]
+        if attributes is None:
+            returned_attributes = self.get_attribute_names()
+            if len(returned_attributes) == 1:
+                returned_attributes = returned_attributes[0]
+        else:
+            returned_attributes = attributes
+        try:
+            return self._population_view.get_attributes(
+                index=self.get_population_index(), attributes=returned_attributes
+            )
+        except ValueError as e:
+            if (
+                "Expected a pandas Series to be returned when requesting a single attribute, but got a DataFrame instead"
+                in str(e)
+            ):
+                if not isinstance(returned_attributes, str):
+                    raise RuntimeError(
+                        "ValueError was raised about squeezing but the provided "
+                        "attribute was not a single string. This should never happen."
+                    )
+                return self._population_view.get_attribute_frame(
+                    index=self.get_population_index(), attribute=returned_attributes
+                )
+            raise
 
     def get_attribute_names(self) -> list[str]:
         """List all attributes in the population state table."""
