@@ -200,10 +200,7 @@ class InteractiveContext(SimulationContext):
                 index=self.get_population_index(), attributes=returned_attributes
             )
         except ValueError as e:
-            if (
-                "Expected a pandas Series to be returned when requesting a single attribute, but got a DataFrame instead"
-                in str(e)
-            ):
+            if "call `get_attribute_frame()` instead" in str(e):
                 if not isinstance(returned_attributes, str):
                     raise RuntimeError(
                         "ValueError was raised about squeezing but the provided "
