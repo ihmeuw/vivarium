@@ -1,5 +1,6 @@
 import pandas as pd
 import pytest
+from pytest_mock import MockerFixture
 
 from tests.framework.population.helpers import (
     assert_squeezing_multi_level_single_outer_multi_inner,
@@ -11,6 +12,7 @@ from tests.helpers import (
     ColumnCreator,
     MultiLevelMultiColumnCreator,
     MultiLevelSingleColumnCreator,
+    NestedPipelineCreator,
     SingleColumnCreator,
 )
 from vivarium import InteractiveContext
@@ -113,3 +115,17 @@ def test_get_population_squeezing() -> None:
     assert isinstance(df.columns, pd.MultiIndex)
     default = sim.get_population()
     assert default.equals(df)  # type: ignore[arg-type]
+
+
+@pytest.mark.xfail(reason="MIC-6812")
+def test_get_population_nested_pipelines(mocker: MockerFixture) -> None:
+    """Tests that queries are properly applied to nested pipelines."""
+    sim = InteractiveContext(components=[NestedPipelineCreator()])
+    pop = sim.get_population()
+    assert set(pop["foo"]) == {0, 1, 2}
+    pop_mgr = sim._population
+    pop_mgr.register_tracked_query("foo == 1")
+    # Change lifecycle phase to ensure tracked queries are applied appropriately
+    mocker.patch.object(pop_mgr, "get_current_state", lambda: "on_time_step")
+    pop = sim.get_population()
+    assert set(pop["foo"]) == {0, 1, 2}
