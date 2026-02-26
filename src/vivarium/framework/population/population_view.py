@@ -614,18 +614,22 @@ class PopulationView:
 
         Notes
         -----
-        We explicitly set 'include_untracked' to True for a few reasons:
-            1. it was explicitly requested.
-            2. during initialization or population creation lifecycle phases
-            3. when we are inside a pipeline evaluation. In this case the index
-               handed to the pipeline has already been filtered by the caller's
-               query (which may or may not have included tracked-query terms). Since
-               default behavior is to exlude untracked simulants,
+        The tracked query is omitted in three situations:
+
+        1. The caller explicitly requested ``include_untracked=True``.
+        2. We are in the initialization or population creation lifecycle phases
+           where untracked simulants don't meaningfully exist yet.
+        3. We are inside a pipeline evaluation (``pipeline_evaluation_depth > 0``).
+           In that case the index was already narrowed by the tracked query in the
+           first ``get_population`` call, so re-applying it is redundant at best.
+           Note that this is independent of the caller's ``include_untracked`` value —
+           a nested call that passes ``include_untracked=False`` is still operating
+           on an already-filtered index.
 
         Only the tracked query is suppressed; any explicit ``query`` argument is
         always preserved so that pipeline sources can further subdivide the index.
         """
-        include_untracked = (
+        skip_tracked_query = (
             include_untracked
             or self._manager.get_current_state()
             in [
@@ -636,5 +640,5 @@ class PopulationView:
         )
         return pop_utils.combine_queries(
             query,
-            self._manager.get_tracked_query() if not include_untracked else "",
+            self._manager.get_tracked_query() if not skip_tracked_query else "",
         )
