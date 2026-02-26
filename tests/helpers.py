@@ -254,22 +254,15 @@ class NestedPipelineCreator(Component):
             "outer_attribute",
             self.outer_source,
         )
-        builder.value.register_attribute_producer(
-            "foo",
-            lambda idx: pd.Series(
-                [i % 3 for i in idx],
-                index=idx,
-                name="foo",
-            ),
+
+        builder.population.register_initializer(
+            initializer=self.initialize_foo,
+            columns="foo",
         )
-        builder.value.register_attribute_modifier(
-            "outer_attribute",
-            lambda index, df: df,
-        )
-        builder.value.register_attribute_modifier(
-            "foo",
-            lambda index, series: series,
-        )
+
+    def initialize_foo(self, pop_data: SimulantData) -> None:
+        foo = pd.Series([i % 3 for i in pop_data.index], index=pop_data.index, name="foo")
+        self.population_view.update(foo)
 
     def outer_source(self, idx: pd.Index[int]) -> pd.DataFrame:
         """Calls another pipeline to generate a dataframe"""

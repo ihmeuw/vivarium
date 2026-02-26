@@ -166,15 +166,21 @@ class InteractiveContext(SimulationContext):
                 self.step(step_size)
 
     @overload
-    def get_population(self, attributes: str | None = None) -> pd.Series[Any] | pd.DataFrame:
+    def get_population(
+        self, attributes: str | None = None, include_untracked: bool = False
+    ) -> pd.Series[Any] | pd.DataFrame:
         ...
 
     @overload
-    def get_population(self, attributes: list[str] | tuple[str, ...] = ...) -> pd.DataFrame:
+    def get_population(
+        self, attributes: list[str] | tuple[str, ...] = ..., include_untracked: bool = False
+    ) -> pd.DataFrame:
         ...
 
     def get_population(
-        self, attributes: str | list[str] | tuple[str, ...] | None = None
+        self,
+        attributes: str | list[str] | tuple[str, ...] | None = None,
+        include_untracked: bool = False,
     ) -> pd.Series[Any] | pd.DataFrame:
         """Get a copy of the population state table.
 
@@ -183,6 +189,8 @@ class InteractiveContext(SimulationContext):
         attributes
             The attribute pipelines to include in the returned table. If None, all
             attributes are included.
+        include_untracked
+            Whether to include untracked simulants.
 
         Returns
         -------
@@ -195,12 +203,18 @@ class InteractiveContext(SimulationContext):
                 attributes = attributes[0]
         if isinstance(attributes, str):
             try:
-                return self._population_view.get_attributes(index, attributes)
+                return self._population_view.get_attributes(
+                    index, attributes, include_untracked=include_untracked
+                )
             except ValueError as e:
                 if "call `get_attribute_frame()` instead" in str(e):
-                    return self._population_view.get_attribute_frame(index, attributes)
+                    return self._population_view.get_attribute_frame(
+                        index, attributes, include_untracked=include_untracked
+                    )
                 raise
-        return self._population_view.get_attributes(index, attributes)
+        return self._population_view.get_attributes(
+            index, attributes, include_untracked=include_untracked
+        )
 
     def get_attribute_names(self) -> list[str]:
         """List all attributes in the population state table."""

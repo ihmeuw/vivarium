@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
@@ -16,6 +18,7 @@ from tests.helpers import (
     SingleColumnCreator,
 )
 from vivarium import InteractiveContext
+from vivarium.framework.engine import Builder
 from vivarium.framework.values import Pipeline
 
 
@@ -117,15 +120,123 @@ def test_get_population_squeezing() -> None:
     assert default.equals(df)  # type: ignore[arg-type]
 
 
-@pytest.mark.xfail(reason="MIC-6812")
-def test_get_population_nested_pipelines(mocker: MockerFixture) -> None:
-    """Tests that queries are properly applied to nested pipelines."""
-    sim = InteractiveContext(components=[NestedPipelineCreator()])
-    pop = sim.get_population()
+# TODO: IS THERE A GAP HERE BETWEEN SIMPLE ATTRIBUTES AND NON-SIMPLE? I DON'T THINK SO.
+#   BUT SOMETHING LIKE: THE INDEX USED TO CALCULATE ONE ISN'T THE SAME AS USED TO
+#   CALCULATE THE OTHER.
+@pytest.mark.parametrize("is_simple_inner_attribute", [True, False])
+def test_get_population_nested_pipelines(
+    is_simple_inner_attribute: bool, mocker: MockerFixture
+) -> None:
+    """Tests that tracked queries are not re-applied inside nested pipeline calls.
+
+    Note that the outer attribute is never a simple pipeline because its source
+    is not a list of columns (it's the callable that calls the inner attribute).
+    """
+
+    class SomeComponent(NestedPipelineCreator):
+        def setup(self, builder: Builder) -> None:
+            super().setup(builder)
+            if not is_simple_inner_attribute:
+                builder.value.register_attribute_modifier(
+                    "foo",
+                    lambda index, series: series,
+                )
+
+    sim = InteractiveContext(components=[SomeComponent()])
+
+    # check simplicity
+    assert not sim._population._attribute_pipelines["outer_attribute"].is_simple
+    assert sim._population._attribute_pipelines["foo"].is_simple == is_simple_inner_attribute
+
+    pop = sim.get_population(include_untracked=False)
     assert set(pop["foo"]) == {0, 1, 2}
+    pop = sim.get_population(include_untracked=True)
+    assert set(pop["foo"]) == {0, 1, 2}
+
+    # Register a tracked query
     pop_mgr = sim._population
     pop_mgr.register_tracked_query("foo == 1")
     # Change lifecycle phase to ensure tracked queries are applied appropriately
     mocker.patch.object(pop_mgr, "get_current_state", lambda: "on_time_step")
-    pop = sim.get_population()
+
+    # Track the max depth reached during pipeline evaluation
+    max_depth = 0
+    original_get_attributes = pop_mgr._get_attributes
+
+    def get_attributes_with_depth_tracking(*args, **kwargs):  # type: ignore[no-untyped-def]
+        nonlocal max_depth
+        max_depth = max(max_depth, pop_mgr._pipeline_evaluation_depth + 1)
+        return original_get_attributes(*args, **kwargs)
+
+    mocker.patch.object(
+        pop_mgr, "_get_attributes", side_effect=get_attributes_with_depth_tracking
+    )
+
+    # Check tracked queries work as expected
+    pop = sim.get_population(include_untracked=False)
+    assert set(pop["foo"]) == {1}
+    pop = sim.get_population(include_untracked=True)
     assert set(pop["foo"]) == {0, 1, 2}
+
+    # Max depth for this nested pipeline should be 2 (outer pipeline calls inner pipeline)
+    assert max_depth == 2
+    # The actual depth counter should reset
+    assert pop_mgr._pipeline_evaluation_depth == 0
+
+
+@pytest.mark.parametrize("is_simple_inner_attribute", [True, False])
+def test_get_population_nested_pipelines_with_explicit_query(
+    is_simple_inner_attribute: bool,
+    mocker: MockerFixture,
+) -> None:
+    """Tests that explicit queries inside nested pipeline calls are preserved.
+
+    The pipeline source splits the index via ``query='foo == 1'`` and
+    ``query='foo != 1'`` and recombines. Those explicit queries must still
+    work even when tracked queries are suppressed during pipeline evaluation.
+    """
+
+    class SomeComponent(NestedPipelineCreator):
+        def setup(self, builder: Builder) -> None:
+            super().setup(builder)
+            if not is_simple_inner_attribute:
+                builder.value.register_attribute_modifier(
+                    "foo",
+                    lambda index, series: series,
+                )
+
+        def outer_source(self, idx: pd.Index[int]) -> pd.DataFrame:
+            """Splits index via explicit queries and recombines."""
+            ones = self.population_view.get_attributes(idx, "foo", query="foo == 1")
+            not_ones = self.population_view.get_attributes(idx, "foo", query="foo != 1")
+            combined = pd.concat([ones, not_ones]).sort_index()
+            return pd.DataFrame({"doubled_foo": combined * 2})
+
+    sim = InteractiveContext(components=[SomeComponent()])
+    # check simplicity
+    assert not sim._population._attribute_pipelines["outer_attribute"].is_simple
+    assert sim._population._attribute_pipelines["foo"].is_simple == is_simple_inner_attribute
+
+    pop = sim.get_population()
+
+    # All foo values present, outer_attribute doubles them
+    assert set(pop["foo"]) == {0, 1, 2}
+    assert set(pop[("outer_attribute", "doubled_foo")]) == {0, 2, 4}
+
+    pop_mgr = sim._population
+    pop_mgr.register_tracked_query("foo != 0")
+    mocker.patch.object(pop_mgr, "get_current_state", lambda: "on_time_step")
+
+    pop = sim.get_population(include_untracked=False)
+    # Tracked query removes foo==0 simulants from the population
+    assert set(pop["foo"]) == {1, 2}
+    # But the explicit queries inside the pipeline source still work:
+    # part_a (foo==1) returns foo==1 sims, part_b (foo!=1) returns foo==2 sims
+    # combined covers all remaining simulants -> doubled_foo = {2, 4}
+    assert set(pop[("outer_attribute", "doubled_foo")]) == {2, 4}
+    assert pop_mgr._pipeline_evaluation_depth == 0
+
+    pop = sim.get_population(include_untracked=True)
+    # All foo values present, outer_attribute doubles them
+    assert set(pop["foo"]) == {0, 1, 2}
+    assert set(pop[("outer_attribute", "doubled_foo")]) == {0, 2, 4}
