@@ -57,12 +57,12 @@ class ValuesManager(Manager):
         return {**self._value_pipelines, **self._attribute_pipelines}
 
     def setup(self, builder: Builder) -> None:
+        self._population_mgr = builder.population._manager
         self.logger = builder.logging.get_logger(self.name)
         self.step_size = builder.time.step_size()
         self.simulant_step_sizes = builder.time.simulant_step_sizes()
         builder.event.register_listener("post_setup", self.on_post_setup)
 
-        self._get_view = builder.population.get_view
         self._add_resource = builder.resources.add_resource
         self._get_current_component = builder.components.get_current_component_or_manager
         self._add_constraint = builder.lifecycle.add_constraint

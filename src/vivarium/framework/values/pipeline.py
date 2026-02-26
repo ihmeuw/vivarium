@@ -46,7 +46,7 @@ class MissingValueSource(ValueSource):
 
     def __init__(self, pipeline: Pipeline) -> None:
         self._pipeline = pipeline
-        self._source = None
+        self._source = lambda *args, **kwargs: None
 
     def __bool__(self) -> bool:
         return False
@@ -63,7 +63,7 @@ class PrivateColumnValueSource(ValueSource):
 
     def __init__(self, pipeline: Pipeline, source: str) -> None:
         self._pipeline = pipeline
-        self._source = None
+        self._source = lambda *args, **kwargs: None
         self.column_name = source
         """The name of the private column that is the source of this pipeline."""
 
@@ -80,7 +80,7 @@ class AttributesValueSource(ValueSource):
 
     def __init__(self, pipeline: Pipeline, source: list[str]) -> None:
         self._pipeline = pipeline
-        self._source = None
+        self._source = lambda *args, **kwargs: None
         self.attributes = source
         """The list of attributes that are the source of this pipeline."""
 
