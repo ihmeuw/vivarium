@@ -126,8 +126,8 @@ class TestGetPopulationNestedPipelines:
     """Tests query behavior with nested pipeline calls.
 
     These tests leverage the NestedPipelineCreator component which registers an
-    "outer_attribute" attribute pipieline whose source method calls another attribute
-    "foo". Note that "outer_attribute" is by definition never a simple pipeline
+    "outer" attribute pipieline whose source method calls another attribute
+    "foo". Note that "outer" is by definition never a simple pipeline
     because its source is not a list of columns.
     """
 
@@ -144,7 +144,7 @@ class TestGetPopulationNestedPipelines:
                 if not is_simple_inner_attribute:
                     # Registering a modifier make the pipeline non-simple
                     builder.value.register_attribute_modifier(
-                        "foo",
+                        "inner",
                         lambda index, series: series,
                     )
 
@@ -152,9 +152,10 @@ class TestGetPopulationNestedPipelines:
             _Component.outer_source = outer_source_override  # type: ignore[assignment]
 
         sim = InteractiveContext(components=[_Component()])
-        assert not sim._population._attribute_pipelines["outer_attribute"].is_simple
+        assert not sim._population._attribute_pipelines["outer"].is_simple
         assert (
-            sim._population._attribute_pipelines["foo"].is_simple == is_simple_inner_attribute
+            sim._population._attribute_pipelines["inner"].is_simple
+            == is_simple_inner_attribute
         )
         return sim
 
@@ -204,19 +205,19 @@ class TestGetPopulationNestedPipelines:
 
         # Confirm no tracking queries are registered
         pop = sim.get_population(include_untracked=False)
-        assert set(pop["foo"]) == {0, 1, 2}
+        assert set(pop["inner"]) == {0, 1, 2}
         pop = sim.get_population(include_untracked=True)
-        assert set(pop["foo"]) == {0, 1, 2}
+        assert set(pop["inner"]) == {0, 1, 2}
 
-        self._register_tracked_query(sim, "foo == 1", mocker)
+        self._register_tracked_query(sim, "inner == 1", mocker)
         max_depth = self._patch_depth_tracking(sim, mocker)
 
         pop = sim.get_population(include_untracked=False)
-        assert set(pop["foo"]) == {1}
+        assert set(pop["inner"]) == {1}
         pop = sim.get_population(include_untracked=True)
-        assert set(pop["foo"]) == {0, 1, 2}
+        assert set(pop["inner"]) == {0, 1, 2}
 
-        # Expect max depth 2 (one for 'outer_attribute' and one for 'foo')
+        # Expect max depth 2 (one for 'outer' and one for 'inner')
         self._assert_depth(sim, max_depth, 2)
 
     @pytest.mark.parametrize("is_simple_inner_attribute", [True, False])
@@ -225,39 +226,39 @@ class TestGetPopulationNestedPipelines:
     ) -> None:
         """Check that explicit queries inside nested pipeline calls are preserved.
 
-        This modifies outer_attribute's source to call 'foo' with different queries.
+        This modifies outer's source to call 'inner' with different queries.
         Those explicit queries must still work even when tracked queries are suppressed
         during pipeline evaluation.
         """
 
         def outer_source(self_: NestedPipelineCreator, idx: pd.Index[int]) -> pd.DataFrame:
-            ones = self_.population_view.get_attributes(idx, "foo", query="foo == 1")
-            not_ones = self_.population_view.get_attributes(idx, "foo", query="foo != 1")
+            ones = self_.population_view.get_attributes(idx, "inner", query="inner == 1")
+            not_ones = self_.population_view.get_attributes(idx, "inner", query="inner != 1")
             combined = pd.concat([ones, not_ones]).sort_index()
-            return pd.DataFrame({"doubled_foo": combined * 2})
+            return pd.DataFrame({"doubled_inner": combined * 2})
 
         sim = self._create_sim(is_simple_inner_attribute, outer_source_override=outer_source)
 
         # Confirm no tracking queries are registered
         pop = sim.get_population(include_untracked=False)
-        assert set(pop["foo"]) == {0, 1, 2}
-        assert set(pop[("outer_attribute", "doubled_foo")]) == {0, 2, 4}
+        assert set(pop["inner"]) == {0, 1, 2}
+        assert set(pop[("outer", "doubled_inner")]) == {0, 2, 4}
         pop = sim.get_population(include_untracked=True)
-        assert set(pop["foo"]) == {0, 1, 2}
-        assert set(pop[("outer_attribute", "doubled_foo")]) == {0, 2, 4}
+        assert set(pop["inner"]) == {0, 1, 2}
+        assert set(pop[("outer", "doubled_inner")]) == {0, 2, 4}
 
-        self._register_tracked_query(sim, "foo != 0", mocker)
+        self._register_tracked_query(sim, "inner != 0", mocker)
         max_depth = self._patch_depth_tracking(sim, mocker)
 
         pop = sim.get_population(include_untracked=False)
-        # Tracked query removes foo==0 simulants from the population
-        assert set(pop["foo"]) == {1, 2}
+        # Tracked query removes inner==0 simulants from the population
+        assert set(pop["inner"]) == {1, 2}
         # Explicit queries inside the pipeline source still work
-        assert set(pop[("outer_attribute", "doubled_foo")]) == {2, 4}
+        assert set(pop[("outer", "doubled_inner")]) == {2, 4}
 
         pop = sim.get_population(include_untracked=True)
-        assert set(pop["foo"]) == {0, 1, 2}
-        assert set(pop[("outer_attribute", "doubled_foo")]) == {0, 2, 4}
+        assert set(pop["inner"]) == {0, 1, 2}
+        assert set(pop[("outer", "doubled_inner")]) == {0, 2, 4}
 
-        # Expect max depth 2 (one for 'outer_attribute' and one for 'foo')
+        # Expect max depth 2 (one for 'outer' and one for 'inner')
         self._assert_depth(sim, max_depth, 2)

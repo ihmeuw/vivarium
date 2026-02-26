@@ -251,24 +251,25 @@ class NestedPipelineCreator(Component):
     def setup(self, builder: Builder) -> None:
 
         builder.value.register_attribute_producer(
-            "outer_attribute",
+            "outer",
             self.outer_source,
         )
 
         builder.population.register_initializer(
-            initializer=self.initialize_foo,
-            columns="foo",
+            initializer=self.initialize_inner,
+            columns="inner",
         )
 
-    def initialize_foo(self, pop_data: SimulantData) -> None:
-        foo = pd.Series([i % 3 for i in pop_data.index], index=pop_data.index, name="foo")
-        self.population_view.update(foo)
+    def initialize_inner(self, pop_data: SimulantData) -> None:
+        inner = pd.Series([i % 3 for i in pop_data.index], index=pop_data.index, name="inner")
+        self.population_view.update(inner)
 
     def outer_source(self, idx: pd.Index[int]) -> pd.DataFrame:
         """Calls another pipeline to generate a dataframe"""
-        inner = self.population_view.get_attribute_frame(idx, "foo")
-        df = pd.DataFrame({"bar": [i % 3 for i in idx]}, index=idx)
-        return pd.concat([inner, df], axis=1)
+        inner = self.population_view.get_attribute_frame(idx, "inner")
+        outer = pd.DataFrame(inner)
+        outer.rename(columns={"inner": "outer"}, inplace=True)
+        return pd.concat([inner, outer], axis=1)
 
 
 class LookupCreator(ColumnCreator):
