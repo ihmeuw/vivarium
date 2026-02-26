@@ -220,10 +220,6 @@ def test_resource_manager_sorted_nodes_acyclic(
     assert nodes.index("stream.B") < nodes.index("initializer.2.test_4.initialize_nothing")
 
 
-# TODO MIC-6839: Add tests for add_private_columns
-# TODO MIC-6840: Add tests for get_graph
-
-
 def test_get_population_initializers(
     manager_with_resources: ResourceManager, resource_producers: dict[int, ResourceProducer]
 ) -> None:

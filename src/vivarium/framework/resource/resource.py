@@ -129,8 +129,3 @@ class Column(Resource):
 
     def __hash__(self) -> int:
         return hash((self.resource_id, self.component.name))
-
-    @staticmethod
-    def get_resource_id(resource_name: str) -> str:
-        """Get the resource ID for the given column name."""
-        return f"column.{resource_name}"

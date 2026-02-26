@@ -871,7 +871,6 @@ class TestConfigurePipeline:
         self,
         manager: ValuesManager,
         pipeline: AttributePipeline,
-        component: Component,
         required_resources: list[Resource],
     ) -> None:
         """Test that _configure_pipeline handles private column source correctly."""
@@ -884,7 +883,7 @@ class TestConfigurePipeline:
         assert isinstance(pipeline.source, PrivateColumnValueSource)
         assert pipeline.source.column.name == "col1"
         assert pipeline.source.required_resources == [
-            Column.get_resource_id("col1"),
+            "column.col1",
             *[r.resource_id for r in required_resources],
         ]
 
