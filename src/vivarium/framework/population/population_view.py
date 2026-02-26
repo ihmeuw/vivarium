@@ -614,18 +614,16 @@ class PopulationView:
 
         Notes
         -----
-        We explicitly set 'include_untracked' to True during initialization,
-        population creation lifecycle phases, and when we are inside a pipeline
-        evaluation (``_pipeline_evaluation_depth > 0``).  In the pipeline-
-        evaluation case the index handed to the pipeline has *already* been
-        filtered by the caller's query (which included tracked-query terms).
-        Re-applying the tracked query inside nested ``get_attributes`` calls
-        would corrupt the index seen by the pipeline and produce mismatched
-        results.
+        We explicitly set 'include_untracked' to True for a few reasons:
+            1. it was explicitly requested.
+            2. during initialization or population creation lifecycle phases
+            3. when we are inside a pipeline evaluation. In this case the index
+               handed to the pipeline has already been filtered by the caller's
+               query (which may or may not have included tracked-query terms). Since
+               default behavior is to exlude untracked simulants,
 
-        Only the **tracked query** is suppressed; any explicit ``query``
-        argument is always preserved so that pipeline sources can further
-        subdivide the index (e.g. querying by sex).
+        Only the tracked query is suppressed; any explicit ``query`` argument is
+        always preserved so that pipeline sources can further subdivide the index.
         """
         include_untracked = (
             include_untracked
@@ -634,7 +632,7 @@ class PopulationView:
                 lifecycle_states.INITIALIZATION,
                 lifecycle_states.POPULATION_CREATION,
             ]
-            or self._manager._pipeline_evaluation_depth > 0
+            or self._manager.pipeline_evaluation_depth > 0
         )
         return pop_utils.combine_queries(
             query,

@@ -890,18 +890,18 @@ def test__skip_tracked_query_during_pipeline_evaluation(
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
 
     # Normally, tracked query is included
-    assert pies_and_cubes_pop_mgr._pipeline_evaluation_depth == 0
+    assert pies_and_cubes_pop_mgr.pipeline_evaluation_depth == 0
     assert pv._build_query("", include_untracked=False) == "(one == 1)"
 
     # When inside a pipeline evaluation (depth > 0), tracked query is skipped
-    pies_and_cubes_pop_mgr._pipeline_evaluation_depth = 1
+    pies_and_cubes_pop_mgr.pipeline_evaluation_depth = 1
     assert pv._build_query("", include_untracked=False) == ""
 
     # Explicit queries are still preserved even during pipeline evaluation
     assert pv._build_query("two == 2", include_untracked=False) == "(two == 2)"
 
     # Depth resets back
-    pies_and_cubes_pop_mgr._pipeline_evaluation_depth = 0
+    pies_and_cubes_pop_mgr.pipeline_evaluation_depth = 0
     assert pv._build_query("", include_untracked=False) == "(one == 1)"
 
 

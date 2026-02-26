@@ -91,7 +91,7 @@ class PopulationManager(Manager):
         self.adding_simulants = False
         self._last_id = -1
         self.tracked_queries: list[str] = []
-        self._pipeline_evaluation_depth: int = 0
+        self.pipeline_evaluation_depth: int = 0
 
     def setup(self, builder: Builder) -> None:
         """Registers the population manager with other vivarium systems."""
@@ -679,28 +679,25 @@ class PopulationManager(Manager):
         requested_attributes: Sequence[str],
         skip_post_processor: Literal[True, False] = False,
     ) -> Any:
-        """Gets the population for a given index and requested attributes.
+        """Get the population for a given index and requested attributes.
 
-        While evaluating attribute pipelines, we increment
-        ``_pipeline_evaluation_depth`` so that nested calls to
-        ``PopulationView.get_attributes`` (which may be triggered by pipeline
-        sources or mutators) do not automatically re-apply tracked queries.
-        The index passed to each pipeline has already been filtered
+        While evaluating attribute pipelines, we increment ``pipeline_evaluation_depth``
+        so that nested calls to ``PopulationView.get_attributes`` (which may be
+        triggered by pipeline sources or mutators) do not automatically re-apply
+        tracked queries. The index passed to each pipeline has already been filtered
         appropriately by the enclosing ``get_population`` call.
 
-        Note that only **tracked queries** are suppressed.  Explicit ``query``
-        arguments passed by the pipeline source/mutator (e.g.
-        ``get_attributes(idx, 'bar', query="sex == 'Male'")``)
-        are always honoured.
+        Note that only tracked queries are suppressed. Explicit ``query`` arguments
+        passed by the pipeline source/mutator are supported.
         """
 
-        self._pipeline_evaluation_depth += 1
+        self.pipeline_evaluation_depth += 1
         try:
-            return self.__get_attributes_inner(idx, requested_attributes, skip_post_processor)
+            return self.__get_attributes(idx, requested_attributes, skip_post_processor)
         finally:
-            self._pipeline_evaluation_depth -= 1
+            self.pipeline_evaluation_depth -= 1
 
-    def __get_attributes_inner(
+    def __get_attributes(
         self,
         idx: pd.Index[int],
         requested_attributes: Sequence[str],
