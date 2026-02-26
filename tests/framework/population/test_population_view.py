@@ -886,23 +886,29 @@ def test__skip_tracked_query_during_pipeline_evaluation(
 ) -> None:
     """Tracked queries are suppressed during pipeline evaluation but explicit queries
     are always preserved."""
-    pies_and_cubes_pop_mgr.tracked_queries = ["one == 1"]
+    query = "foo == 'bar'"
+    tracking_query = "tracked == True"
+
+    pies_and_cubes_pop_mgr.register_tracked_query(tracking_query)
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
 
-    # Normally, tracked query is included
+    # Depth starts at 0 and tracking query is included
     assert pies_and_cubes_pop_mgr.pipeline_evaluation_depth == 0
-    assert pv._build_query("", include_untracked=False) == "(one == 1)"
+    assert (
+        pv._build_query(query, include_untracked=False) == f"({query}) and ({tracking_query})"
+    )
 
-    # When inside a pipeline evaluation (depth > 0), tracked query is skipped
-    pies_and_cubes_pop_mgr.pipeline_evaluation_depth = 1
-    assert pv._build_query("", include_untracked=False) == ""
+    # Normally, tracked query is included
+    for depth in range(1, 6):
+        # Tracked queries should be skipped when depth > 0
+        pies_and_cubes_pop_mgr.pipeline_evaluation_depth = depth
+        assert pv._build_query(query, include_untracked=False) == f"({query})"
 
-    # Explicit queries are still preserved even during pipeline evaluation
-    assert pv._build_query("two == 2", include_untracked=False) == "(two == 2)"
-
-    # Depth resets back
+    # Depth resets back and tracking query returns
     pies_and_cubes_pop_mgr.pipeline_evaluation_depth = 0
-    assert pv._build_query("", include_untracked=False) == "(one == 1)"
+    assert (
+        pv._build_query(query, include_untracked=False) == f"({query}) and ({tracking_query})"
+    )
 
 
 #########################
