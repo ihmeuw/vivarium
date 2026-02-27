@@ -21,7 +21,7 @@ RESIDUAL_CHOICE : object
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeVar
 
 import numpy as np
@@ -88,6 +88,10 @@ class RandomnessStream(Resource):
 
     """
 
+    @property
+    def resource_type(self) -> str:
+        return "stream"
+
     def __init__(
         self,
         key: str,
@@ -97,8 +101,9 @@ class RandomnessStream(Resource):
         component: Component | Manager,
         initializes_crn_attributes: bool = False,
         rate_conversion_type: Literal["linear", "exponential"] = "linear",
-    ):
-        super().__init__("stream", key, component)
+        required_resources: Iterable[str | Resource] = (),
+    ) -> None:
+        super().__init__(key, component, required_resources)
         self.key = key
         """The name of the randomness stream."""
         self.clock = clock

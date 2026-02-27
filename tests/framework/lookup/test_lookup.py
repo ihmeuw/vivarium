@@ -37,7 +37,7 @@ def test_build_table_calls_methods_correctly(mocker: MockerFixture) -> None:
     # Inject mocks into the manager
     manager._get_current_component = mocker.Mock(return_value=test_component)
     manager._build_table = mocker.Mock(return_value=mock_table)  # type: ignore[method-assign]
-    manager._add_resources = mocker.Mock()
+    manager._add_resource = mocker.Mock()
     manager._add_constraint = mocker.Mock()
 
     # Execute
@@ -49,9 +49,7 @@ def test_build_table_calls_methods_correctly(mocker: MockerFixture) -> None:
     )
 
     # Assert _add_resources was called with correct arguments
-    manager._add_resources.assert_called_once_with(  # type: ignore[attr-defined]
-        test_component, mock_table, ["resource1", "resource2"]
-    )
+    manager._add_resource.assert_called_once_with(mock_table)  # type: ignore[attr-defined]
 
     # Assert correct constraints have been set on table._call and table.update_data
     assert manager._add_constraint.call_count == 2  # type: ignore[attr-defined]
@@ -302,7 +300,7 @@ class TestLookupTableResource:
         manager = LookupTableManager()
         manager.clock = mocker.Mock()
         manager._get_view = mocker.Mock()
-        manager._add_resources = mocker.Mock()
+        manager._add_resource = mocker.Mock()
         manager._add_constraint = mocker.Mock()
         manager._get_current_component = mocker.Mock()
         manager.interpolation_order = 0
@@ -327,7 +325,7 @@ class TestLookupTableResource:
         assert table.resource_type == "lookup_table"
         assert table.name == "lookup_creator.test_table"
         assert table.resource_id == "lookup_table.lookup_creator.test_table"
-        assert table.required_resources == ["foo", "bar"]
+        assert table.required_resources == ["attribute.foo", "attribute.bar"]
 
     def test_interpolated_table_resource_attributes(
         self,
@@ -347,15 +345,13 @@ class TestLookupTableResource:
         assert table.resource_type == "lookup_table"
         assert table.name == "lookup_creator.test_table"
         assert table.resource_id == "lookup_table.lookup_creator.test_table"
-        assert table.required_resources == ["foo", "bar"]
+        assert table.required_resources == ["attribute.foo", "attribute.bar"]
 
     def test_adding_resources(self, manager: LookupTableManager) -> None:
         component = LookupCreator()
         manager._get_current_component.return_value = component  # type: ignore [attr-defined]
         table = manager.build_table(5, "test_table", value_columns="value")
-        manager._add_resources.assert_called_once_with(  # type: ignore[attr-defined]
-            component, table, table.required_resources
-        )
+        manager._add_resource.assert_called_once_with(table)  # type: ignore[attr-defined]
 
 
 class TestValidateBuildTableParameters:
