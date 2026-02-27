@@ -204,6 +204,8 @@ class TestGetPopulationNestedPipelines:
         sim = self._create_sim(is_simple_inner_attribute)
 
         # Confirm no tracking queries are registered
+        pop = sim.get_population(include_untracked=None)
+        assert set(pop["inner"]) == {0, 1, 2}
         pop = sim.get_population(include_untracked=False)
         assert set(pop["inner"]) == {0, 1, 2}
         pop = sim.get_population(include_untracked=True)
@@ -212,6 +214,8 @@ class TestGetPopulationNestedPipelines:
         self._register_tracked_query(sim, "inner == 1", mocker)
         max_depth = self._patch_depth_tracking(sim, mocker)
 
+        pop = sim.get_population(include_untracked=None)  # default to False
+        assert set(pop["inner"]) == {1}
         pop = sim.get_population(include_untracked=False)
         assert set(pop["inner"]) == {1}
         pop = sim.get_population(include_untracked=True)
