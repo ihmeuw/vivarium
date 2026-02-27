@@ -197,29 +197,28 @@ class TestGetPopulationNestedPipelines:
         assert sim._population.pipeline_evaluation_depth == 0
 
     @pytest.mark.parametrize("is_simple_inner_attribute", [True, False])
+    @pytest.mark.parametrize("include_untracked", [None, True, False])
     def test_tracked_queries_not_reapplied(
-        self, is_simple_inner_attribute: bool, mocker: MockerFixture
+        self,
+        is_simple_inner_attribute: bool,
+        include_untracked: bool | None,
+        mocker: MockerFixture,
     ) -> None:
         """Tracked queries are not re-applied inside nested pipeline calls."""
         sim = self._create_sim(is_simple_inner_attribute)
+        kwargs = {}
+        if include_untracked is not None:
+            kwargs["include_untracked"] = include_untracked
 
         # Confirm no tracking queries are registered
-        pop = sim.get_population(include_untracked=None)
-        assert set(pop["inner"]) == {0, 1, 2}
-        pop = sim.get_population(include_untracked=False)
-        assert set(pop["inner"]) == {0, 1, 2}
-        pop = sim.get_population(include_untracked=True)
+        pop = sim.get_population(**kwargs)  # type: ignore[call-overload]
         assert set(pop["inner"]) == {0, 1, 2}
 
+        # Register a tracking query and check
         self._register_tracked_query(sim, "inner == 1", mocker)
         max_depth = self._patch_depth_tracking(sim, mocker)
-
-        pop = sim.get_population(include_untracked=None)  # default to False
-        assert set(pop["inner"]) == {1}
-        pop = sim.get_population(include_untracked=False)
-        assert set(pop["inner"]) == {1}
-        pop = sim.get_population(include_untracked=True)
-        assert set(pop["inner"]) == {0, 1, 2}
+        pop = sim.get_population(**kwargs)  # type: ignore[call-overload]
+        assert set(pop["inner"]) == {0, 1, 2} if include_untracked is True else {1}
 
         # Expect max depth 2 (one for 'outer' and one for 'inner')
         self._assert_depth(sim, max_depth, 2)
@@ -265,4 +264,42 @@ class TestGetPopulationNestedPipelines:
         assert set(pop[("outer", "doubled_inner")]) == {0, 2, 4}
 
         # Expect max depth 2 (one for 'outer' and one for 'inner')
+        self._assert_depth(sim, max_depth, 2)
+
+    @pytest.mark.parametrize("is_simple_inner_attribute", [True, False])
+    def test_explicit_false_inside_nested_call(
+        self, is_simple_inner_attribute: bool, mocker: MockerFixture
+    ) -> None:
+        """Check explicit include_untracked=False inside a pipeline source.
+
+        This should force the tracked query to be re-applied even at depth > 0."""
+
+        def outer_source(self_: NestedPipelineCreator, idx: pd.Index[int]) -> pd.DataFrame:
+            # include_untracked=False at depth > 0: tracked query IS applied
+            tracked = self_.population_view.get_attributes(
+                idx, "inner", include_untracked=False
+            )
+            # include_untracked=True at depth > 0: tracked query NOT applied
+            all_inner = self_.population_view.get_attributes(
+                idx, "inner", include_untracked=True
+            )
+            return pd.DataFrame(
+                {"tracked_count": len(tracked), "all_count": len(all_inner)}, index=idx
+            )
+
+        sim = self._create_sim(is_simple_inner_attribute, outer_source_override=outer_source)
+        self._register_tracked_query(sim, "inner == 1", mocker)
+        max_depth = self._patch_depth_tracking(sim, mocker)
+
+        # Use include_untracked=True at top level so we see all simulants
+        pop = sim.get_population(include_untracked=True)
+        total = len(pop)
+        tracked_count = pop[("outer", "tracked_count")].iloc[0]
+        all_count = pop[("outer", "all_count")].iloc[0]
+
+        # True inside the nested source should have returned all simulants
+        assert all_count == total
+        # False inside the nested source should have applied the tracked query
+        assert tracked_count == pop["inner"].eq(1).sum()
+
         self._assert_depth(sim, max_depth, 2)
