@@ -34,7 +34,7 @@ def test_get_randomness_stream_calls_methods_correctly(
     # Inject mocks into the manager
     manager._get_current_component = mocker.Mock(return_value=test_component)
     manager._get_randomness_stream = mocker.Mock(return_value=mock_stream)  # type: ignore[method-assign]
-    manager._add_resources = mocker.Mock()
+    manager._add_resource = mocker.Mock()
     manager._add_constraint = mocker.Mock()
     manager._key_columns = ["age", "sex"]
 
@@ -44,20 +44,17 @@ def test_get_randomness_stream_calls_methods_correctly(
     )
 
     # Assert _get_randomness_stream was called with correct arguments
+    expected_required_resources = [] if initializes_crn_attributes else ["age", "sex"]
     manager._get_randomness_stream.assert_called_once_with(  # type: ignore[attr-defined]
         test_decision_point,
         test_component,
         initializes_crn_attributes,
         test_rate_conversion,
+        expected_required_resources,
     )
 
     # Assert _add_resources was called with correct arguments
-    expected_required_resources = [] if initializes_crn_attributes else ["age", "sex"]
-    manager._add_resources.assert_called_once_with(  # type: ignore[attr-defined]
-        component=test_component,
-        resources=mock_stream,
-        required_resources=expected_required_resources,
-    )
+    manager._add_resource.assert_called_once_with(mock_stream)  # type: ignore[attr-defined]
 
     # Assert _add_constraint was called for each stream method
     assert manager._add_constraint.call_count == 4  # type: ignore[attr-defined]
