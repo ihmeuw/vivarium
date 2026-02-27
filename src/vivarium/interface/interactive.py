@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from math import ceil
-from typing import Any, Literal, overload
+from typing import Any, overload
 
 import pandas as pd
 
@@ -167,20 +167,22 @@ class InteractiveContext(SimulationContext):
 
     @overload
     def get_population(
-        self, attributes: str | None = None, include_untracked: bool = False
+        self, attributes: str | None = None, include_untracked: bool | None = None
     ) -> pd.Series[Any] | pd.DataFrame:
         ...
 
     @overload
     def get_population(
-        self, attributes: list[str] | tuple[str, ...] = ..., include_untracked: bool = False
+        self,
+        attributes: list[str] | tuple[str, ...] = ...,
+        include_untracked: bool | None = None,
     ) -> pd.DataFrame:
         ...
 
     def get_population(
         self,
         attributes: str | list[str] | tuple[str, ...] | None = None,
-        include_untracked: bool = False,
+        include_untracked: bool | None = None,
     ) -> pd.Series[Any] | pd.DataFrame:
         """Get a copy of the population state table.
 
@@ -190,7 +192,11 @@ class InteractiveContext(SimulationContext):
             The attribute pipelines to include in the returned table. If None, all
             attributes are included.
         include_untracked
-            Whether to include untracked simulants.
+            Whether to include untracked simulants. If None (default), untracked
+            simulants are excluded from the first call unless during initialization
+            or population-creation and the tracked query is automatically suppressed
+            inside subsequent nested pipeline evaluations. Untracked simulants are
+            always included if True and always excluded if False.
 
         Returns
         -------

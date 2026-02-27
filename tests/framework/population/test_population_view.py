@@ -6,7 +6,6 @@ from typing import Any
 
 import pandas as pd
 import pytest
-from pytest_mock import MockerFixture
 
 from tests.framework.population.conftest import (
     CUBE_COL_NAMES,
@@ -881,34 +880,52 @@ def test__skip_tracked_query_if_initializing(
             assert query == "(one == 1)"
 
 
-def test__skip_tracked_query_during_pipeline_evaluation(
+def test__build_query_handles_tracked_queries(
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
-    """Tracked queries are suppressed during pipeline evaluation but explicit queries
-    are always preserved."""
+    """Check that we are correctly handling tracked queries.
+
+    Tracked queries are suppressed during pipeline evaluation when include_untracked
+    is None, but NOT when it is explicitly False. Explicit queries are always preserved.
+    """
     query = "foo == 'bar'"
     tracking_query = "tracked == True"
 
     pies_and_cubes_pop_mgr.register_tracked_query(tracking_query)
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
 
-    # Depth starts at 0 and tracking query is included
+    # Depth starts at 0: tracking query is included for both None and False
     assert pies_and_cubes_pop_mgr.pipeline_evaluation_depth == 0
     assert (
-        pv._build_query(query, include_untracked=False) == f"({query}) and ({tracking_query})"
+        pv._build_query(query, include_untracked=None) == f"({query}) and ({tracking_query})"
     )
-
-    # Normally, tracked query is included
-    for depth in range(1, 6):
-        # Tracked queries should be skipped when depth > 0
-        pies_and_cubes_pop_mgr.pipeline_evaluation_depth = depth
-        assert pv._build_query(query, include_untracked=False) == f"({query})"
-
-    # Depth resets back and tracking query returns
-    pies_and_cubes_pop_mgr.pipeline_evaluation_depth = 0
     assert (
         pv._build_query(query, include_untracked=False) == f"({query}) and ({tracking_query})"
     )
+    assert pv._build_query(query, include_untracked=True) == f"({query})"
+
+    for depth in range(1, 6):
+        pies_and_cubes_pop_mgr.pipeline_evaluation_depth = depth
+
+        # None (default) and True: tracked query suppressed at depth > 0
+        assert pv._build_query(query, include_untracked=None) == f"({query})"
+        assert pv._build_query(query, include_untracked=True) == f"({query})"
+
+        # Explicit False: tracked query is NOT suppressed, even at depth > 0
+        assert (
+            pv._build_query(query, include_untracked=False)
+            == f"({query}) and ({tracking_query})"
+        )
+
+    # Depth resets back with same behavior as before
+    pies_and_cubes_pop_mgr.pipeline_evaluation_depth = 0
+    assert (
+        pv._build_query(query, include_untracked=None) == f"({query}) and ({tracking_query})"
+    )
+    assert (
+        pv._build_query(query, include_untracked=False) == f"({query}) and ({tracking_query})"
+    )
+    assert pv._build_query(query, include_untracked=True) == f"({query})"
 
 
 #########################
