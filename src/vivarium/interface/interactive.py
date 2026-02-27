@@ -44,6 +44,7 @@ class InteractiveContext(SimulationContext):
     def setup(self) -> None:
         super().setup()
         self.initialize_simulants()
+        self._population_view = self._builder.population.get_view()
 
     def step(self, step_size: ClockStepSize | None = None) -> None:
         """Advance the simulation one step.
@@ -187,16 +188,19 @@ class InteractiveContext(SimulationContext):
         -------
             The current state of requested population attributes.
         """
-        returned_attributes: list[str] | tuple[str, ...] | Literal["all"] = "all"
-        squeeze: Literal[True, False] = True
+        index = self.get_population_index()
+        if attributes is None:
+            attributes = self.get_attribute_names()
+            if len(attributes) == 1:
+                attributes = attributes[0]
         if isinstance(attributes, str):
-            returned_attributes = [attributes]
-        elif attributes is not None:
-            squeeze = False
-            returned_attributes = list(attributes)
-        return self._population.get_population(
-            attributes=returned_attributes, squeeze=squeeze
-        )
+            try:
+                return self._population_view.get_attributes(index, attributes)
+            except ValueError as e:
+                if "call `get_attribute_frame()` instead" in str(e):
+                    return self._population_view.get_attribute_frame(index, attributes)
+                raise
+        return self._population_view.get_attributes(index, attributes)
 
     def get_attribute_names(self) -> list[str]:
         """List all attributes in the population state table."""
