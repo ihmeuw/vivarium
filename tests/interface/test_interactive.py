@@ -70,6 +70,31 @@ def test_get_attribute_names() -> None:
     )
 
 
+def test_get_population_querying() -> None:
+    sim = InteractiveContext(components=[ColumnCreator()])
+    assert set(sim.get_population("test_column_1")) == {0, 1, 2}
+    assert set(sim.get_population("test_column_1", query="test_column_1 > 0")) == {1, 2}
+
+
+@pytest.mark.parametrize("include_untracked", [None, True, False])
+def test_get_population_include_untracked(
+    include_untracked: bool | None, mocker: MockerFixture
+) -> None:
+    sim = InteractiveContext(components=[ColumnCreator()])
+    sim._population.register_tracked_query("test_column_1 > 0")
+    # Need to mock lifecycle state away from initialization or population-creation
+    mocker.patch.object(sim._population, "get_current_state", lambda: "on_time_step")
+
+    kwargs = {}
+    if include_untracked is not None:
+        kwargs["include_untracked"] = include_untracked
+    pop = sim.get_population("test_column_1", **kwargs)  # type: ignore[call-overload]
+    if include_untracked is True:
+        assert set(pop) == {0, 1, 2}
+    else:
+        assert set(pop) == {1, 2}
+
+
 def test_get_population_squeezing() -> None:
 
     # Single-level, single-column -> series

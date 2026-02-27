@@ -167,7 +167,10 @@ class InteractiveContext(SimulationContext):
 
     @overload
     def get_population(
-        self, attributes: str | None = None, include_untracked: bool | None = None
+        self,
+        attributes: str | None = None,
+        query: str = "",
+        include_untracked: bool | None = None,
     ) -> pd.Series[Any] | pd.DataFrame:
         ...
 
@@ -175,6 +178,7 @@ class InteractiveContext(SimulationContext):
     def get_population(
         self,
         attributes: list[str] | tuple[str, ...] = ...,
+        query: str = "",
         include_untracked: bool | None = None,
     ) -> pd.DataFrame:
         ...
@@ -182,6 +186,7 @@ class InteractiveContext(SimulationContext):
     def get_population(
         self,
         attributes: str | list[str] | tuple[str, ...] | None = None,
+        query: str = "",
         include_untracked: bool | None = None,
     ) -> pd.Series[Any] | pd.DataFrame:
         """Get a copy of the population state table.
@@ -191,6 +196,8 @@ class InteractiveContext(SimulationContext):
         attributes
             The attribute pipelines to include in the returned table. If None, all
             attributes are included.
+        query
+            Additional conditions used to filter the index.
         include_untracked
             Whether to include untracked simulants. If None (default), untracked
             simulants are excluded from the first call unless during initialization
@@ -210,12 +217,12 @@ class InteractiveContext(SimulationContext):
         if isinstance(attributes, str):
             try:
                 return self._population_view.get_attributes(
-                    index, attributes, include_untracked=include_untracked
+                    index, attributes, query, include_untracked=include_untracked
                 )
             except ValueError as e:
                 if "call `get_attribute_frame()` instead" in str(e):
                     return self._population_view.get_attribute_frame(
-                        index, attributes, include_untracked=include_untracked
+                        index, attributes, query, include_untracked=include_untracked
                     )
                 raise
         return self._population_view.get_attributes(
