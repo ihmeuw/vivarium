@@ -245,7 +245,7 @@ class AttributePipelineCreator(Component):
         )
 
 
-class NestedPipelineCreator(Component):
+class NestedAttributeCreator(Component):
     """A helper class to register nested pipelines."""
 
     def setup(self, builder: Builder) -> None:
@@ -270,6 +270,15 @@ class NestedPipelineCreator(Component):
         outer = pd.DataFrame(inner)
         outer.rename(columns={"inner": "outer"}, inplace=True)
         return pd.concat([inner, outer], axis=1)
+
+
+class NestedPrivateColumnCaller(NestedAttributeCreator):
+    """Like NestedPipelineCreator but outer_source calls get_private_columns."""
+
+    def outer_source(self, idx: pd.Index[int]) -> pd.DataFrame:
+        """Calls get_private_columns inside a nested pipeline evaluation."""
+        inner_private = self.population_view.get_private_columns(idx, "inner")
+        return pd.DataFrame({"doubled_inner": inner_private * 2})
 
 
 class LookupCreator(ColumnCreator):
