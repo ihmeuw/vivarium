@@ -6,6 +6,7 @@ from typing import Any
 
 import pandas as pd
 import pytest
+from pytest_mock import MockerFixture
 
 from tests.framework.population.conftest import (
     CUBE_COL_NAMES,
@@ -863,21 +864,39 @@ def test__update_column_and_ensure_dtype_unmatched_dtype() -> None:
 ##################################################
 
 
-def test__skip_tracked_query_if_initializing(
+@pytest.mark.parametrize("include_untracked", [None, False, True])
+@pytest.mark.parametrize(
+    "lifecycle_state",
+    [state.lower() for state in dir(lifecycle_states) if not state.startswith("_")],
+)
+def test__build_query_different_lifecycle_phases(
+    include_untracked: bool | None,
+    lifecycle_state: str,
     pies_and_cubes_pop_mgr: PopulationManager,
+    mocker: MockerFixture,
 ) -> None:
-    pies_and_cubes_pop_mgr.tracked_queries = ["one == 1"]
+    query = "one == 1"
+    tracking_query = "tracked == True"
+    pies_and_cubes_pop_mgr.register_tracked_query(tracking_query)
+    mocker.patch.object(pies_and_cubes_pop_mgr, "get_current_state", lambda: lifecycle_state)
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
-    # lifecycle_states is not directly iterable so just look for constants manually
-    states = [state for state in dir(lifecycle_states) if not state.startswith("_")]
-    for state in states:
-        query = pv._build_query("", include_untracked=False)
-        if state in [lifecycle_states.INITIALIZATION, lifecycle_states.POPULATION_CREATION]:
-            # We DO include the untracked people here so make sure the query does
-            # NOT include the tracking query
-            assert query == ""
+
+    combined_query = pv._build_query(query=query, include_untracked=include_untracked)
+
+    if include_untracked is None:
+        if lifecycle_state in [
+            lifecycle_states.INITIALIZATION,
+            lifecycle_states.POPULATION_CREATION,
+        ]:
+            assert combined_query == f"({query})"
         else:
-            assert query == "(one == 1)"
+            assert combined_query == f"({query}) and ({tracking_query})"
+    elif include_untracked == True:
+        assert combined_query == f"({query})"
+    elif include_untracked == False:
+        assert combined_query == f"({query}) and ({tracking_query})"
+    else:
+        raise NotImplementedError
 
 
 def test__build_query_handles_tracked_queries(
