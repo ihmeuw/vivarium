@@ -25,6 +25,7 @@ Note that updating the shared repo will take affect on the next pipeline invocat
 @Library("get_vbu_version@main") _
 
 // Load the full vivarium_build_utils library at the expected version
+// Testing cleanup of workspace
 library("vivarium_build_utils@albrja/mic-6852/cleanup-builds")
 
 reusable_pipeline(
