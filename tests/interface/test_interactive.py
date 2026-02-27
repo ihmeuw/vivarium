@@ -147,22 +147,13 @@ class TestGetPopulationNestedAttributes:
     ) -> None:
         """Tracked queries are not re-applied inside nested pipeline calls."""
         sim = self._create_sim(is_simple_inner_attribute, NestedAttributeCreator)
-        kwargs = {}
-        if include_untracked is not None:
-            kwargs["include_untracked"] = include_untracked
-
-        # Confirm no tracking queries are registered
-        pop = sim.get_population(**kwargs)  # type: ignore[call-overload]
-        assert set(pop["inner"]) == {0, 1, 2}
-
-        # Register a tracking query and check
-        self._register_tracked_query(sim, "inner == 1", mocker)
-        max_depth = self._patch_depth_tracking(sim, mocker)
-        pop = sim.get_population(**kwargs)  # type: ignore[call-overload]
-        assert set(pop["inner"]) == {0, 1, 2} if include_untracked is True else {1}
-
-        # Expect max depth 2 (one for 'outer' and one for 'inner')
-        self._assert_depth(sim, max_depth, 2)
+        self._assert_nested_query_suppression(
+            sim,
+            include_untracked,
+            mocker,
+            tracked_query="inner == 1",
+            expected_filtered_inner={1},
+        )
 
     @pytest.mark.parametrize("is_simple_inner_attribute", [True, False])
     @pytest.mark.parametrize("include_untracked", [None, True, False])
@@ -190,29 +181,16 @@ class TestGetPopulationNestedAttributes:
             NestedAttributeCreator,
             outer_source_override=outer_source,
         )
-        kwargs = {}
-        if include_untracked is not None:
-            kwargs["include_untracked"] = include_untracked
-
-        # Confirm no tracking queries are registered
-        pop = sim.get_population(**kwargs)  # type: ignore[call-overload]
-        assert set(pop["inner"]) == {0, 1, 2}
-        assert set(pop[("outer", "doubled_inner")]) == {0, 2, 4}
-
-        self._register_tracked_query(sim, "inner != 0", mocker)
-        max_depth = self._patch_depth_tracking(sim, mocker)
-
-        pop = sim.get_population(**kwargs)  # type: ignore[call-overload]
-        assert set(pop["inner"]) == {0, 1, 2} if include_untracked is True else {1, 2}
-        # Explicit queries inside the pipeline source still work
-        assert (
-            set(pop[("outer", "doubled_inner")]) == {0, 2, 4}
-            if include_untracked is True
-            else {2, 4}
+        self._assert_nested_query_suppression(
+            sim,
+            include_untracked,
+            mocker,
+            tracked_query="inner != 0",
+            expected_filtered_inner={1, 2},
+            outer_column=("outer", "doubled_inner"),
+            expected_baseline_outer={0, 2, 4},
+            expected_filtered_outer={2, 4},
         )
-
-        # Expect max depth 2 (one for 'outer' and one for 'inner')
-        self._assert_depth(sim, max_depth, 2)
 
     @pytest.mark.parametrize("is_simple_inner_attribute", [True, False])
     def test_explicit_false_inside_nested_call(
@@ -265,37 +243,17 @@ class TestGetPopulationNestedAttributes:
         mocker: MockerFixture,
     ) -> None:
         """Test get_private_columns inside a nested pipeline call suppresses tracked queries."""
-        sim = self._create_sim(
-            is_simple_inner_attribute,
-            NestedPrivateColumnCaller,
+        sim = self._create_sim(is_simple_inner_attribute, NestedPrivateColumnCaller)
+        self._assert_nested_query_suppression(
+            sim,
+            include_untracked,
+            mocker,
+            tracked_query="inner == 1",
+            expected_filtered_inner={1},
+            outer_column=("outer", "doubled_inner"),
+            expected_baseline_outer={0, 2, 4},
+            expected_filtered_outer={2},
         )
-        kwargs = {}
-        if include_untracked is not None:
-            kwargs["include_untracked"] = include_untracked
-
-        # Confirm baseline: no tracked query yet
-        pop = sim.get_population(**kwargs)  # type: ignore[call-overload]
-        assert set(pop["inner"]) == {0, 1, 2}
-        assert set(pop[("outer", "doubled_inner")]) == {0, 2, 4}
-
-        # Register tracked query and patch depth tracking
-        self._register_tracked_query(sim, "inner == 1", mocker)
-        max_depth = self._patch_depth_tracking(sim, mocker)
-
-        # With tracked query: top-level filtering applies but nested
-        # get_private_columns still sees all simulants (query suppressed at depth>0)
-        pop = sim.get_population(**kwargs)  # type: ignore[call-overload]
-        assert set(pop["inner"]) == {0, 1, 2} if include_untracked is True else {1}
-        assert (
-            set(pop[("outer", "doubled_inner")]) == {0, 2, 4}
-            if include_untracked is True
-            else {2, 4}
-        )
-
-        # Depth is 2: outer pipeline goes through _get_attributes at depth 1,
-        # then get_private_columns chains through get_filtered_index -> get_attributes
-        # -> _get_attributes which increments to depth 2
-        self._assert_depth(sim, max_depth, 2)
 
     @pytest.mark.parametrize("is_simple_inner_attribute", [True, False])
     @pytest.mark.parametrize("include_untracked", [None, True, False])
@@ -311,38 +269,68 @@ class TestGetPopulationNestedAttributes:
         on 'inner'. The table internally calls get_attributes(index, ["inner"])
         with the default include_untracked=None, exercising the lookup path.
         """
-        sim = self._create_sim(
-            is_simple_inner_attribute,
-            NestedLookupCaller,
+        sim = self._create_sim(is_simple_inner_attribute, NestedLookupCaller)
+        self._assert_nested_query_suppression(
+            sim,
+            include_untracked,
+            mocker,
+            tracked_query="inner == 1",
+            expected_filtered_inner={1},
+            outer_column=("outer", "lookup_value"),
+            expected_baseline_outer={10, 20, 30},
+            expected_filtered_outer={20},
         )
-        kwargs = {}
-        if include_untracked is not None:
-            kwargs["include_untracked"] = include_untracked
-
-        # Confirm baseline: no tracked query yet
-        pop = sim.get_population(**kwargs)  # type: ignore[call-overload]
-        assert set(pop["inner"]) == {0, 1, 2}
-        assert set(pop[("outer", "lookup_value")]) == {10, 20, 30}
-
-        # Register tracked query and patch depth tracking
-        self._register_tracked_query(sim, "inner == 1", mocker)
-        max_depth = self._patch_depth_tracking(sim, mocker)
-
-        pop = sim.get_population(**kwargs)  # type: ignore[call-overload]
-        assert set(pop["inner"]) == {0, 1, 2} if include_untracked is True else {1}
-        assert (
-            set(pop[("outer", "lookup_value")]) == {10, 20, 30}
-            if include_untracked is True
-            else {20}
-        )
-
-        # Depth is 2: outer -> _get_attributes (depth 1),
-        # then lookup table -> get_attributes -> _get_attributes (depth 2)
-        self._assert_depth(sim, max_depth, 2)
 
     ##################
     # Helper methods #
     ##################
+
+    def _assert_nested_query_suppression(
+        self,
+        sim: InteractiveContext,
+        include_untracked: bool | None,
+        mocker: MockerFixture,
+        tracked_query: str,
+        expected_filtered_inner: set[int],
+        outer_column: str | tuple[str, str] | None = None,
+        expected_baseline_outer: set[int] | None = None,
+        expected_filtered_outer: set[int] | None = None,
+        expected_depth: int = 2,
+    ) -> None:
+        """Common assertion pattern for nested query suppression tests.
+
+        Verifies that:
+        1. Without a tracked query, all inner values {0, 1, 2} are returned.
+        2. With a tracked query, inner values are filtered appropriately
+           (unless include_untracked is True, in which case all are returned).
+        3. Pipeline evaluation depth reaches the expected level.
+        """
+        kwargs: dict[str, bool] = {}
+        if include_untracked is not None:
+            kwargs["include_untracked"] = include_untracked
+
+        # Baseline: no tracked query yet
+        pop = sim.get_population(**kwargs)  # type: ignore[call-overload]
+        assert set(pop["inner"]) == {0, 1, 2}
+        if outer_column is not None:
+            assert set(pop[outer_column]) == expected_baseline_outer
+
+        # Register tracked query and patch depth
+        self._register_tracked_query(sim, tracked_query, mocker)
+        max_depth = self._patch_depth_tracking(sim, mocker)
+
+        # With tracked query
+        pop = sim.get_population(**kwargs)  # type: ignore[call-overload]
+        if include_untracked is True:
+            assert set(pop["inner"]) == {0, 1, 2}
+            if outer_column is not None:
+                assert set(pop[outer_column]) == expected_baseline_outer
+        else:
+            assert set(pop["inner"]) == expected_filtered_inner
+            if outer_column is not None:
+                assert set(pop[outer_column]) == expected_filtered_outer
+
+        self._assert_depth(sim, max_depth, expected_depth)
 
     @staticmethod
     def _create_sim(
