@@ -23,6 +23,7 @@ from vivarium.framework.engine import Builder
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.lookup.table import LookupTable
 from vivarium.framework.population import PopulationError
+from vivarium.framework.resource.resource import Initializer
 
 
 def load_cooling_time(builder: Builder) -> pd.DataFrame:
@@ -97,14 +98,7 @@ def test_component_with_initialization_requirements() -> None:
         r.required_resources
         # get all resources in the dependency graph
         for r in simulation._resource.sorted_nodes
-        # if the resource is an initializer
-        if r.is_initialized
-        # its initializer is an instance method
-        and hasattr(r.initializer, "__self__")
-        # and is not None
-        and r.initializer is not None
-        # and is a method of ColumnCreatorAndRequirer
-        and isinstance(r.initializer.__self__, ColumnCreatorAndRequirer)
+        if isinstance(r, Initializer) and isinstance(r.component, ColumnCreatorAndRequirer)
     ]
     assert len(component_required_resources_list) == 1
     component_required_resources = component_required_resources_list[0]

@@ -7,7 +7,7 @@ Randomness Manager
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Literal
 
 import pandas as pd
@@ -22,6 +22,7 @@ from vivarium.types import ClockTime
 if TYPE_CHECKING:
     from vivarium.component import Component
     from vivarium.framework.engine import Builder
+    from vivarium.framework.resource import Resource
 
 
 class RandomnessManager(Manager):
@@ -80,7 +81,7 @@ class RandomnessManager(Manager):
         self._get_current_component = builder.components.get_current_component
         self._rate_conversion_type = builder.configuration.randomness.rate_conversion_type
         self._add_constraint = builder.lifecycle.add_constraint
-        self._add_resources = builder.resources.add_resources
+        self._add_resource = builder.resources.add_resource
 
         self._add_constraint(self.get_seed, restrict_during=[lifecycle_states.INITIALIZATION])
         self._add_constraint(
@@ -134,21 +135,15 @@ class RandomnessManager(Manager):
             If another location in the simulation has already created a randomness stream
             with the same identifier.
         """
-        component = self._get_current_component()
         stream = self._get_randomness_stream(
             decision_point,
-            component,
+            self._get_current_component(),
             initializes_crn_attributes,
             rate_conversion_type,
+            self._key_columns if not initializes_crn_attributes else [],
         )
 
-        # We need the key columns to be created before this stream can be called.
-        self._add_resources(
-            component=component,
-            resources=stream,
-            required_resources=self._key_columns if not initializes_crn_attributes else [],
-        )
-
+        self._add_resource(stream)
         self._add_constraint(
             stream.get_draw,
             restrict_during=[
@@ -190,6 +185,7 @@ class RandomnessManager(Manager):
         component: Component,
         initializes_crn_attributes: bool = False,
         rate_conversion_type: Literal["linear", "exponential"] = "linear",
+        required_resources: Iterable[str | Resource] = (),
     ) -> RandomnessStream:
         if decision_point in self._decision_points:
             raise RandomnessError(
@@ -201,9 +197,10 @@ class RandomnessManager(Manager):
             clock=self._clock,
             seed=self._seed,
             index_map=self._key_mapping,
-            component=self._get_current_component(),
+            component=component,
             initializes_crn_attributes=initializes_crn_attributes,
             rate_conversion_type=rate_conversion_type,
+            required_resources=required_resources,
         )
         self._decision_points[decision_point] = stream
         return stream
