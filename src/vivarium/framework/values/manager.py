@@ -63,7 +63,7 @@ class ValuesManager(Manager):
         self.simulant_step_sizes = builder.time.simulant_step_sizes()
         builder.event.register_listener("post_setup", self.on_post_setup)
 
-        self._add_resources = builder.resources.add_resources
+        self._add_resource = builder.resources.add_resource
         self._get_current_component = builder.components.get_current_component_or_manager
         self._add_constraint = builder.lifecycle.add_constraint
 
@@ -92,25 +92,12 @@ class ValuesManager(Manager):
                 self.logger.warning(
                     f"Pipeline {pipeline.name} has no source. It will not be usable."
                 )
-                continue
-
-            # register_value_producer and register_value_modifier record the
-            # dependency structure for the pipeline source and pipeline modifiers,
-            # respectively. We don't have enough information to record the
-            # dependency structure for the pipeline itself until now, where
-            # we say the pipeline value depends on its source and all its
-            # modifiers.
-            self._add_resources(
-                component=pipeline.component,
-                resources=pipeline,
-                required_resources=[pipeline.source] + list(pipeline.mutators),
-            )
 
     def register_value_producer(
         self,
         value_name: str,
         source: Callable[..., Any],
-        required_resources: Sequence[str | Resource] = (),
+        required_resources: Iterable[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | None = None,
     ) -> Pipeline:
@@ -157,7 +144,7 @@ class ValuesManager(Manager):
         self,
         value_name: str,
         source: Callable[[pd.Index[int]], Any] | list[str],
-        required_resources: Sequence[str | Resource] = (),
+        required_resources: Iterable[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: AttributePostProcessor | None = None,
         source_is_private_column: bool = False,
@@ -207,7 +194,7 @@ class ValuesManager(Manager):
         self,
         value_name: str,
         modifier: Callable[..., Any],
-        required_resources: Sequence[str | Resource] = (),
+        required_resources: Iterable[str | Resource] = (),
     ) -> None:
         """Marks a ``Callable`` as the modifier of a named value.
 
@@ -237,7 +224,7 @@ class ValuesManager(Manager):
         self,
         value_name: str,
         modifier: Callable[..., Any] | str,
-        required_resources: Sequence[str | Resource] = (),
+        required_resources: Iterable[str | Resource] = (),
     ) -> None:
         """Marks a ``Callable`` as the modifier of a named attribute.
 
@@ -351,7 +338,7 @@ class ValuesManager(Manager):
         self,
         pipeline: Pipeline | AttributePipeline,
         source: Callable[..., Any] | list[str],
-        required_resources: Sequence[str | Resource] = (),
+        required_resources: Iterable[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | AttributePostProcessor | None = None,
         source_is_private_column: bool = False,
@@ -366,6 +353,8 @@ class ValuesManager(Manager):
             value_source = AttributesValueSource(
                 pipeline, source, component, required_resources
             )
+        elif isinstance(pipeline, AttributePipeline):
+            value_source = ValueSource(pipeline, source, component, required_resources)
         else:
             value_source = ValueSource(pipeline, source, component, required_resources)
 
@@ -377,13 +366,8 @@ class ValuesManager(Manager):
             manager=self,
         )
 
-        # The resource we add here is just the pipeline source.
-        self._add_resources(
-            component=pipeline.component,
-            resources=pipeline.source,
-            required_resources=pipeline.source.required_resources,
-        )
-
+        self._add_resource(pipeline)
+        self._add_resource(pipeline.source)
         self._add_constraint(
             pipeline._call,
             restrict_during=[
@@ -397,23 +381,20 @@ class ValuesManager(Manager):
         self,
         pipeline: Pipeline | AttributePipeline,
         modifier: Callable[..., Any],
-        required_resources: Sequence[str | Resource] = (),
+        required_resources: Iterable[str | Resource] = (),
     ) -> None:
         component = self._get_current_component()
-        value_modifier = pipeline.get_value_modifier(modifier, component)
-        self.logger.debug(f"Registering {value_modifier.name} as modifier to {pipeline.name}")
-        if isinstance(modifier, Resource) and required_resources:
-            self.logger.warning(
-                f"Conflicting information for {pipeline.name}. Ignoring 'required_resources' "
-                f"since the `modifier` is of type {type(modifier)} and we can infer "
-                "the required resources directly."
-            )
+        if isinstance(modifier, Resource):
+            if required_resources:
+                self.logger.warning(
+                    f"Conflicting information for {pipeline.name}. Ignoring 'required_resources' "
+                    f"since the `modifier` is of type {type(modifier)} and we can infer "
+                    "the required resources directly."
+                )
             required_resources = [modifier]
-        self._add_resources(
-            component=component,
-            resources=value_modifier,
-            required_resources=required_resources,
-        )
+        value_modifier = pipeline.get_value_modifier(modifier, component, required_resources)
+        self.logger.debug(f"Registering {value_modifier.name} as modifier to {pipeline.name}")
+        self._add_resource(value_modifier)
 
     def __contains__(self, item: str) -> bool:
         return item in self._all_pipelines
