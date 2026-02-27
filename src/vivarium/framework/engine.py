@@ -254,6 +254,7 @@ class SimulationContext:
         self._component_manager.setup_components(self._builder)
 
         self.simulant_creator = self._builder.population.get_simulant_creator()
+        self.get_population_index = self._builder.population.get_population_index()
 
         self.time_step_events = self._lifecycle.get_state_names("main_loop")
         self.time_step_emitters = {
@@ -364,9 +365,6 @@ class SimulationContext:
     def add_components(self, component_list: list[Component]) -> None:
         """Adds new components to the simulation."""
         self._component_manager.add_components(component_list)
-
-    def get_population_index(self) -> pd.Index[int]:
-        return self._population.get_population_index()
 
     def __repr__(self) -> str:
         return f"SimulationContext({self.name})"
