@@ -224,14 +224,6 @@ class SimulationContext:
         self._lifecycle.add_constraint(
             self.add_components, allow_during=[lifecycle_states.INITIALIZATION]
         )
-        self._lifecycle.add_constraint(
-            self.get_population,
-            restrict_during=[
-                lifecycle_states.INITIALIZATION,
-                lifecycle_states.SETUP,
-                lifecycle_states.POST_SETUP,
-            ],
-        )
 
         self.add_components(components_list)
 
@@ -372,9 +364,6 @@ class SimulationContext:
     def add_components(self, component_list: list[Component]) -> None:
         """Adds new components to the simulation."""
         self._component_manager.add_components(component_list)
-
-    def get_population(self) -> pd.Series[Any] | pd.DataFrame:
-        return self._population.get_population("all")
 
     def get_population_index(self) -> pd.Index[int]:
         return self._population.get_population_index()

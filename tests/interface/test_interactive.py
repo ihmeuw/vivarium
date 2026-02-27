@@ -149,7 +149,7 @@ class TestGetPopulationNestedPipelines:
                     )
 
         if outer_source_override is not None:
-            _Component.outer_source = outer_source_override  # type: ignore[assignment]
+            setattr(_Component, "outer_source", outer_source_override)
 
         sim = InteractiveContext(components=[_Component()])
         assert not sim._population._attribute_pipelines["outer"].is_simple
