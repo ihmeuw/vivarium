@@ -43,35 +43,20 @@ class ResourceInterface(Interface):
     def __init__(self, manager: ResourceManager):
         self._manager = manager
 
-    def add_resources(
-        self,
-        component: Component | Manager,
-        resources: Resource,
-        required_resources: Iterable[str | Resource],
-    ) -> None:
+    def add_resource(self, resource: Resource) -> None:
         """Adds managed resources to the resource pool.
 
         Parameters
         ----------
-        component
-            The component or manager adding the resources.
-        resources
-            The resources being added. A string represents an attribute pipeline.
-        required_resources
-            A list of resources that the producer requires. A string represents
-            a population attribute.
+        resource
+            The resource being added.
 
         Raises
         ------
         ResourceError
             If there are multiple producers of the same resource.
         """
-        self._manager.add_resources(
-            component,
-            initializer=None,
-            resources=resources,
-            required_resources=required_resources,
-        )
+        self._manager.add_resource(resource=resource)
 
     def add_private_columns(
         self,
