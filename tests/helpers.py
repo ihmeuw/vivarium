@@ -276,9 +276,26 @@ class NestedPrivateColumnCaller(NestedAttributeCreator):
     """Like NestedPipelineCreator but outer_source calls get_private_columns."""
 
     def outer_source(self, idx: pd.Index[int]) -> pd.DataFrame:
-        """Calls get_private_columns inside a nested pipeline evaluation."""
+        """Call get_private_columns inside a nested pipeline evaluation."""
         inner_private = self.population_view.get_private_columns(idx, "inner")
         return pd.DataFrame({"doubled_inner": inner_private * 2})
+
+
+class NestedLookupCaller(NestedAttributeCreator):
+    """Like NestedAttributeCreator but outer_source calls a lookup table keyed on 'inner'."""
+
+    def setup(self, builder: Builder) -> None:
+        super().setup(builder)
+        self.inner_lookup = self.build_lookup_table(
+            builder,
+            "inner_lookup",
+            data_source=pd.DataFrame({"inner": [0, 1, 2], "value": [10, 20, 30]}),
+        )
+
+    def outer_source(self, idx: pd.Index[int]) -> pd.DataFrame:
+        """Call a lookup table inside a nested pipeline evaluation."""
+        looked_up = self.inner_lookup(idx)
+        return pd.DataFrame({"lookup_value": looked_up})
 
 
 class LookupCreator(ColumnCreator):
