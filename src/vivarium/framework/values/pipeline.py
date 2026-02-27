@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import pandas as pd
@@ -28,31 +28,28 @@ class ValueSource(Resource):
     If the source is a private column, use :class:`PrivateColumnValueSource` instead.
     """
 
+    @property
+    def resource_type(self) -> str:
+        return f"{self._pipeline_type}_source"
+
     def __init__(
         self,
         pipeline: Pipeline,
         source: Callable[..., Any] | None,
         component: Component | Manager | None,
-        required_resources: Sequence[str | Resource] | None = None,
+        required_resources: Iterable[str | Resource] = (),
     ) -> None:
         self._pipeline_type = (
             "attribute" if isinstance(pipeline, AttributePipeline) else "value"
         )
-        super().__init__(
-            f"{self._pipeline_type}_source"
-            if source
-            else f"missing_{self._pipeline_type}_source",
-            pipeline.name,
-            component,
-        )
+        super().__init__(pipeline.name, component, required_resources or [])
         self._pipeline = pipeline
         self._source = source
-        self.required_resources = required_resources or []
         if isinstance(source, Resource):
-            self.required_resources.append(source)
+            self._required_resources.append(source)
 
     def __bool__(self) -> bool:
-        return self._source is not None
+        return True
 
     def __call__(self, population_mgr: PopulationManager, *args: Any, **kwargs: Any) -> Any:
         if self._source is None:
@@ -61,8 +58,19 @@ class ValueSource(Resource):
                 " This likely means you are attempting to modify a value that"
                 " hasn't been created."
             )
-
         return self._source(*args, **kwargs)
+
+
+class MissingValueSource(ValueSource):
+    @property
+    def resource_type(self) -> str:
+        return f"missing_{self._pipeline_type}_source"
+
+    def __init__(self, pipeline: Pipeline) -> None:
+        super().__init__(pipeline, source=None, component=None)
+
+    def __bool__(self) -> bool:
+        return False
 
 
 class PrivateColumnValueSource(ValueSource):
@@ -73,7 +81,7 @@ class PrivateColumnValueSource(ValueSource):
         pipeline: Pipeline,
         source: Callable[..., Any] | list[str],
         component: Component | Manager,
-        required_resources: Sequence[str | Resource],
+        required_resources: Iterable[str | Resource],
     ) -> None:
         generic_error_msg = (
             f"Invalid source for {pipeline.name}. `source` must be list containing a single"
@@ -89,9 +97,6 @@ class PrivateColumnValueSource(ValueSource):
         super().__init__(
             pipeline, source=None, component=component, required_resources=required_resources
         )
-
-    def __bool__(self) -> bool:
-        return True
 
     def __call__(
         self, population_mgr: PopulationManager, index: pd.Index[int]
@@ -109,16 +114,13 @@ class AttributesValueSource(ValueSource):
         pipeline: Pipeline,
         source: list[str],
         component: Component | Manager,
-        required_resources: Sequence[str | Resource],
+        required_resources: Iterable[str | Resource],
     ) -> None:
         self.attributes = source
         required_resources = [*self.attributes, *required_resources]
         super().__init__(
             pipeline, source=None, component=component, required_resources=required_resources
         )
-
-    def __bool__(self) -> bool:
-        return True
 
     def __call__(
         self, population_mgr: PopulationManager, index: pd.Index[int]
@@ -129,41 +131,25 @@ class AttributesValueSource(ValueSource):
 class ValueModifier(Resource):
     """A resource representing a modifier of a value pipeline."""
 
+    RESOURCE_TYPE = "value_modifier"
+
     def __init__(
         self,
         pipeline: Pipeline,
         modifier: Callable[..., Any],
         component: Component | Manager,
+        required_resources: Iterable[str | Resource] = (),
     ) -> None:
-        mutator_name = self._get_modifier_name(modifier)
+        mutator_name = self.get_callable_name(modifier)
         mutator_index = len(pipeline.mutators) + 1
-        name = f"{pipeline.name}.{mutator_index}.{mutator_name}"
-        super().__init__("value_modifier", name, component)
+        name = f"{pipeline.name}.{mutator_index}.{component.name}.{mutator_name}"
+        super().__init__(name, component, required_resources)
 
         self._pipeline = pipeline
         self._source = modifier
 
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         return self._source(*args, **kwargs)
-
-    @staticmethod
-    def _get_modifier_name(modifier: Callable[..., Any]) -> str:
-        """Get reproducible modifier names based on the modifier type."""
-        if hasattr(modifier, "name"):  # This is Pipeline or lookup table or something similar
-            modifier_name: str = modifier.name
-        elif hasattr(modifier, "__self__") and hasattr(
-            modifier, "__name__"
-        ):  # This is a bound method of a component or other object
-            owner = modifier.__self__
-            owner_name = owner.name if hasattr(owner, "name") else owner.__class__.__name__
-            modifier_name = f"{owner_name}.{modifier.__name__}"
-        elif hasattr(modifier, "__name__"):  # Some unbound function
-            modifier_name = modifier.__name__
-        elif hasattr(modifier, "__call__"):  # Some anonymous callable
-            modifier_name = f"{modifier.__class__.__name__}.__call__"
-        else:  # I don't know what this is.
-            raise ValueError(f"Unknown modifier type: {type(modifier)}")
-        return modifier_name
 
 
 class Pipeline(Resource):
@@ -186,14 +172,19 @@ class Pipeline(Resource):
     attributes; for those, use :class:`~vivarium.framework.values.pipeline.AttributePipeline`.
     """
 
-    def __init__(self, name: str, component: Component | None = None) -> None:
-        super().__init__(
-            "attribute" if isinstance(self, AttributePipeline) else "value",
-            name,
-            component=component,
-        )
+    @property
+    def resource_type(self) -> str:
+        return "value"
 
-        self.source: ValueSource = ValueSource(self, source=None, component=None)
+    @property
+    def required_resources(self) -> list[str]:
+        """The resources required by this pipeline, including the source and all modifiers."""
+        return [self.source.resource_id, *[mutator.resource_id for mutator in self.mutators]]
+
+    def __init__(self, name: str, component: Component | None = None) -> None:
+        super().__init__(name, component=component)
+
+        self.source: ValueSource = MissingValueSource(self)
         """The callable source of the value represented by the pipeline."""
         self.mutators: list[ValueModifier] = []
         """A list of callables that directly modify the pipeline source or
@@ -281,7 +272,10 @@ class Pipeline(Resource):
         return hash(self.name)
 
     def get_value_modifier(
-        self, modifier: Callable[..., Any], component: Component | Manager
+        self,
+        modifier: Callable[..., Any],
+        component: Component | Manager,
+        required_resources: Iterable[str | Resource],
     ) -> ValueModifier:
         """Adds a value modifier to the pipeline and returns it.
 
@@ -291,8 +285,10 @@ class Pipeline(Resource):
             The value modifier callable for the ValueModifier.
         component
             The component that creates the value modifier.
+        required_resources
+            A list of resources required by the modifier. A string represents a population attribute.
         """
-        value_modifier = ValueModifier(self, modifier, component)
+        value_modifier = ValueModifier(self, modifier, component, required_resources)
         self.mutators.append(value_modifier)
         return value_modifier
 
@@ -342,6 +338,10 @@ class AttributePipeline(Pipeline):
     """
 
     @property
+    def resource_type(self) -> str:
+        return "attribute"
+
+    @property
     def is_simple(self) -> bool:
         """Whether or not this ``AttributePipeline`` is simple, i.e. it has a list
         of columns as its source and no modifiers or postprocessors."""
@@ -350,6 +350,11 @@ class AttributePipeline(Pipeline):
             and not self.mutators
             and not self.post_processor
         )
+
+    @classmethod
+    def get_resource_id(cls, resource_name: str) -> str:
+        """Get the resource ID for the given column name."""
+        return f"attribute.{resource_name}"
 
     def __init__(self, name: str, component: Component | None = None) -> None:
         super().__init__(name, component=component)
