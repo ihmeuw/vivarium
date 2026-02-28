@@ -11,12 +11,13 @@ from pytest_mock import MockerFixture
 
 from tests.helpers import LookupCreator
 from vivarium import Component, InteractiveContext
+from vivarium.framework.configuration import build_simulation_configuration
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.lookup.manager import LookupTableManager
 from vivarium.framework.lookup.table import LookupTable
-from vivarium.testing_utilities import TestPopulation, build_table
+from vivarium.testing_utilities import TestPopulation, build_table, metadata
 from vivarium.types import LookupTableData, ScalarValue
 
 
@@ -63,12 +64,10 @@ def test_build_table_calls_methods_correctly(mocker: MockerFixture) -> None:
         lifecycle_states.POST_SETUP,
     ]
 
-    # Second call should be for table.update_data
-    assert call_args_list[1][0][0] == mock_table.update_data
-    assert call_args_list[1][1]["restrict_during"] == [
-        lifecycle_states.INITIALIZATION,
+    # Second call should be for table.set_data
+    assert call_args_list[1][0][0] == mock_table.set_data
+    assert call_args_list[1][1]["allow_during"] == [
         lifecycle_states.SETUP,
-        lifecycle_states.POPULATION_CREATION,
         lifecycle_states.POST_SETUP,
     ]
 
@@ -457,28 +456,19 @@ def test_uncreated_lookup_table_warning(
     )
 
 
-class TestLookupTableUpdateData:
-    """Tests for the LookupTable.update_data() method.
+class TestLookupTableSeteData:
+    """Tests for the LookupTable.set_data() method.
 
-    Note: The current implementation of update_data() has significant limitations:
-    1. It ONLY works during time_step and later phases (NOT during post_setup)
-    2. It only works when the required_resources don't change (same key/parameter columns)
-
-    This is because update_data() tries to call add_resources(), which:
-    - During post_setup: causes ResourceError (resource already registered)
-    - During time_step+: throws LifeCycleError (caught and ignored), but would still
-      fail with ResourceError if trying to change required_resources
-
-    These tests focus on currently supported scenarios: updating data during time_step
-    while keeping the same structure (same required_resources).
+    Note: set_data() is permitted during setup and post_setup phases,
+    but is not permitted during the simulation loop.
     """
 
-    @pytest.fixture
-    def stepped_sim_with_components(
-        self, base_config: LayeredConfigTree
-    ) -> InteractiveContext:
-        """Create a simulation with all components, step once, return the simulation.
-        Components have tables set up but don't automatically update - tests call update_data().
+    @staticmethod
+    def _make_components() -> list[Component]:
+        """Create component instances used by set_data tests.
+
+        Each component calls set_data in both on_post_setup and on_time_step,
+        allowing reuse across fixtures for both lifecycle phases.
         """
 
         class ScalarUpdateComponent(Component):
@@ -487,8 +477,14 @@ class TestLookupTableUpdateData:
                     5, "scalar_table", value_columns="value"
                 )
 
+            def _do_update(self) -> None:
+                self.table.set_data(10)
+
+            def on_post_setup(self, event: Event) -> None:
+                self._do_update()
+
             def on_time_step(self, event: Event) -> None:
-                self.table.update_data(10)
+                self._do_update()
 
         class SameStructureComponent(Component):
             def setup(self, builder: Builder) -> None:
@@ -497,9 +493,15 @@ class TestLookupTableUpdateData:
                     initial_data, "same_structure_table", value_columns="value"
                 )
 
-            def on_time_step(self, event: Event) -> None:
+            def _do_update(self) -> None:
                 new_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [100, 200]})
-                self.table.update_data(new_data)
+                self.table.set_data(new_data)
+
+            def on_post_setup(self, event: Event) -> None:
+                self._do_update()
+
+            def on_time_step(self, event: Event) -> None:
+                self._do_update()
 
         class ListUpdateComponent(Component):
             def setup(self, builder: Builder) -> None:
@@ -507,8 +509,14 @@ class TestLookupTableUpdateData:
                     [1, 2, 3], "list_table", value_columns=["a", "b", "c"]
                 )
 
+            def _do_update(self) -> None:
+                self.table.set_data([10, 20, 30])
+
+            def on_post_setup(self, event: Event) -> None:
+                self._do_update()
+
             def on_time_step(self, event: Event) -> None:
-                self.table.update_data([10, 20, 30])
+                self._do_update()
 
         class ParameterColumnsComponent(Component):
             def setup(self, builder: Builder) -> None:
@@ -524,7 +532,7 @@ class TestLookupTableUpdateData:
                     initial_data, "parameter_table", value_columns="value"
                 )
 
-            def on_time_step(self, event: Event) -> None:
+            def _do_update(self) -> None:
                 new_data = pd.DataFrame(
                     {
                         "sex": ["Female", "Female", "Male", "Male"],
@@ -533,7 +541,13 @@ class TestLookupTableUpdateData:
                         "value": [100, 200, 300, 400],
                     }
                 )
-                self.table.update_data(new_data)
+                self.table.set_data(new_data)
+
+            def on_post_setup(self, event: Event) -> None:
+                self._do_update()
+
+            def on_time_step(self, event: Event) -> None:
+                self._do_update()
 
         class MultipleValueColumnsComponent(Component):
             def setup(self, builder: Builder) -> None:
@@ -544,7 +558,7 @@ class TestLookupTableUpdateData:
                     initial_data, "multi_value_table", value_columns=["value1", "value2"]
                 )
 
-            def on_time_step(self, event: Event) -> None:
+            def _do_update(self) -> None:
                 new_data = pd.DataFrame(
                     {
                         "sex": ["Female", "Male"],
@@ -552,7 +566,13 @@ class TestLookupTableUpdateData:
                         "value2": [300, 400],
                     }
                 )
-                self.table.update_data(new_data)
+                self.table.set_data(new_data)
+
+            def on_post_setup(self, event: Event) -> None:
+                self._do_update()
+
+            def on_time_step(self, event: Event) -> None:
+                self._do_update()
 
         class ScalarToDataframeComponent(Component):
             def setup(self, builder: Builder) -> None:
@@ -560,9 +580,15 @@ class TestLookupTableUpdateData:
                     5, "scalar_to_df_table", value_columns="value"
                 )
 
-            def on_time_step(self, event: Event) -> None:
+            def _do_update(self) -> None:
                 new_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [50, 60]})
-                self.table.update_data(new_data)
+                self.table.set_data(new_data)
+
+            def on_post_setup(self, event: Event) -> None:
+                self._do_update()
+
+            def on_time_step(self, event: Event) -> None:
+                self._do_update()
 
         class ChangeKeyColumnsComponent(Component):
             def setup(self, builder: Builder) -> None:
@@ -571,11 +597,17 @@ class TestLookupTableUpdateData:
                     initial_data, "change_key_table", value_columns="value"
                 )
 
-            def on_time_step(self, event: Event) -> None:
+            def _do_update(self) -> None:
                 new_data = pd.DataFrame(
                     {"location": ["USA", "Canada", "Mexico"], "value": [100, 200, 300]}
                 )
-                self.table.update_data(new_data)
+                self.table.set_data(new_data)
+
+            def on_post_setup(self, event: Event) -> None:
+                self._do_update()
+
+            def on_time_step(self, event: Event) -> None:
+                self._do_update()
 
         class AddParameterColumnsComponent(Component):
             def setup(self, builder: Builder) -> None:
@@ -584,7 +616,7 @@ class TestLookupTableUpdateData:
                     initial_data, "add_param_table", value_columns="value"
                 )
 
-            def on_time_step(self, event: Event) -> None:
+            def _do_update(self) -> None:
                 new_data = pd.DataFrame(
                     {
                         "sex": ["Female", "Female", "Male", "Male"],
@@ -593,7 +625,13 @@ class TestLookupTableUpdateData:
                         "value": [100, 150, 200, 250],
                     }
                 )
-                self.table.update_data(new_data)
+                self.table.set_data(new_data)
+
+            def on_post_setup(self, event: Event) -> None:
+                self._do_update()
+
+            def on_time_step(self, event: Event) -> None:
+                self._do_update()
 
         class ChangeParameterColumnsComponent(Component):
             def setup(self, builder: Builder) -> None:
@@ -611,7 +649,7 @@ class TestLookupTableUpdateData:
                     initial_data, "change_param_table", value_columns="value"
                 )
 
-            def on_time_step(self, event: Event) -> None:
+            def _do_update(self) -> None:
                 mid_year = (self.year_start + self.year_end) // 2
                 new_data = pd.DataFrame(
                     {
@@ -621,7 +659,13 @@ class TestLookupTableUpdateData:
                         "value": [100, 150, 200, 250],
                     }
                 )
-                self.table.update_data(new_data)
+                self.table.set_data(new_data)
+
+            def on_post_setup(self, event: Event) -> None:
+                self._do_update()
+
+            def on_time_step(self, event: Event) -> None:
+                self._do_update()
 
         class AddKeyColumnsComponent(Component):
             def setup(self, builder: Builder) -> None:
@@ -630,7 +674,7 @@ class TestLookupTableUpdateData:
                     initial_data, "add_key_table", value_columns="value"
                 )
 
-            def on_time_step(self, event: Event) -> None:
+            def _do_update(self) -> None:
                 new_data = pd.DataFrame(
                     {
                         "sex": [
@@ -652,7 +696,13 @@ class TestLookupTableUpdateData:
                         "value": [100, 200, 300, 400, 500, 600],
                     }
                 )
-                self.table.update_data(new_data)
+                self.table.set_data(new_data)
+
+            def on_post_setup(self, event: Event) -> None:
+                self._do_update()
+
+            def on_time_step(self, event: Event) -> None:
+                self._do_update()
 
         class DataframeToScalarComponent(Component):
             def setup(self, builder: Builder) -> None:
@@ -661,32 +711,54 @@ class TestLookupTableUpdateData:
                     initial_data, "df_to_scalar_table", value_columns="value"
                 )
 
+            def _do_update(self) -> None:
+                self.table.set_data(100)
+
+            def on_post_setup(self, event: Event) -> None:
+                self._do_update()
+
             def on_time_step(self, event: Event) -> None:
-                self.table.update_data(100)
+                self._do_update()
 
-        # Create simulation with all components
-        simulation = InteractiveContext(
-            components=[
-                TestPopulation(),
-                ScalarUpdateComponent(),
-                SameStructureComponent(),
-                ListUpdateComponent(),
-                ParameterColumnsComponent(),
-                MultipleValueColumnsComponent(),
-                ScalarToDataframeComponent(),
-                ChangeKeyColumnsComponent(),
-                AddParameterColumnsComponent(),
-                ChangeParameterColumnsComponent(),
-                AddKeyColumnsComponent(),
-                DataframeToScalarComponent(),
-            ],
-            configuration=base_config,
+        return [
+            TestPopulation(),
+            ScalarUpdateComponent(),
+            SameStructureComponent(),
+            ListUpdateComponent(),
+            ParameterColumnsComponent(),
+            MultipleValueColumnsComponent(),
+            ScalarToDataframeComponent(),
+            ChangeKeyColumnsComponent(),
+            AddParameterColumnsComponent(),
+            ChangeParameterColumnsComponent(),
+            AddKeyColumnsComponent(),
+            DataframeToScalarComponent(),
+        ]
+
+    @staticmethod
+    def _make_config() -> LayeredConfigTree:
+        """Create a base configuration for set_data tests."""
+        config = build_simulation_configuration()
+        config.update(
+            {
+                "time": {
+                    "start": {"year": 1990},
+                    "end": {"year": 2010},
+                    "step_size": 30.5,
+                },
+                "randomness": {"key_columns": ["entrance_time", "age"]},
+            },
+            **metadata(__file__, layer="model_override"),
         )
+        return config
 
-        # Take one time step
-        simulation.step()
-
-        return simulation
+    @pytest.fixture(scope="class")
+    def sim_after_pop_creation(self) -> dict[str, Component]:
+        """Create a simulation with all components, return components after post_setup."""
+        components = self._make_components()
+        components_dict = {c.name: c for c in components}
+        InteractiveContext(components=components, configuration=self._make_config())
+        return components_dict
 
     @pytest.mark.parametrize(
         "component_name,expected_data,expected_key_columns,expected_parameter_columns",
@@ -789,16 +861,16 @@ class TestLookupTableUpdateData:
             ),
         ],
     )
-    def test_update_data_on_time_step(
+    def test_set_data_on_post_setup(
         self,
-        stepped_sim_with_components: InteractiveContext,
+        sim_after_pop_creation: dict[str, Component],
         component_name: str,
         expected_data: Any,
         expected_key_columns: list[str],
         expected_parameter_columns: list[str],
     ) -> None:
-        """Test updating lookup table data during time_step."""
-        component = stepped_sim_with_components.get_component(component_name)
+        """Test updating lookup table data during post_setup."""
+        component = sim_after_pop_creation[component_name]
 
         # Check table data if expected_data is provided
         if isinstance(expected_data, pd.DataFrame):
@@ -810,260 +882,4 @@ class TestLookupTableUpdateData:
         assert component.table.key_columns == expected_key_columns
         assert component.table.parameter_columns == expected_parameter_columns
 
-    def test_update_data_multiple_times_during_time_steps(
-        self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test updating scalar data multiple times across different time steps.
-
-        This works because the required_resources don't change.
-        """
-
-        class MultipleUpdateComponent(Component):
-            def __init__(self) -> None:
-                super().__init__()
-                self.update_count = 0
-
-            def setup(self, builder: Builder) -> None:
-                self.table = builder.lookup.build_table(
-                    0, "test_table", value_columns="value"
-                )
-
-            def on_time_step(self, event: Event) -> None:
-                # Update with a different value each time step
-                self.update_count += 1
-                new_value = (self.update_count) * 100
-                self.table.update_data(new_value)
-
-        component = MultipleUpdateComponent()
-        simulation = InteractiveContext(components=[component], configuration=base_config)
-
-        # Initially value should be 0
-        assert component.table.data == 0
-
-        # After first time step, value should be 100
-        simulation.step()
-        assert component.table.data == 100
-
-        # After second time step, value should be 200
-        simulation.step()
-        assert component.table.data == 200
-
-        # After third time step, value should be 300
-        simulation.step()
-        assert component.table.data == 300
-
-    # ============================================================================
-    # XFail Tests - Currently unsupported scenarios during post_setup
-    # ============================================================================
-
-    @pytest.mark.xfail(
-        reason="update_data() during post_setup causes ResourceError "
-        "(resource already registered). See issue #XXX",
-        raises=Exception,  # Can be ResourceError or other exceptions
-        strict=True,
-    )
-    def test_update_data_scalar_to_scalar_on_post_setup(
-        self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test updating scalar data during post_setup.
-
-        This should work but currently fails with ResourceError because
-        update_data() tries to re-register the table resource.
-        """
-
-        class ScalarUpdateComponent(Component):
-            def setup(self, builder: Builder) -> None:
-                self.table = builder.lookup.build_table(
-                    5, "test_table", value_columns="value"
-                )
-
-            def on_post_setup(self, event: Event) -> None:
-                # Should update the table data
-                self.table.update_data(10)
-
-        component = ScalarUpdateComponent()
-        simulation = InteractiveContext(components=[component], configuration=base_config)
-
-        # After post_setup, the table data should be updated
-        assert component.table.data == 10
-
-    @pytest.mark.xfail(
-        reason="update_data() during post_setup causes ResourceError "
-        "(resource already registered). See issue #XXX",
-        raises=Exception,
-        strict=True,
-    )
-    def test_update_data_dataframe_same_structure_on_post_setup(
-        self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test updating dataframe with same structure during post_setup.
-
-        This should work but currently fails with ResourceError.
-        """
-
-        class DataframeUpdateComponent(Component):
-            def setup(self, builder: Builder) -> None:
-                initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
-                self.table = builder.lookup.build_table(
-                    initial_data, "test_table", value_columns="value"
-                )
-
-            def on_post_setup(self, event: Event) -> None:
-                # Should update with new values but same structure
-                new_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [100, 200]})
-                self.table.update_data(new_data)
-
-        pop_component = TestPopulation()
-        update_component = DataframeUpdateComponent()
-        simulation = InteractiveContext(
-            components=[pop_component, update_component], configuration=base_config
-        )
-
-        # After post_setup, the table data should be updated
-        expected_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [100, 200]})
-        assert isinstance(update_component.table.data, pd.DataFrame)
-        pd.testing.assert_frame_equal(update_component.table.data, expected_data)
-
-    @pytest.mark.xfail(
-        reason="update_data() during post_setup causes ResourceError "
-        "(resource already registered). See issue #XXX",
-        raises=Exception,
-        strict=True,
-    )
-    def test_update_data_list_to_list_on_post_setup(
-        self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test updating list data during post_setup.
-
-        This should work but currently fails with ResourceError.
-        """
-
-        class ListUpdateComponent(Component):
-            def setup(self, builder: Builder) -> None:
-                self.table = builder.lookup.build_table(
-                    [1, 2, 3], "test_table", value_columns=["a", "b", "c"]
-                )
-
-            def on_post_setup(self, event: Event) -> None:
-                # Should update with different values
-                self.table.update_data([10, 20, 30])
-
-        component = ListUpdateComponent()
-        simulation = InteractiveContext(components=[component], configuration=base_config)
-
-        # After post_setup, the table data should be updated
-        assert component.table.data == [10, 20, 30]
-
-    @pytest.mark.xfail(
-        reason="update_data() during post_setup with structure change causes ResourceError. "
-        "Even after fixing post_setup issue, changing required_resources is not supported. "
-        "See issue #XXX",
-        raises=Exception,
-        strict=True,
-    )
-    def test_update_data_scalar_to_dataframe_on_post_setup(
-        self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test changing from scalar to dataframe during post_setup.
-
-        This requires both fixing the post_setup issue AND supporting
-        changes to required_resources.
-        """
-
-        class ScalarToDataframeComponent(Component):
-            def setup(self, builder: Builder) -> None:
-                self.table = builder.lookup.build_table(
-                    5, "test_table", value_columns="value"
-                )
-
-            def on_post_setup(self, event: Event) -> None:
-                # Should update to dataframe with categorical data
-                new_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [50, 60]})
-                self.table.update_data(new_data)
-
-        pop_component = TestPopulation()
-        update_component = ScalarToDataframeComponent()
-        simulation = InteractiveContext(
-            components=[pop_component, update_component], configuration=base_config
-        )
-
-        # After post_setup, the table data should be a dataframe
-        expected_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [50, 60]})
-        assert isinstance(update_component.table.data, pd.DataFrame)
-        pd.testing.assert_frame_equal(update_component.table.data, expected_data)
-
-    @pytest.mark.xfail(
-        reason="update_data() during post_setup with structure change causes ResourceError. "
-        "Even after fixing post_setup issue, changing required_resources is not supported. "
-        "See issue #XXX",
-        raises=Exception,
-        strict=True,
-    )
-    def test_update_data_dataframe_to_scalar_on_post_setup(
-        self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test changing from dataframe to scalar during post_setup.
-
-        This requires both fixing the post_setup issue AND supporting
-        changes to required_resources.
-        """
-
-        class DataframeToScalarComponent(Component):
-            def setup(self, builder: Builder) -> None:
-                initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
-                self.table = builder.lookup.build_table(
-                    initial_data, "test_table", value_columns="value"
-                )
-
-            def on_post_setup(self, event: Event) -> None:
-                # Should update to scalar data
-                self.table.update_data(100)
-
-        pop_component = TestPopulation()
-        update_component = DataframeToScalarComponent()
-        simulation = InteractiveContext(
-            components=[pop_component, update_component], configuration=base_config
-        )
-
-        # After post_setup, the table data should be scalar
-        assert update_component.table.data == 100
-
-    @pytest.mark.xfail(
-        reason="update_data() during post_setup with different key columns causes ResourceError. "
-        "Even after fixing post_setup issue, changing required_resources is not supported. "
-        "See issue #XXX",
-        raises=Exception,
-        strict=True,
-    )
-    def test_update_data_change_key_columns_on_post_setup(
-        self, base_config: LayeredConfigTree
-    ) -> None:
-        """Test changing key columns during post_setup.
-
-        This requires both fixing the post_setup issue AND supporting
-        changes to required_resources.
-        """
-
-        class ChangeKeyColumnsComponent(Component):
-            def setup(self, builder: Builder) -> None:
-                initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
-                self.table = builder.lookup.build_table(
-                    initial_data, "test_table", value_columns="value"
-                )
-
-            def on_post_setup(self, event: Event) -> None:
-                # Should update with different key column
-                new_data = pd.DataFrame(
-                    {"location": ["USA", "Canada", "Mexico"], "value": [100, 200, 300]}
-                )
-                self.table.update_data(new_data)
-
-        pop_component = TestPopulation()
-        update_component = ChangeKeyColumnsComponent()
-        simulation = InteractiveContext(
-            components=[pop_component, update_component], configuration=base_config
-        )
-
-        # After post_setup, table should use location as key
-        assert update_component.table.key_columns == ["location"]
-        assert update_component.table.required_resources == ["location"]
+    
