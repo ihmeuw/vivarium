@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
-from vivarium.framework.resource import Resource
+from vivarium.framework.resource import Column, Resource
 from vivarium.framework.values.combiners import ValueCombiner, replace_combiner
 from vivarium.framework.values.pipeline import (
     AttributePipeline,
@@ -346,28 +346,46 @@ class ValuesManager(Manager):
         component = self._get_current_component()
         value_source: ValueSource
         if source_is_private_column:
-            value_source = PrivateColumnValueSource(
-                pipeline, source, component, required_resources
+            generic_error_msg = (
+                f"Invalid source for {pipeline.name}. `source` must be list containing a single"
+                " private column name."
             )
+            if not isinstance(source, list):
+                raise ValueError(
+                    generic_error_msg + f"Got `source` type {type(source)} instead."
+                )
+            if len(source) != 1:
+                raise ValueError(generic_error_msg + f"Got {len(source)} names instead.")
+            value_source = PrivateColumnValueSource(pipeline, source[0])
+            if required_resources:
+                self.logger.warning(
+                    f"Conflicting information for {pipeline.name}. Ignoring 'required_resources' "
+                    "since the `source_is_private_column` flag is set to True and we can infer "
+                    "the required resources directly."
+                )
+            required_resources = [Column(source[0], component)]
         elif isinstance(source, list):
-            value_source = AttributesValueSource(
-                pipeline, source, component, required_resources
-            )
-        elif isinstance(pipeline, AttributePipeline):
-            value_source = ValueSource(pipeline, source, component, required_resources)
+            value_source = AttributesValueSource(pipeline, source)
+            if required_resources:
+                self.logger.warning(
+                    f"Conflicting information for {pipeline.name}. Ignoring 'required_resources' "
+                    "since the `source` is a list of attributes and we can infer the required "
+                    "resources directly."
+                )
+            required_resources = source
         else:
-            value_source = ValueSource(pipeline, source, component, required_resources)
+            value_source = ValueSource(pipeline, source)
 
         pipeline.set_attributes(
             component=component,
             source=value_source,
             combiner=preferred_combiner,
             post_processor=preferred_post_processor,  # type: ignore[arg-type]
+            required_resources=required_resources,
             manager=self,
         )
 
         self._add_resource(pipeline)
-        self._add_resource(pipeline.source)
         self._add_constraint(
             pipeline._call,
             restrict_during=[

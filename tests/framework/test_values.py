@@ -75,11 +75,7 @@ def test_configure_pipeline_calls_methods_correctly(mocker: MockerFixture) -> No
     assert call_args[1]["manager"] == manager
 
     # Assert _add_resource was called with correct arguments
-    assert manager._add_resource.call_count == 2  # type: ignore[attr-defined]
-    calls = manager._add_resource.call_args_list  # type: ignore[attr-defined]
-    # First call should be with the pipeline, second with the source
-    assert calls[0][0][0] == test_pipeline
-    assert calls[1][0][0] == test_pipeline.source
+    manager._add_resource.assert_called_once_with(test_pipeline)  # type: ignore[attr-defined]
 
     # Assert _add_constraint was called with correct arguments
     manager._add_constraint.assert_called_once()  # type: ignore[attr-defined]
@@ -523,7 +519,7 @@ def test_union_post_processor_mixed_types_2d(
 def test_unsourced_pipeline(pipeline_type: Pipeline) -> None:
     pipeline = pipeline_type("some_name")
     value_type = "attribute" if isinstance(pipeline, AttributePipeline) else "value"
-    assert pipeline.source.resource_id == f"missing_{value_type}_source.some_name"
+    assert not pipeline.source
     with pytest.raises(
         DynamicValueError,
         match=f"The dynamic value pipeline for {pipeline.name} has no source.",
@@ -537,7 +533,7 @@ def test_attribute_pipeline_creation() -> None:
     assert pipeline.name == "test_attribute"
     assert pipeline.resource_type == "attribute"
     assert isinstance(pipeline.source, ValueSource)
-    assert pipeline.source.resource_id == "missing_attribute_source.test_attribute"
+    assert not pipeline.source
 
 
 def test_attribute_pipeline_register_producer(manager: ValuesManager) -> None:
@@ -863,46 +859,35 @@ class TestConfigurePipeline:
         # Check that pipeline.set_attributes was called correctly
         assert isinstance(pipeline.source, ValueSource)
         assert pipeline.source._source == self.callable_source
-        assert pipeline.source.required_resources == [
-            r.resource_id for r in required_resources
-        ]
+        assert pipeline.required_resources == [r.resource_id for r in required_resources]
 
     def test__configure_pipeline_with_private_column_source(
-        self,
-        manager: ValuesManager,
-        pipeline: AttributePipeline,
-        required_resources: list[Resource],
+        self, manager: ValuesManager, pipeline: AttributePipeline
     ) -> None:
         """Test that _configure_pipeline handles private column source correctly."""
         manager._configure_pipeline(
             pipeline=pipeline,
             source=["col1"],
             source_is_private_column=True,
-            required_resources=required_resources,
+            required_resources=[],
         )
         assert isinstance(pipeline.source, PrivateColumnValueSource)
-        assert pipeline.source.column.name == "col1"
-        assert pipeline.source.required_resources == [
-            "column.col1",
-            *[r.resource_id for r in required_resources],
-        ]
+        assert pipeline.source.column_name == "col1"
+        assert pipeline.required_resources == ["column.col1"]
 
     def test__configure_pipeline_with_attribute_column_source(
-        self,
-        manager: ValuesManager,
-        pipeline: AttributePipeline,
-        required_resources: list[Resource],
+        self, manager: ValuesManager, pipeline: AttributePipeline
     ) -> None:
         """Test that _configure_pipeline handles attribute column source correctly."""
         manager._configure_pipeline(
             pipeline=pipeline,
             source=["col1", "col2"],
-            required_resources=required_resources,
+            required_resources=[],
         )
         # Check that pipeline.set_attributes was called correctly
         assert isinstance(pipeline.source, AttributesValueSource)
         assert pipeline.source.attributes == ["col1", "col2"]
-        assert pipeline.source._required_resources == ["col1", "col2", *required_resources]
+        assert pipeline._required_resources == ["col1", "col2"]
 
     @pytest.mark.parametrize(
         "source, error_msg",

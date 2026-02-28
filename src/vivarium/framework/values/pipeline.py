@@ -22,105 +22,67 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-class ValueSource(Resource):
-    """A resource representing the source of a value pipeline.
+class ValueSource:
+    """A wrapper for the source of a value pipeline."""
 
-    If the source is a private column, use :class:`PrivateColumnValueSource` instead.
-    """
-
-    @property
-    def resource_type(self) -> str:
-        return f"{self._pipeline_type}_source"
-
-    def __init__(
-        self,
-        pipeline: Pipeline,
-        source: Callable[..., Any] | None,
-        component: Component | Manager | None,
-        required_resources: Iterable[str | Resource] = (),
-    ) -> None:
-        self._pipeline_type = (
-            "attribute" if isinstance(pipeline, AttributePipeline) else "value"
-        )
-        super().__init__(pipeline.name, component, required_resources or [])
+    def __init__(self, pipeline: Pipeline, source: Callable[..., Any]) -> None:
         self._pipeline = pipeline
         self._source = source
-        if isinstance(source, Resource):
-            self._required_resources.append(source)
 
     def __bool__(self) -> bool:
         return True
 
     def __call__(self, population_mgr: PopulationManager, *args: Any, **kwargs: Any) -> Any:
-        if self._source is None:
-            raise DynamicValueError(
-                f"The dynamic {self._pipeline_type} pipeline for {self.name} has no source."
-                " This likely means you are attempting to modify a value that"
-                " hasn't been created."
-            )
         return self._source(*args, **kwargs)
 
 
 class MissingValueSource(ValueSource):
-    @property
-    def resource_type(self) -> str:
-        return f"missing_{self._pipeline_type}_source"
+    """A placeholder value source representing a pipeline with no source.
+
+    This is used when a modifier of a pipeline is registered before the pipeline itself.
+    The source of the pipeline must be set before the pipeline is called, but this allows
+    for more flexible ordering of component setup.
+    """
 
     def __init__(self, pipeline: Pipeline) -> None:
-        super().__init__(pipeline, source=None, component=None)
+        self._pipeline = pipeline
+        self._source = lambda *args, **kwargs: None
 
     def __bool__(self) -> bool:
         return False
 
+    def __call__(self, population_mgr: PopulationManager, *args: Any, **kwargs: Any) -> Any:
+        raise DynamicValueError(
+            f"The pipeline for {self._pipeline.name} has no source. This likely means you are"
+            " attempting to modify a value that hasn't been created."
+        )
+
 
 class PrivateColumnValueSource(ValueSource):
-    """A resource representing private column source of a value pipeline."""
+    """A value source representing a private column source of a value pipeline."""
 
-    def __init__(
-        self,
-        pipeline: Pipeline,
-        source: Callable[..., Any] | list[str],
-        component: Component | Manager,
-        required_resources: Iterable[str | Resource],
-    ) -> None:
-        generic_error_msg = (
-            f"Invalid source for {pipeline.name}. `source` must be list containing a single"
-            " private column name."
-        )
-        if not isinstance(source, list):
-            raise ValueError(generic_error_msg + f"Got `source` type {type(source)} instead.")
-        if len(source) != 1:
-            raise ValueError(generic_error_msg + f"Got {len(source)} names instead.")
-
-        self.column = Column(source[0], component)
-        required_resources = [self.column, *required_resources]
-        super().__init__(
-            pipeline, source=None, component=component, required_resources=required_resources
-        )
+    def __init__(self, pipeline: Pipeline, source: str) -> None:
+        self._pipeline = pipeline
+        self._source = lambda *args, **kwargs: None
+        self.column_name = source
+        """The name of the private column that is the source of this pipeline."""
 
     def __call__(
         self, population_mgr: PopulationManager, index: pd.Index[int]
     ) -> pd.Series[Any]:
         return population_mgr.get_private_columns(
-            component=self.component, columns=self.column.name, index=index
+            component=self._pipeline.component, columns=self.column_name, index=index
         )
 
 
 class AttributesValueSource(ValueSource):
-    """A resource representing the list of attributes source of an attribute pipeline."""
+    """A value source representing the list of attributes source of an attribute pipeline."""
 
-    def __init__(
-        self,
-        pipeline: Pipeline,
-        source: list[str],
-        component: Component | Manager,
-        required_resources: Iterable[str | Resource],
-    ) -> None:
+    def __init__(self, pipeline: Pipeline, source: list[str]) -> None:
+        self._pipeline = pipeline
+        self._source = lambda *args, **kwargs: None
         self.attributes = source
-        required_resources = [*self.attributes, *required_resources]
-        super().__init__(
-            pipeline, source=None, component=component, required_resources=required_resources
-        )
+        """The list of attributes that are the source of this pipeline."""
 
     def __call__(
         self, population_mgr: PopulationManager, index: pd.Index[int]
@@ -179,7 +141,10 @@ class Pipeline(Resource):
     @property
     def required_resources(self) -> list[str]:
         """The resources required by this pipeline, including the source and all modifiers."""
-        return [self.source.resource_id, *[mutator.resource_id for mutator in self.mutators]]
+        return [
+            *super().required_resources,
+            *[mutator.resource_id for mutator in self.mutators],
+        ]
 
     def __init__(self, name: str, component: Component | None = None) -> None:
         super().__init__(name, component=component)
@@ -298,6 +263,7 @@ class Pipeline(Resource):
         source: ValueSource,
         combiner: ValueCombiner,
         post_processor: PostProcessor | None,
+        required_resources: Iterable[str | Resource],
         manager: ValuesManager,
     ) -> None:
         """
@@ -318,6 +284,9 @@ class Pipeline(Resource):
         post_processor
             An optional final transformation to perform on the combined output
             of the source and mutators.
+        required_resources
+            A list of resources required by the pipeline source, combiner, and
+            post-processor. A string represents a population attribute.
         manager
             The simulation values manager.
         """
@@ -325,6 +294,7 @@ class Pipeline(Resource):
         self.source = source
         self._combiner = combiner
         self.post_processor = post_processor
+        self._required_resources = list(required_resources)
         self._manager = manager
 
 
