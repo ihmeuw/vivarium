@@ -14,7 +14,7 @@ import networkx as nx
 
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.resource.exceptions import ResourceError
-from vivarium.framework.resource.resource import Column, Initializer, Resource
+from vivarium.framework.resource.resource import Column, Initializer, Resource, ResourceId
 from vivarium.manager import Manager
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ class ResourceManager(Manager):
     """Manages all the resources needed for population initialization."""
 
     def __init__(self) -> None:
-        self._resources: dict[str, Resource] = {}
+        self._resources: dict[ResourceId, Resource] = {}
         """Dictionary of all resources managed by this manager, keyed by resource_id."""
         self._initializer_count = 0
         """Initializer counter. Tracker is here to ensure they have unique ids."""
@@ -42,9 +42,6 @@ class ResourceManager(Manager):
     def get_graph(self) -> nx.DiGraph:
         """The networkx graph representation of the resource pool."""
         if self._graph is None:
-            attribute_pipelines = self._get_attribute_pipelines()
-            for resource in self._resources.values():
-                resource.finalize_resource(attribute_pipelines)
             self._graph = self._to_graph()
         return self._graph
 
@@ -69,7 +66,6 @@ class ResourceManager(Manager):
 
     def setup(self, builder: Builder) -> None:
         self.logger = builder.logging.get_logger(self.name)
-        self._get_attribute_pipelines = builder.value.get_attribute_pipelines()
         self._get_current_component_or_manager = (
             builder.components.get_current_component_or_manager
         )

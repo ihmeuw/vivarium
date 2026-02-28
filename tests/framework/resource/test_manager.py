@@ -22,7 +22,6 @@ from vivarium.framework.values import AttributePipeline, Pipeline, ValueModifier
 def manager(mocker: MockerFixture) -> ResourceManager:
     manager = ResourceManager()
     manager.logger = mocker.Mock()
-    manager._get_attribute_pipelines = mocker.Mock(return_value={})
     return manager
 
 
@@ -202,22 +201,30 @@ def test_resource_manager_sorted_nodes_acyclic(
 
     nodes = [node.resource_id for node in manager_with_resources.sorted_nodes]
 
-    assert nodes.index("generic_resource.A") < nodes.index("stream.B")
-    assert nodes.index("generic_resource.A") < nodes.index("generic_resource.C")
-    assert nodes.index("generic_resource.A") < nodes.index("generic_resource.D")
+    resource_a = Resource.get_resource_id("A")
+    stream_b = RandomnessStream.get_resource_id("B")
+    resource_c = Resource.get_resource_id("C")
+    resource_d = Resource.get_resource_id("D")
+    init_d = Initializer.get_resource_id("0.test_3.initialize_D")
+    col_d = Column.get_resource_id("D")
+    init_a = Initializer.get_resource_id("1.test_0.initialize_A")
+    col_a = Column.get_resource_id("A")
+    init_nothing = Initializer.get_resource_id("2.test_4.initialize_nothing")
 
-    assert nodes.index("stream.B") < nodes.index("generic_resource.D")
-    assert nodes.index("generic_resource.C") < nodes.index("generic_resource.D")
+    assert nodes.index(resource_a) < nodes.index(stream_b)
+    assert nodes.index(resource_a) < nodes.index(resource_c)
+    assert nodes.index(resource_a) < nodes.index(resource_d)
 
-    assert nodes.index("initializer.0.test_3.initialize_D") < nodes.index("column.D")
-    assert nodes.index("stream.B") < nodes.index("initializer.0.test_3.initialize_D")
-    assert nodes.index("generic_resource.C") < nodes.index(
-        "initializer.0.test_3.initialize_D"
-    )
+    assert nodes.index(stream_b) < nodes.index(resource_d)
+    assert nodes.index(resource_c) < nodes.index(resource_d)
 
-    assert nodes.index("initializer.1.test_0.initialize_A") < nodes.index("column.A")
+    assert nodes.index(init_d) < nodes.index(col_d)
+    assert nodes.index(stream_b) < nodes.index(init_d)
+    assert nodes.index(resource_c) < nodes.index(init_d)
 
-    assert nodes.index("stream.B") < nodes.index("initializer.2.test_4.initialize_nothing")
+    assert nodes.index(init_a) < nodes.index(col_a)
+
+    assert nodes.index(stream_b) < nodes.index(init_nothing)
 
 
 def test_get_population_initializers(
