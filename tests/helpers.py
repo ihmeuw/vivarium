@@ -245,6 +245,39 @@ class AttributePipelineCreator(Component):
         )
 
 
+class NestedPipelineCreator(Component):
+    """A helper class to register nested pipelines."""
+
+    def setup(self, builder: Builder) -> None:
+
+        builder.value.register_attribute_producer(
+            "outer_attribute",
+            self.outer_source,
+        )
+        builder.value.register_attribute_producer(
+            "foo",
+            lambda idx: pd.Series(
+                [i % 3 for i in idx],
+                index=idx,
+                name="foo",
+            ),
+        )
+        builder.value.register_attribute_modifier(
+            "outer_attribute",
+            lambda index, df: df,
+        )
+        builder.value.register_attribute_modifier(
+            "foo",
+            lambda index, series: series,
+        )
+
+    def outer_source(self, idx: pd.Index[int]) -> pd.DataFrame:
+        """Calls another pipeline to generate a dataframe"""
+        inner = self.population_view.get_attribute_frame(idx, "foo")
+        df = pd.DataFrame({"bar": [i % 3 for i in idx]}, index=idx)
+        return pd.concat([inner, df], axis=1)
+
+
 class LookupCreator(ColumnCreator):
 
     CONFIGURATION_DEFAULTS = {
