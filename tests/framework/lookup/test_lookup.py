@@ -455,7 +455,7 @@ def test_uncreated_lookup_table_warning(
     )
 
 
-class TestLookupTableSeteData:
+class TestLookupTableSetData:
     """Tests for the LookupTable.set_data() method.
 
     Note: set_data() is not permitted during population creation,
@@ -464,6 +464,15 @@ class TestLookupTableSeteData:
 
     class ComponentWithTable(Component):
         table: LookupTable[pd.DataFrame] | LookupTable[pd.Series[Any]]
+
+        def _do_update(self) -> None:
+            self.table.set_data(10)
+
+        def on_post_setup(self, event: Event) -> None:
+            self._do_update()
+
+        def on_time_step(self, event: Event) -> None:
+            self._do_update()
 
     # Shared test cases for both post_setup and time_step tests
     SET_DATA_TEST_CASES = [
@@ -512,9 +521,7 @@ class TestLookupTableSeteData:
         ),
         pytest.param(
             "change_key_columns_component",
-            pd.DataFrame(
-                {"location": ["USA", "Canada", "Mexico"], "value": [100, 200, 300]}
-            ),
+            pd.DataFrame({"location": ["USA", "Canada", "Mexico"], "value": [100, 200, 300]}),
             ["location"],
             [],
             id="change_key_columns",
@@ -560,9 +567,7 @@ class TestLookupTableSeteData:
             [],
             id="add_key_columns",
         ),
-        pytest.param(
-            "dataframe_to_scalar_component", 100, [], [], id="dataframe_to_scalar"
-        ),
+        pytest.param("dataframe_to_scalar_component", 100, [], [], id="dataframe_to_scalar"),
     ]
 
     @staticmethod
@@ -573,7 +578,7 @@ class TestLookupTableSeteData:
         allowing reuse across fixtures for both lifecycle phases.
         """
 
-        class ScalarUpdateComponent(TestLookupTableSeteData.ComponentWithTable):
+        class ScalarUpdateComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 self.table = builder.lookup.build_table(
                     5, "scalar_table", value_columns="value"
@@ -588,7 +593,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class SameStructureComponent(TestLookupTableSeteData.ComponentWithTable):
+        class SameStructureComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
                 self.table = builder.lookup.build_table(
@@ -605,7 +610,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class ListUpdateComponent(TestLookupTableSeteData.ComponentWithTable):
+        class ListUpdateComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 self.table = builder.lookup.build_table(
                     [1, 2, 3], "list_table", value_columns=["a", "b", "c"]
@@ -620,7 +625,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class ParameterColumnsComponent(TestLookupTableSeteData.ComponentWithTable):
+        class ParameterColumnsComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 initial_data = pd.DataFrame(
                     {
@@ -651,7 +656,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class MultipleValueColumnsComponent(TestLookupTableSeteData.ComponentWithTable):
+        class MultipleValueColumnsComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 initial_data = pd.DataFrame(
                     {"sex": ["Female", "Male"], "value1": [10, 20], "value2": [30, 40]}
@@ -676,7 +681,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class ScalarToDataframeComponent(TestLookupTableSeteData.ComponentWithTable):
+        class ScalarToDataframeComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 self.table = builder.lookup.build_table(
                     5, "scalar_to_df_table", value_columns="value"
@@ -692,7 +697,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class ChangeKeyColumnsComponent(TestLookupTableSeteData.ComponentWithTable):
+        class ChangeKeyColumnsComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
                 self.table = builder.lookup.build_table(
@@ -711,7 +716,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class AddParameterColumnsComponent(TestLookupTableSeteData.ComponentWithTable):
+        class AddParameterColumnsComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
                 self.table = builder.lookup.build_table(
@@ -735,7 +740,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class ChangeParameterColumnsComponent(TestLookupTableSeteData.ComponentWithTable):
+        class ChangeParameterColumnsComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 self.year_start = builder.configuration.time.start.year
                 self.year_end = builder.configuration.time.end.year
@@ -769,7 +774,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class AddKeyColumnsComponent(TestLookupTableSeteData.ComponentWithTable):
+        class AddKeyColumnsComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
                 self.table = builder.lookup.build_table(
@@ -806,7 +811,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class DataframeToScalarComponent(TestLookupTableSeteData.ComponentWithTable):
+        class DataframeToScalarComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
                 self.table = builder.lookup.build_table(
@@ -879,7 +884,7 @@ class TestLookupTableSeteData:
         expected_parameter_columns: list[str],
     ) -> None:
         """Helper method to check set_data results."""
-        assert isinstance(component, TestLookupTableSeteData.ComponentWithTable)
+        assert isinstance(component, TestLookupTableSetData.ComponentWithTable)
 
         # Check table data
         if isinstance(expected_data, pd.DataFrame):
