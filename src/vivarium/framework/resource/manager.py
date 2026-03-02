@@ -78,7 +78,8 @@ class ResourceManager(Manager):
             allow_during=[lifecycle_states.SETUP, lifecycle_states.POST_SETUP],
         )
         builder.lifecycle.add_constraint(
-            self.add_private_columns, allow_during=[lifecycle_states.SETUP]
+            self.add_private_columns,
+            allow_during=[lifecycle_states.SETUP, lifecycle_states.POST_SETUP],
         )
         builder.lifecycle.add_constraint(
             self.get_graph,
