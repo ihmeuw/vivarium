@@ -90,12 +90,12 @@ class Initializer(Resource):
 
     def __init__(
         self,
-        initializer_count: int,
+        index: int,
         component: Component | Manager,
         initializer: Callable[[SimulantData], None],
         required_resources: Iterable[str | Resource],
     ) -> None:
-        name = f"{initializer_count}.{component.name}.{self.get_callable_name(initializer)}"
+        name = f"{index}.{component.name}.{self.get_callable_name(initializer)}"
         super().__init__(name, component, required_resources)
         self.initializer = initializer
         """The initializer method that this resource represents."""
