@@ -462,18 +462,6 @@ class TestLookupTableSetData:
     but is permitted during setup, post_setup, and the simulation loop.
     """
 
-    class ComponentWithTable(Component):
-        table: LookupTable[pd.DataFrame] | LookupTable[pd.Series[Any]]
-
-        def _do_update(self) -> None:
-            pass
-
-        def on_post_setup(self, event: Event) -> None:
-            self._do_update()
-
-        def on_time_step(self, event: Event) -> None:
-            self._do_update()
-
     # Shared test cases for both post_setup and time_step tests
     SET_DATA_TEST_CASES = [
         pytest.param("scalar_update_component", 10, [], [], id="scalar_to_scalar"),
@@ -569,6 +557,18 @@ class TestLookupTableSetData:
         ),
         pytest.param("dataframe_to_scalar_component", 100, [], [], id="dataframe_to_scalar"),
     ]
+
+    class ComponentWithTable(Component):
+        table: LookupTable[pd.DataFrame] | LookupTable[pd.Series[Any]]
+
+        def _do_update(self) -> None:
+            pass
+
+        def on_post_setup(self, event: Event) -> None:
+            self._do_update()
+
+        def on_time_step(self, event: Event) -> None:
+            self._do_update()
 
     @staticmethod
     def _make_components() -> list[Component]:
