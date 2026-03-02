@@ -614,6 +614,7 @@ class PopulationManager(Manager):
             skip_post_processor,
         )
         if skip_post_processor:
+            # FIXME [MIC-6855] Does not return requested_query_columns
             return data
 
         # Add on any query columns that are actually requested to be returned

@@ -170,7 +170,7 @@ class InteractiveContext(SimulationContext):
         self,
         attributes: str | None = None,
         query: str = "",
-        include_untracked: bool | None = None,
+        include_untracked: bool = False,
     ) -> pd.Series[Any] | pd.DataFrame:
         ...
 
@@ -179,7 +179,7 @@ class InteractiveContext(SimulationContext):
         self,
         attributes: list[str] | tuple[str, ...] = ...,
         query: str = "",
-        include_untracked: bool | None = None,
+        include_untracked: bool = False,
     ) -> pd.DataFrame:
         ...
 
@@ -187,7 +187,7 @@ class InteractiveContext(SimulationContext):
         self,
         attributes: str | list[str] | tuple[str, ...] | None = None,
         query: str = "",
-        include_untracked: bool | None = None,
+        include_untracked: bool = False,
     ) -> pd.Series[Any] | pd.DataFrame:
         """Get a copy of the population state table.
 
@@ -199,11 +199,7 @@ class InteractiveContext(SimulationContext):
         query
             Additional conditions used to filter the index.
         include_untracked
-            Whether to include untracked simulants. If None (default), untracked
-            simulants are excluded from the first call unless during initialization
-            or population-creation and the tracked query is automatically suppressed
-            inside subsequent nested pipeline evaluations. Untracked simulants are
-            always included if True and always excluded if False.
+            Whether to include untracked simulants.
 
         Returns
         -------

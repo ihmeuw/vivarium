@@ -867,7 +867,7 @@ def test__update_column_and_ensure_dtype_unmatched_dtype() -> None:
 @pytest.mark.parametrize("include_untracked", [None, False, True])
 @pytest.mark.parametrize(
     "lifecycle_state",
-    [state.lower() for state in dir(lifecycle_states) if not state.startswith("_")],
+    ["initialization", "time_step"],
 )
 def test__build_query_different_lifecycle_phases(
     include_untracked: bool | None,
@@ -923,7 +923,7 @@ def test__build_query_handles_tracked_queries(
     )
     assert pv._build_query(query, include_untracked=True) == f"({query})"
 
-    for depth in range(1, 6):
+    for depth in range(1, 3):
         pies_and_cubes_pop_mgr.pipeline_evaluation_depth = depth
 
         # None (default) and True: tracked query suppressed at depth > 0

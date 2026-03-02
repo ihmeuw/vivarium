@@ -144,10 +144,9 @@ class PopulationView:
             Additional conditions used to filter the index.
         include_untracked
             Whether to include untracked simulants. If None (default), untracked
-            simulants are excluded from the first call unless during initialization
-            or population-creation and the tracked query is automatically suppressed
-            inside subsequent nested pipeline evaluations. Untracked simulants are
-            always included if True and always excluded if False.
+            simulants are excluded unless this pipeline was called during initialization
+            or population-creation or inside another pipeline call. Untracked simulants
+            are always included if True and always excluded if False.
         skip_post_processor
             Whether we should invoke the post-processor on the combined
             source and mutator output or return without post-processing.
@@ -211,10 +210,9 @@ class PopulationView:
             Additional conditions used to filter the index.
         include_untracked
             Whether to include untracked simulants. If None (default), untracked
-            simulants are excluded from the first call unless during initialization
-            or population-creation and the tracked query is automatically suppressed
-            inside subsequent nested pipeline evaluations. Untracked simulants are
-            always included if True and always excluded if False.
+            simulants are excluded unless this pipeline was called during initialization
+            or population-creation or inside another pipeline call. Untracked simulants
+            are always included if True and always excluded if False.
 
         Notes
         -----
@@ -296,10 +294,9 @@ class PopulationView:
             Additional conditions used to filter the index.
         include_untracked
             Whether to include untracked simulants. If None (default), untracked
-            simulants are excluded from the first call unless during initialization
-            or population-creation and the tracked query is automatically suppressed
-            inside subsequent nested pipeline evaluations. Untracked simulants are
-            always included if True and always excluded if False.
+            simulants are excluded unless this pipeline was called during initialization
+            or population-creation or inside another pipeline call. Untracked simulants
+            are always included if True and always excluded if False.
 
         Returns
         -------
@@ -345,12 +342,10 @@ class PopulationView:
         query
             Additional conditions used to filter the index.
         include_untracked
-            Whether to include untracked simulants.  If ``None`` (default),
-            untracked simulants are excluded at the top level but the tracked
-            query is automatically suppressed inside nested pipeline evaluations.
-            If ``True``, untracked simulants are always included.  If ``False``,
-            the tracked query is always applied, even inside nested pipeline
-            evaluations.
+            Whether to include untracked simulants. If None (default), untracked
+            simulants are excluded unless this pipeline was called during initialization
+            or population-creation or inside another pipeline call. Untracked simulants
+            are always included if True and always excluded if False.
 
         Returns
         -------
