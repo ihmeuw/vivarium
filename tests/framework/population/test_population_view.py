@@ -867,7 +867,7 @@ def test__update_column_and_ensure_dtype_unmatched_dtype() -> None:
 @pytest.mark.parametrize("include_untracked", [None, False, True])
 @pytest.mark.parametrize(
     "lifecycle_state",
-    ["initialization", "time_step"],
+    [lifecycle_states.POPULATION_CREATION, lifecycle_states.TIME_STEP],
 )
 def test__build_query_different_lifecycle_phases(
     include_untracked: bool | None,
@@ -884,10 +884,7 @@ def test__build_query_different_lifecycle_phases(
     combined_query = pv._build_query(query=query, include_untracked=include_untracked)
 
     if include_untracked is None:
-        if lifecycle_state in [
-            lifecycle_states.INITIALIZATION,
-            lifecycle_states.POPULATION_CREATION,
-        ]:
+        if lifecycle_state == lifecycle_states.POPULATION_CREATION:
             assert combined_query == f"({query})"
         else:
             assert combined_query == f"({query}) and ({tracking_query})"
