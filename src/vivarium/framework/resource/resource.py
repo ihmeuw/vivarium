@@ -47,10 +47,8 @@ class Resource:
         """Optional callback invoked when this resource's dependencies change.
         Set by the ResourceManager when the resource is registered."""
         self._raw_required_resources: list[str | Resource] = list(required_resources)
-        """
-        The resources required to produce this resource. A string is interpreted
-        as the name of an AttributePipeline resource.
-        """
+        """The resources required to produce this resource. A string is interpreted
+        as the name of an AttributePipeline resource."""
 
     @property
     def _required_resources(self) -> list[str | Resource]:
