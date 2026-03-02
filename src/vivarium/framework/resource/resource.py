@@ -4,17 +4,34 @@ from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any
 
 from vivarium.framework.lifecycle import LifeCycleError
-from vivarium.framework.resource.exceptions import ResourceError
 
 if TYPE_CHECKING:
     from vivarium import Component
     from vivarium.framework.population import SimulantData
-    from vivarium.framework.values import AttributePipeline
     from vivarium.manager import Manager
+
+
+class ResourceId(str):
+    """A string representing the unique identifier for a resource, including its type."""
+
+    resource_type: str
+    name: str
+
+    def __new__(cls, resource_type: str, name: str) -> ResourceId:
+        instance = super().__new__(cls, f"{resource_type}.{name}")
+        instance.resource_type = resource_type
+        instance.name = name
+        return instance
+
+    def __repr__(self) -> str:
+        return f"ResourceId({self.resource_type!r}, {self.name!r})"
 
 
 class Resource:
     """A generic resource representing a node in the dependency graph."""
+
+    RESOURCE_TYPE = "generic_resource"
+    """The type of the resource. Should be overridden by subclasses."""
 
     def __init__(
         self,
@@ -27,12 +44,10 @@ class Resource:
         self._component = component
         """The component that creates the resource. Can be None if not yet set."""
         self._required_resources: list[str | Resource] = list(required_resources)
-        """The resources required to produce this resource."""
-
-    @property
-    def resource_type(self) -> str:
-        """The type of the resource. Should be overridden by subclasses."""
-        return "generic_resource"
+        """
+        The resources required to produce this resource. A string is interpreted
+        as the name of an AttributePipeline resource.
+        """
 
     @property
     def component(self) -> Component | Manager:
@@ -44,27 +59,19 @@ class Resource:
         return self._component
 
     @property
-    def resource_id(self) -> str:
+    def resource_id(self) -> ResourceId:
         """The long name of the resource, including the type."""
-        return f"{self.resource_type}.{self.name}"
+        return ResourceId(self.RESOURCE_TYPE, self.name)
 
     @property
-    def required_resources(self) -> list[str]:
+    def required_resources(self) -> list[ResourceId]:
         """The long names (including type) of required resources for this group."""
-        dependency_strings = [dep for dep in self._required_resources if isinstance(dep, str)]
-        if dependency_strings:
-            raise ResourceError(
-                "Resource has not been finalized; required_resources are still strings.\n"
-                f"Resource: {self}\n"
-                f"String required_resources: {dependency_strings}"
-            )
-        return [dep.resource_id for dep in self._required_resources]  # type: ignore[union-attr]
+        from vivarium.framework.values import AttributePipeline
 
-    def finalize_resource(self, attribute_pipelines: dict[str, AttributePipeline]) -> None:
-        """Converts any required resources specified as strings to
-        :class:`AttributePipelines <vivarium.framework.values.pipeline.AttributePipeline>`."""
-        self._required_resources = [
-            attribute_pipelines[dep] if isinstance(dep, str) else dep
+        return [
+            dep.resource_id
+            if isinstance(dep, Resource)
+            else AttributePipeline.get_resource_id(dep)
             for dep in self._required_resources
         ]
 
@@ -84,6 +91,11 @@ class Resource:
             raise ValueError(f"Unknown callable type: {type(callable_)}")
         return modifier_name
 
+    @classmethod
+    def get_resource_id(cls, name: str) -> ResourceId:
+        """Get a resource id for a resource with the given name and this resource's type."""
+        return ResourceId(cls.RESOURCE_TYPE, name)
+
 
 class Initializer(Resource):
     """A resource representing a method for initializing simulant state."""
@@ -100,9 +112,8 @@ class Initializer(Resource):
         self.initializer = initializer
         """The initializer method that this resource represents."""
 
-    @property
-    def resource_type(self) -> str:
-        return "initializer"
+    RESOURCE_TYPE = "initializer"
+    """The type of the resource."""
 
 
 class Column(Resource):
@@ -116,9 +127,8 @@ class Column(Resource):
     ) -> None:
         super().__init__(name, component, required_resources)
 
-    @property
-    def resource_type(self) -> str:
-        return "column"
+    RESOURCE_TYPE = "column"
+    """The type of the resource."""
 
     def __eq__(self, value: object) -> bool:
         return (
