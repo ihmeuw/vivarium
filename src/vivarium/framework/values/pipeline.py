@@ -248,7 +248,7 @@ class Pipeline(Resource):
         """
         value_modifier = ValueModifier(self, modifier, component, required_resources)
         self.mutators.append(value_modifier)
-        self._required_resources.append(value_modifier)
+        self._required_resources = [*self._required_resources, value_modifier]
         return value_modifier
 
     def set_attributes(
@@ -288,7 +288,7 @@ class Pipeline(Resource):
         self.source = source
         self._combiner = combiner
         self.post_processor = post_processor
-        self._required_resources.extend(required_resources)
+        self._required_resources = [*self._required_resources, *required_resources]
         self._manager = manager
 
 

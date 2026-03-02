@@ -66,9 +66,8 @@ def test_build_table_calls_methods_correctly(mocker: MockerFixture) -> None:
 
     # Second call should be for table.set_data
     assert call_args_list[1][0][0] == mock_table.set_data
-    assert call_args_list[1][1]["allow_during"] == [
-        lifecycle_states.SETUP,
-        lifecycle_states.POST_SETUP,
+    assert call_args_list[1][1]["restrict_during"] == [
+        lifecycle_states.POPULATION_CREATION,
     ]
 
     # Assert the table is returned
@@ -459,9 +458,112 @@ def test_uncreated_lookup_table_warning(
 class TestLookupTableSeteData:
     """Tests for the LookupTable.set_data() method.
 
-    Note: set_data() is permitted during setup and post_setup phases,
-    but is not permitted during the simulation loop.
+    Note: set_data() is not permitted during population creation,
+    but is permitted during setup, post_setup, and the simulation loop.
     """
+
+    class ComponentWithTable(Component):
+        table: LookupTable[pd.DataFrame] | LookupTable[pd.Series[Any]]
+
+    # Shared test cases for both post_setup and time_step tests
+    SET_DATA_TEST_CASES = [
+        pytest.param("scalar_update_component", 10, [], [], id="scalar_to_scalar"),
+        pytest.param(
+            "same_structure_component",
+            pd.DataFrame({"sex": ["Female", "Male"], "value": [100, 200]}),
+            ["sex"],
+            [],
+            id="dataframe_same_structure",
+        ),
+        pytest.param("list_update_component", [10, 20, 30], [], [], id="list_to_list"),
+        pytest.param(
+            "parameter_columns_component",
+            pd.DataFrame(
+                {
+                    "sex": ["Female", "Female", "Male", "Male"],
+                    "age_start": [0.0, 50.0, 0.0, 50.0],
+                    "age_end": [50.0, 125.0, 50.0, 125.0],
+                    "value": [100, 200, 300, 400],
+                }
+            ),
+            ["sex"],
+            ["age"],
+            id="with_parameter_columns",
+        ),
+        pytest.param(
+            "multiple_value_columns_component",
+            pd.DataFrame(
+                {
+                    "sex": ["Female", "Male"],
+                    "value1": [100, 200],
+                    "value2": [300, 400],
+                }
+            ),
+            ["sex"],
+            [],
+            id="multiple_value_columns",
+        ),
+        pytest.param(
+            "scalar_to_dataframe_component",
+            pd.DataFrame({"sex": ["Female", "Male"], "value": [50, 60]}),
+            ["sex"],
+            [],
+            id="scalar_to_dataframe",
+        ),
+        pytest.param(
+            "change_key_columns_component",
+            pd.DataFrame(
+                {"location": ["USA", "Canada", "Mexico"], "value": [100, 200, 300]}
+            ),
+            ["location"],
+            [],
+            id="change_key_columns",
+        ),
+        pytest.param(
+            "add_parameter_columns_component",
+            pd.DataFrame(
+                {
+                    "sex": ["Female", "Female", "Male", "Male"],
+                    "age_start": [0.0, 50.0, 0.0, 50.0],
+                    "age_end": [50.0, 125.0, 50.0, 125.0],
+                    "value": [100, 150, 200, 250],
+                }
+            ),
+            ["sex"],
+            ["age"],
+            id="add_parameter_columns",
+        ),
+        pytest.param(
+            "change_parameter_columns_component",
+            pd.DataFrame(
+                {
+                    "sex": ["Female", "Female", "Male", "Male"],
+                    "year_start": [1990, 2000, 1990, 2000],
+                    "year_end": [2000, 2010, 2000, 2010],
+                    "value": [100, 150, 200, 250],
+                }
+            ),
+            ["sex"],
+            ["year"],
+            id="change_parameter_columns",
+        ),
+        pytest.param(
+            "add_key_columns_component",
+            pd.DataFrame(
+                {
+                    "sex": ["Female", "Male", "Female", "Male", "Female", "Male"],
+                    "location": ["USA", "USA", "Canada", "Canada", "Mexico", "Mexico"],
+                    "value": [100, 200, 300, 400, 500, 600],
+                }
+            ),
+            ["sex", "location"],
+            [],
+            id="add_key_columns",
+        ),
+        pytest.param(
+            "dataframe_to_scalar_component", 100, [], [], id="dataframe_to_scalar"
+        ),
+    ]
 
     @staticmethod
     def _make_components() -> list[Component]:
@@ -471,7 +573,7 @@ class TestLookupTableSeteData:
         allowing reuse across fixtures for both lifecycle phases.
         """
 
-        class ScalarUpdateComponent(Component):
+        class ScalarUpdateComponent(TestLookupTableSeteData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 self.table = builder.lookup.build_table(
                     5, "scalar_table", value_columns="value"
@@ -486,7 +588,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class SameStructureComponent(Component):
+        class SameStructureComponent(TestLookupTableSeteData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
                 self.table = builder.lookup.build_table(
@@ -503,7 +605,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class ListUpdateComponent(Component):
+        class ListUpdateComponent(TestLookupTableSeteData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 self.table = builder.lookup.build_table(
                     [1, 2, 3], "list_table", value_columns=["a", "b", "c"]
@@ -518,7 +620,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class ParameterColumnsComponent(Component):
+        class ParameterColumnsComponent(TestLookupTableSeteData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 initial_data = pd.DataFrame(
                     {
@@ -549,7 +651,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class MultipleValueColumnsComponent(Component):
+        class MultipleValueColumnsComponent(TestLookupTableSeteData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 initial_data = pd.DataFrame(
                     {"sex": ["Female", "Male"], "value1": [10, 20], "value2": [30, 40]}
@@ -574,7 +676,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class ScalarToDataframeComponent(Component):
+        class ScalarToDataframeComponent(TestLookupTableSeteData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 self.table = builder.lookup.build_table(
                     5, "scalar_to_df_table", value_columns="value"
@@ -590,7 +692,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class ChangeKeyColumnsComponent(Component):
+        class ChangeKeyColumnsComponent(TestLookupTableSeteData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
                 self.table = builder.lookup.build_table(
@@ -609,7 +711,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class AddParameterColumnsComponent(Component):
+        class AddParameterColumnsComponent(TestLookupTableSeteData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
                 self.table = builder.lookup.build_table(
@@ -633,7 +735,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class ChangeParameterColumnsComponent(Component):
+        class ChangeParameterColumnsComponent(TestLookupTableSeteData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 self.year_start = builder.configuration.time.start.year
                 self.year_end = builder.configuration.time.end.year
@@ -667,7 +769,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class AddKeyColumnsComponent(Component):
+        class AddKeyColumnsComponent(TestLookupTableSeteData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
                 self.table = builder.lookup.build_table(
@@ -704,7 +806,7 @@ class TestLookupTableSeteData:
             def on_time_step(self, event: Event) -> None:
                 self._do_update()
 
-        class DataframeToScalarComponent(Component):
+        class DataframeToScalarComponent(TestLookupTableSeteData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
                 self.table = builder.lookup.build_table(
@@ -760,106 +862,39 @@ class TestLookupTableSeteData:
         InteractiveContext(components=components, configuration=self._make_config())
         return components_dict
 
+    @pytest.fixture(scope="class")
+    def sim_after_time_step(self) -> dict[str, Component]:
+        """Create a simulation with all components, run one time step, return components."""
+        components = self._make_components()
+        components_dict = {c.name: c for c in components}
+        sim = InteractiveContext(components=components, configuration=self._make_config())
+        sim.step()
+        return components_dict
+
+    def _check_set_data_result(
+        self,
+        component: Component,
+        expected_data: Any,
+        expected_key_columns: list[str],
+        expected_parameter_columns: list[str],
+    ) -> None:
+        """Helper method to check set_data results."""
+        assert isinstance(component, TestLookupTableSeteData.ComponentWithTable)
+
+        # Check table data
+        if isinstance(expected_data, pd.DataFrame):
+            assert isinstance(component.table.data, pd.DataFrame)
+            pd.testing.assert_frame_equal(component.table.data, expected_data)
+        else:
+            assert component.table.data == expected_data
+
+        # Check column properties
+        assert component.table.key_columns == expected_key_columns
+        assert component.table.parameter_columns == expected_parameter_columns
+
     @pytest.mark.parametrize(
         "component_name,expected_data,expected_key_columns,expected_parameter_columns",
-        [
-            pytest.param("scalar_update_component", 10, [], [], id="scalar_to_scalar"),
-            pytest.param(
-                "same_structure_component",
-                pd.DataFrame({"sex": ["Female", "Male"], "value": [100, 200]}),
-                ["sex"],
-                [],
-                id="dataframe_same_structure",
-            ),
-            pytest.param("list_update_component", [10, 20, 30], [], [], id="list_to_list"),
-            pytest.param(
-                "parameter_columns_component",
-                pd.DataFrame(
-                    {
-                        "sex": ["Female", "Female", "Male", "Male"],
-                        "age_start": [0.0, 50.0, 0.0, 50.0],
-                        "age_end": [50.0, 125.0, 50.0, 125.0],
-                        "value": [100, 200, 300, 400],
-                    }
-                ),
-                ["sex"],
-                ["age"],
-                id="with_parameter_columns",
-            ),
-            pytest.param(
-                "multiple_value_columns_component",
-                pd.DataFrame(
-                    {
-                        "sex": ["Female", "Male"],
-                        "value1": [100, 200],
-                        "value2": [300, 400],
-                    }
-                ),
-                ["sex"],
-                [],
-                id="multiple_value_columns",
-            ),
-            pytest.param(
-                "scalar_to_dataframe_component",
-                pd.DataFrame({"sex": ["Female", "Male"], "value": [50, 60]}),
-                ["sex"],
-                [],
-                id="scalar_to_dataframe",
-            ),
-            pytest.param(
-                "change_key_columns_component",
-                pd.DataFrame(
-                    {"location": ["USA", "Canada", "Mexico"], "value": [100, 200, 300]}
-                ),
-                ["location"],
-                [],
-                id="change_key_columns",
-            ),
-            pytest.param(
-                "add_parameter_columns_component",
-                pd.DataFrame(
-                    {
-                        "sex": ["Female", "Female", "Male", "Male"],
-                        "age_start": [0.0, 50.0, 0.0, 50.0],
-                        "age_end": [50.0, 125.0, 50.0, 125.0],
-                        "value": [100, 150, 200, 250],
-                    }
-                ),
-                ["sex"],
-                ["age"],
-                id="add_parameter_columns",
-            ),
-            pytest.param(
-                "change_parameter_columns_component",
-                pd.DataFrame(
-                    {
-                        "sex": ["Female", "Female", "Male", "Male"],
-                        "year_start": [1990, 2000, 1990, 2000],
-                        "year_end": [2000, 2010, 2000, 2010],
-                        "value": [100, 150, 200, 250],
-                    }
-                ),
-                ["sex"],
-                ["year"],
-                id="change_parameter_columns",
-            ),
-            pytest.param(
-                "add_key_columns_component",
-                pd.DataFrame(
-                    {
-                        "sex": ["Female", "Male", "Female", "Male", "Female", "Male"],
-                        "location": ["USA", "USA", "Canada", "Canada", "Mexico", "Mexico"],
-                        "value": [100, 200, 300, 400, 500, 600],
-                    }
-                ),
-                ["sex", "location"],
-                [],
-                id="add_key_columns",
-            ),
-            pytest.param(
-                "dataframe_to_scalar_component", 100, [], [], id="dataframe_to_scalar"
-            ),
-        ],
+        SET_DATA_TEST_CASES,
     )
     def test_set_data_on_post_setup(
         self,
@@ -871,15 +906,24 @@ class TestLookupTableSeteData:
     ) -> None:
         """Test updating lookup table data during post_setup."""
         component = sim_after_pop_creation[component_name]
+        self._check_set_data_result(
+            component, expected_data, expected_key_columns, expected_parameter_columns
+        )
 
-        # Check table data if expected_data is provided
-        if isinstance(expected_data, pd.DataFrame):
-            pd.testing.assert_frame_equal(component.table.data, expected_data)
-        else:
-            assert component.table.data == expected_data
-
-        # Check column properties
-        assert component.table.key_columns == expected_key_columns
-        assert component.table.parameter_columns == expected_parameter_columns
-
-    
+    @pytest.mark.parametrize(
+        "component_name,expected_data,expected_key_columns,expected_parameter_columns",
+        SET_DATA_TEST_CASES,
+    )
+    def test_set_data_on_time_step(
+        self,
+        sim_after_time_step: dict[str, Component],
+        component_name: str,
+        expected_data: Any,
+        expected_key_columns: list[str],
+        expected_parameter_columns: list[str],
+    ) -> None:
+        """Test updating lookup table data during time_step."""
+        component = sim_after_time_step[component_name]
+        self._check_set_data_result(
+            component, expected_data, expected_key_columns, expected_parameter_columns
+        )

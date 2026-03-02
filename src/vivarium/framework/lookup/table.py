@@ -23,7 +23,7 @@ import pandas as pd
 from vivarium.component import Component
 from vivarium.framework.lookup.interpolation import Interpolation
 from vivarium.framework.population.population_view import PopulationView
-from vivarium.framework.resource import Resource, ResourceId
+from vivarium.framework.resource import Resource
 from vivarium.types import LookupTableData
 
 if TYPE_CHECKING:
@@ -62,14 +62,6 @@ class LookupTable(Resource, Generic[T]):
             if not isinstance(self._value_columns, str)
             else [self._value_columns]
         )
-
-    @property
-    def required_resources(self) -> list[ResourceId]:
-        """The resources required by this lookup table."""
-        self._required_resources = [
-            col for col in [*self.key_columns, *self.parameter_columns] if col != "year"
-        ]
-        return super().required_resources
 
     def __init__(
         self,
@@ -151,6 +143,10 @@ class LookupTable(Resource, Generic[T]):
             self.key_columns = []
             self.parameter_columns = []
             self.interpolation = None
+
+        self._required_resources = [
+            col for col in [*self.key_columns, *self.parameter_columns] if col != "year"
+        ]
 
     def __call__(self, index: pd.Index[int]) -> T:
         """Get the mapped values for the given index.
