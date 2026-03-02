@@ -466,7 +466,7 @@ class TestLookupTableSetData:
         table: LookupTable[pd.DataFrame] | LookupTable[pd.Series[Any]]
 
         def _do_update(self) -> None:
-            self.table.set_data(10)
+            pass
 
         def on_post_setup(self, event: Event) -> None:
             self._do_update()
@@ -587,12 +587,6 @@ class TestLookupTableSetData:
             def _do_update(self) -> None:
                 self.table.set_data(10)
 
-            def on_post_setup(self, event: Event) -> None:
-                self._do_update()
-
-            def on_time_step(self, event: Event) -> None:
-                self._do_update()
-
         class SameStructureComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
@@ -604,12 +598,6 @@ class TestLookupTableSetData:
                 new_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [100, 200]})
                 self.table.set_data(new_data)
 
-            def on_post_setup(self, event: Event) -> None:
-                self._do_update()
-
-            def on_time_step(self, event: Event) -> None:
-                self._do_update()
-
         class ListUpdateComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 self.table = builder.lookup.build_table(
@@ -618,12 +606,6 @@ class TestLookupTableSetData:
 
             def _do_update(self) -> None:
                 self.table.set_data([10, 20, 30])
-
-            def on_post_setup(self, event: Event) -> None:
-                self._do_update()
-
-            def on_time_step(self, event: Event) -> None:
-                self._do_update()
 
         class ParameterColumnsComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
@@ -650,12 +632,6 @@ class TestLookupTableSetData:
                 )
                 self.table.set_data(new_data)
 
-            def on_post_setup(self, event: Event) -> None:
-                self._do_update()
-
-            def on_time_step(self, event: Event) -> None:
-                self._do_update()
-
         class MultipleValueColumnsComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 initial_data = pd.DataFrame(
@@ -675,12 +651,6 @@ class TestLookupTableSetData:
                 )
                 self.table.set_data(new_data)
 
-            def on_post_setup(self, event: Event) -> None:
-                self._do_update()
-
-            def on_time_step(self, event: Event) -> None:
-                self._do_update()
-
         class ScalarToDataframeComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 self.table = builder.lookup.build_table(
@@ -690,12 +660,6 @@ class TestLookupTableSetData:
             def _do_update(self) -> None:
                 new_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [50, 60]})
                 self.table.set_data(new_data)
-
-            def on_post_setup(self, event: Event) -> None:
-                self._do_update()
-
-            def on_time_step(self, event: Event) -> None:
-                self._do_update()
 
         class ChangeKeyColumnsComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
@@ -709,12 +673,6 @@ class TestLookupTableSetData:
                     {"location": ["USA", "Canada", "Mexico"], "value": [100, 200, 300]}
                 )
                 self.table.set_data(new_data)
-
-            def on_post_setup(self, event: Event) -> None:
-                self._do_update()
-
-            def on_time_step(self, event: Event) -> None:
-                self._do_update()
 
         class AddParameterColumnsComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
@@ -733,12 +691,6 @@ class TestLookupTableSetData:
                     }
                 )
                 self.table.set_data(new_data)
-
-            def on_post_setup(self, event: Event) -> None:
-                self._do_update()
-
-            def on_time_step(self, event: Event) -> None:
-                self._do_update()
 
         class ChangeParameterColumnsComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
@@ -767,12 +719,6 @@ class TestLookupTableSetData:
                     }
                 )
                 self.table.set_data(new_data)
-
-            def on_post_setup(self, event: Event) -> None:
-                self._do_update()
-
-            def on_time_step(self, event: Event) -> None:
-                self._do_update()
 
         class AddKeyColumnsComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
@@ -805,12 +751,6 @@ class TestLookupTableSetData:
                 )
                 self.table.set_data(new_data)
 
-            def on_post_setup(self, event: Event) -> None:
-                self._do_update()
-
-            def on_time_step(self, event: Event) -> None:
-                self._do_update()
-
         class DataframeToScalarComponent(TestLookupTableSetData.ComponentWithTable):
             def setup(self, builder: Builder) -> None:
                 initial_data = pd.DataFrame({"sex": ["Female", "Male"], "value": [10, 20]})
@@ -820,12 +760,6 @@ class TestLookupTableSetData:
 
             def _do_update(self) -> None:
                 self.table.set_data(100)
-
-            def on_post_setup(self, event: Event) -> None:
-                self._do_update()
-
-            def on_time_step(self, event: Event) -> None:
-                self._do_update()
 
         return [
             TestPopulation(),
