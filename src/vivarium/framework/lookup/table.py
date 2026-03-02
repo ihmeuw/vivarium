@@ -23,8 +23,7 @@ import pandas as pd
 from vivarium.component import Component
 from vivarium.framework.lookup.interpolation import Interpolation
 from vivarium.framework.population.population_view import PopulationView
-from vivarium.framework.resource import Resource
-from vivarium.framework.values import AttributePipeline
+from vivarium.framework.resource import Resource, ResourceId
 from vivarium.types import LookupTableData
 
 if TYPE_CHECKING:
@@ -52,9 +51,8 @@ class LookupTable(Resource, Generic[T]):
 
     """
 
-    @property
-    def resource_type(self) -> str:
-        return "lookup_table"
+    RESOURCE_TYPE = "lookup_table"
+    """The type of the resource."""
 
     @property
     def value_columns(self) -> list[str]:
@@ -66,12 +64,12 @@ class LookupTable(Resource, Generic[T]):
         )
 
     @property
-    def required_resources(self) -> list[str]:
+    def required_resources(self) -> list[ResourceId]:
         """The resources required by this lookup table."""
-        lookup_columns = [*self.key_columns, *self.parameter_columns]
-        return [
-            AttributePipeline.get_resource_id(col) for col in lookup_columns if col != "year"
+        self._required_resources = [
+            col for col in [*self.key_columns, *self.parameter_columns] if col != "year"
         ]
+        return super().required_resources
 
     def __init__(
         self,

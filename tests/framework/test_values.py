@@ -531,7 +531,7 @@ def test_attribute_pipeline_creation() -> None:
     """Test that AttributePipeline can be created and has correct attributes."""
     pipeline = AttributePipeline("test_attribute")
     assert pipeline.name == "test_attribute"
-    assert pipeline.resource_type == "attribute"
+    assert pipeline.RESOURCE_TYPE == "attribute"
     assert isinstance(pipeline.source, ValueSource)
     assert not pipeline.source
 
