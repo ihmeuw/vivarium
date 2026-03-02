@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any, TypeVar
 
 import pandas as pd
@@ -135,17 +135,8 @@ class Pipeline(Resource):
     attributes; for those, use :class:`~vivarium.framework.values.pipeline.AttributePipeline`.
     """
 
-    @property
-    def resource_type(self) -> str:
-        return "value"
-
-    @property
-    def required_resources(self) -> list[str]:
-        """The resources required by this pipeline, including the source and all modifiers."""
-        return [
-            *super().required_resources,
-            *[mutator.resource_id for mutator in self.mutators],
-        ]
+    RESOURCE_TYPE = "value"
+    """The type of the resource."""
 
     def __init__(self, name: str, component: Component | None = None) -> None:
         super().__init__(name, component=component)
@@ -256,6 +247,7 @@ class Pipeline(Resource):
         """
         value_modifier = ValueModifier(self, modifier, component, required_resources)
         self.mutators.append(value_modifier)
+        self._required_resources.append(value_modifier)
         return value_modifier
 
     def set_attributes(
@@ -295,7 +287,7 @@ class Pipeline(Resource):
         self.source = source
         self._combiner = combiner
         self.post_processor = post_processor
-        self._required_resources = list(required_resources)
+        self._required_resources.extend(required_resources)
         self._manager = manager
 
 
@@ -308,9 +300,8 @@ class AttributePipeline(Pipeline):
 
     """
 
-    @property
-    def resource_type(self) -> str:
-        return "attribute"
+    RESOURCE_TYPE = "attribute"
+    """The type of the resource."""
 
     @property
     def is_simple(self) -> bool:
@@ -321,11 +312,6 @@ class AttributePipeline(Pipeline):
             and not self.mutators
             and not self.post_processor
         )
-
-    @classmethod
-    def get_resource_id(cls, resource_name: str) -> str:
-        """Get the resource ID for the given column name."""
-        return f"attribute.{resource_name}"
 
     def __init__(self, name: str, component: Component | None = None) -> None:
         super().__init__(name, component=component)
