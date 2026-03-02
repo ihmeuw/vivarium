@@ -88,9 +88,8 @@ class RandomnessStream(Resource):
 
     """
 
-    @property
-    def resource_type(self) -> str:
-        return "stream"
+    RESOURCE_TYPE = "stream"
+    """The type of the resource."""
 
     def __init__(
         self,

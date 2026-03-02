@@ -310,7 +310,7 @@ class TestLookupTableResource:
 
     def test_scalar_table_resource_attributes(self, manager: LookupTableManager) -> None:
         table = manager._build_table(LookupCreator(), 5, "test_table", value_columns="value")
-        assert table.resource_type == "lookup_table"
+        assert table.RESOURCE_TYPE == "lookup_table"
         assert table.name == "lookup_creator.test_table"
         assert table.resource_id == "lookup_table.lookup_creator.test_table"
         assert table.required_resources == []
@@ -322,7 +322,7 @@ class TestLookupTableResource:
             "test_table",
             value_columns="baz",
         )
-        assert table.resource_type == "lookup_table"
+        assert table.RESOURCE_TYPE == "lookup_table"
         assert table.name == "lookup_creator.test_table"
         assert table.resource_id == "lookup_table.lookup_creator.test_table"
         assert table.required_resources == ["attribute.foo", "attribute.bar"]
@@ -342,7 +342,7 @@ class TestLookupTableResource:
             }
         )
         table = manager._build_table(LookupCreator(), data, "test_table", value_columns="baz")
-        assert table.resource_type == "lookup_table"
+        assert table.RESOURCE_TYPE == "lookup_table"
         assert table.name == "lookup_creator.test_table"
         assert table.resource_id == "lookup_table.lookup_creator.test_table"
         assert table.required_resources == ["attribute.foo", "attribute.bar"]
