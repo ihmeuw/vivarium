@@ -830,6 +830,7 @@ class TestConfigurePipeline:
         manager._add_constraint = mocker.Mock()
         manager.logger = mocker.Mock()
         manager._get_current_component = lambda: component
+        manager._get_view = mocker.Mock()
         return manager
 
     @pytest.fixture

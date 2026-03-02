@@ -6,12 +6,12 @@ from typing import TYPE_CHECKING, Any, TypeVar
 import pandas as pd
 
 from vivarium import Component
-from vivarium.framework.resource import Column, Resource
+from vivarium.framework.resource import Resource
 from vivarium.framework.values.exceptions import DynamicValueError
 from vivarium.manager import Manager
 
 if TYPE_CHECKING:
-    from vivarium.framework.population import PopulationManager
+    from vivarium.framework.population import PopulationView
     from vivarium.framework.values import (
         AttributePostProcessor,
         PostProcessor,
@@ -32,7 +32,7 @@ class ValueSource:
     def __bool__(self) -> bool:
         return True
 
-    def __call__(self, population_mgr: PopulationManager, *args: Any, **kwargs: Any) -> Any:
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         return self._source(*args, **kwargs)
 
 
@@ -46,12 +46,11 @@ class MissingValueSource(ValueSource):
 
     def __init__(self, pipeline: Pipeline) -> None:
         self._pipeline = pipeline
-        self._source = lambda *args, **kwargs: None
 
     def __bool__(self) -> bool:
         return False
 
-    def __call__(self, population_mgr: PopulationManager, *args: Any, **kwargs: Any) -> Any:
+    def _source(self, *args: Any, **kwargs: Any) -> Any:
         raise DynamicValueError(
             f"The pipeline for {self._pipeline.name} has no source. This likely means you are"
             " attempting to modify a value that hasn't been created."
@@ -61,33 +60,35 @@ class MissingValueSource(ValueSource):
 class PrivateColumnValueSource(ValueSource):
     """A value source representing a private column source of a value pipeline."""
 
-    def __init__(self, pipeline: Pipeline, source: str) -> None:
+    def __init__(
+        self, pipeline: Pipeline, source: str, population_view: PopulationView
+    ) -> None:
         self._pipeline = pipeline
-        self._source = lambda *args, **kwargs: None
         self.column_name = source
         """The name of the private column that is the source of this pipeline."""
+        self._population_view = population_view
+        """A population view that can be used to access the private column source of this pipeline."""
 
-    def __call__(
-        self, population_mgr: PopulationManager, index: pd.Index[int]
-    ) -> pd.Series[Any]:
-        return population_mgr.get_private_columns(
-            component=self._pipeline.component, columns=self.column_name, index=index
+    def _source(self, index: pd.Index[int]) -> pd.Series[Any]:
+        return self._population_view.get_private_columns(
+            private_columns=self.column_name, index=index
         )
 
 
 class AttributesValueSource(ValueSource):
     """A value source representing the list of attributes source of an attribute pipeline."""
 
-    def __init__(self, pipeline: Pipeline, source: list[str]) -> None:
+    def __init__(
+        self, pipeline: Pipeline, source: list[str], population_view: PopulationView
+    ) -> None:
         self._pipeline = pipeline
-        self._source = lambda *args, **kwargs: None
-        self.attributes = source
-        """The list of attributes that are the source of this pipeline."""
+        self.attributes = source[0] if len(source) == 1 else source
+        """The name or list of names of the attributes that are the source of this pipeline."""
+        self._population_view = population_view
+        """A population view that can be used to access the attribute source of this pipeline."""
 
-    def __call__(
-        self, population_mgr: PopulationManager, index: pd.Index[int]
-    ) -> pd.Series[Any] | pd.DataFrame:
-        return population_mgr.get_population(attributes=self.attributes, index=index)
+    def _source(self, index: pd.Index[int]) -> pd.Series[Any] | pd.DataFrame:
+        return self._population_view.get_attributes(attributes=self.attributes, index=index)
 
 
 class ValueModifier(Resource):
@@ -220,7 +221,7 @@ class Pipeline(Resource):
                 f"The dynamic value pipeline for {self.name} has no source. This likely means "
                 f"you are attempting to modify a value that hasn't been created."
             )
-        value = self.source(self.manager._population_mgr, *args, **kwargs)
+        value = self.source(*args, **kwargs)
         for mutator in self.mutators:
             value = self.combiner(value, mutator, *args, **kwargs)
         if self.post_processor and not skip_post_processor:
