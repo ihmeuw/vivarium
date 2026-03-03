@@ -23,7 +23,7 @@ import pandas as pd
 from vivarium.component import Component
 from vivarium.framework.lookup.interpolation import Interpolation
 from vivarium.framework.population.population_view import PopulationView
-from vivarium.framework.resource import Resource, ResourceId
+from vivarium.framework.resource import Resource
 from vivarium.types import LookupTableData
 
 if TYPE_CHECKING:
@@ -63,14 +63,6 @@ class LookupTable(Resource, Generic[T]):
             else [self._value_columns]
         )
 
-    @property
-    def required_resources(self) -> list[ResourceId]:
-        """The resources required by this lookup table."""
-        self._required_resources = [
-            col for col in [*self.key_columns, *self.parameter_columns] if col != "year"
-        ]
-        return super().required_resources
-
     def __init__(
         self,
         component: Component,
@@ -104,15 +96,21 @@ class LookupTable(Resource, Generic[T]):
         """Interpolation object to use when data is a DataFrame. Will be None if data is
         a scalar or list of scalars."""
 
-        self._set_data(data)
+        self.set_data(data)
 
-    def _set_data(self, data: LookupTableData) -> None:
+    def set_data(self, data: LookupTableData) -> None:
         """Set the data and associated attributes for the lookup table.
 
         This method is called during initialization and when updating the data of the lookup
         table.  It is responsible for validating and setting the data. If the data is a
         DataFrame, it also sets the key_columns and parameter_columns attributes and
         initializes the Interpolation object.
+
+        Parameters
+        ----------
+        data
+            The data this table will use to produce values. Can be a scalar, list of scalars,
+            or a pandas DataFrame.
         """
         self._validate_data_inputs(data)
         self.data = data
@@ -145,6 +143,10 @@ class LookupTable(Resource, Generic[T]):
             self.key_columns = []
             self.parameter_columns = []
             self.interpolation = None
+
+        self._required_resources = [
+            col for col in [*self.key_columns, *self.parameter_columns] if col != "year"
+        ]
 
     def __call__(self, index: pd.Index[int]) -> T:
         """Get the mapped values for the given index.
@@ -205,14 +207,6 @@ class LookupTable(Resource, Generic[T]):
                         "your simulation uses a DateTimeClock."
                     )
             return self.interpolation(pop)
-
-    def update_data(self, data: LookupTableData) -> None:
-        """Update the data of this lookup table and re-initialize interpolation if necessary."""
-        # TODO MIC-6814: We want to be able to update the data of a lookup table during post-setup,
-        # which would require communicating to the ResourceManager that the lookup table's required
-        # resources may have changed. For now, we can only allow updates to the data during the
-        # simulation loop (i.e. after population creation).
-        self._set_data(data)
 
     def __repr__(self) -> str:
         return "LookupTable()"
