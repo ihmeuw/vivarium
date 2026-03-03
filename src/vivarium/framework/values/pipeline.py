@@ -7,7 +7,6 @@ import pandas as pd
 
 from vivarium import Component
 from vivarium.framework.resource import Resource
-from vivarium.framework.resource.resource import ResourceId
 from vivarium.framework.values.exceptions import DynamicValueError
 from vivarium.manager import Manager
 
