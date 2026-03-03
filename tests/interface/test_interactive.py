@@ -162,25 +162,21 @@ class TestGetPopulationNestedAttributes:
     # Tests #
     #########
 
-    @pytest.mark.parametrize("is_simple_inner_attribute", [True, False])
-    def test_no_tracked_query(self, is_simple_inner_attribute: bool) -> None:
+    def test_no_tracked_query(self) -> None:
         """Without a tracked query, all inner values {0, 1, 2} are returned."""
-        sim = self._create_sim(is_simple_inner_attribute, NestedAttributeCreator)
+        sim = self._create_sim(NestedAttributeCreator)
         assert set(sim.get_population("inner")) == {0, 1, 2}
         sim._population.register_tracked_query("inner == 1")
         assert all(sim.get_population("inner") == 1)
 
-    @pytest.mark.parametrize("is_simple_inner_attribute", [True, False])
     @pytest.mark.parametrize("include_untracked", [None, True, False])
     def test_tracked_queries_not_reapplied(
         self,
-        is_simple_inner_attribute: bool,
         include_untracked: bool | None,
         mocker: MockerFixture,
     ) -> None:
         """Tracked queries are not re-applied inside nested pipeline calls."""
         sim = self._create_sim(
-            is_simple_inner_attribute,
             NestedAttributeCreator,
             tracked_query="inner == 1",
             mocker=mocker,
@@ -192,11 +188,9 @@ class TestGetPopulationNestedAttributes:
             expected_filtered_inner={1},
         )
 
-    @pytest.mark.parametrize("is_simple_inner_attribute", [True, False])
     @pytest.mark.parametrize("include_untracked", [None, True, False])
     def test_explicit_queries_preserved(
         self,
-        is_simple_inner_attribute: bool,
         include_untracked: bool | None,
         mocker: MockerFixture,
     ) -> None:
@@ -214,7 +208,6 @@ class TestGetPopulationNestedAttributes:
             return pd.DataFrame({"doubled_inner": combined * 2})
 
         sim = self._create_sim(
-            is_simple_inner_attribute,
             NestedAttributeCreator,
             outer_source_override=outer_source,
             tracked_query="inner != 0",
@@ -230,10 +223,7 @@ class TestGetPopulationNestedAttributes:
             expected_filtered_outer={2, 4},
         )
 
-    @pytest.mark.parametrize("is_simple_inner_attribute", [True, False])
-    def test_explicit_false_inside_nested_call(
-        self, is_simple_inner_attribute: bool, mocker: MockerFixture
-    ) -> None:
+    def test_explicit_false_inside_nested_call(self, mocker: MockerFixture) -> None:
         """Check explicit include_untracked=False inside a pipeline source.
 
         This should force the tracked query to be re-applied even at depth > 0."""
@@ -252,7 +242,6 @@ class TestGetPopulationNestedAttributes:
             )
 
         sim = self._create_sim(
-            is_simple_inner_attribute,
             NestedAttributeCreator,
             outer_source_override=outer_source,
             tracked_query="inner == 1",
@@ -273,17 +262,14 @@ class TestGetPopulationNestedAttributes:
 
         self._assert_depth(sim, max_depth, 2)
 
-    @pytest.mark.parametrize("is_simple_inner_attribute", [True, False])
     @pytest.mark.parametrize("include_untracked", [None, True, False])
     def test_get_private_columns_nested_path(
         self,
-        is_simple_inner_attribute: bool,
         include_untracked: bool | None,
         mocker: MockerFixture,
     ) -> None:
         """Test get_private_columns inside a nested pipeline call suppresses tracked queries."""
         sim = self._create_sim(
-            is_simple_inner_attribute,
             NestedPrivateColumnCaller,
             tracked_query="inner == 1",
             mocker=mocker,
@@ -298,11 +284,9 @@ class TestGetPopulationNestedAttributes:
             expected_filtered_outer={2},
         )
 
-    @pytest.mark.parametrize("is_simple_inner_attribute", [True, False])
     @pytest.mark.parametrize("include_untracked", [None, True, False])
     def test_lookup_table_nested_path(
         self,
-        is_simple_inner_attribute: bool,
         include_untracked: bool | None,
         mocker: MockerFixture,
     ) -> None:
@@ -313,7 +297,6 @@ class TestGetPopulationNestedAttributes:
         with the default include_untracked=None, exercising the lookup path.
         """
         sim = self._create_sim(
-            is_simple_inner_attribute,
             NestedLookupCaller,
             tracked_query="inner == 1",
             mocker=mocker,
@@ -369,7 +352,6 @@ class TestGetPopulationNestedAttributes:
 
     @staticmethod
     def _create_sim(
-        is_simple_inner_attribute: bool,
         component_class: type[NestedAttributeCreator],
         outer_source_override: Callable[..., pd.DataFrame] | None = None,
         tracked_query: str | None = None,
@@ -380,22 +362,18 @@ class TestGetPopulationNestedAttributes:
         class _Component(component_class):  # type: ignore[valid-type, misc]
             def setup(self, builder: Builder) -> None:
                 super().setup(builder)
-                if not is_simple_inner_attribute:
-                    # Registering a modifier make the pipeline non-simple
-                    builder.value.register_attribute_modifier(
-                        "inner",
-                        lambda index, series: series,
-                    )
+                # Registering a modifier make the pipeline non-simple
+                builder.value.register_attribute_modifier(
+                    "inner",
+                    lambda index, series: series,
+                )
 
         if outer_source_override is not None:
             setattr(_Component, "outer_source", outer_source_override)
 
         sim = InteractiveContext(components=[_Component()])
         assert not sim._population._attribute_pipelines["outer"].is_simple
-        assert (
-            sim._population._attribute_pipelines["inner"].is_simple
-            == is_simple_inner_attribute
-        )
+        assert sim._population._attribute_pipelines["inner"].is_simple == False
 
         if tracked_query is not None:
             assert mocker is not None
