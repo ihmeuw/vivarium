@@ -30,7 +30,7 @@ class ResourceManager(Manager):
         """Dictionary of all resources managed by this manager, keyed by resource_id."""
         self._initializer_count = 0
         """Initializer counter. Tracker is here to ensure they have unique ids."""
-        self._graph: nx.DiGraph = nx.DiGraph()
+        self._graph = nx.DiGraph()
         """Attribute used for lazy (but cached) graph initialization."""
         self._sorted_nodes: list[Resource] = []
         """Attribute used for lazy (but cached) graph topological sort."""
