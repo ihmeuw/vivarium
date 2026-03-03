@@ -30,10 +30,13 @@ class ResourceManager(Manager):
         """Dictionary of all resources managed by this manager, keyed by resource_id."""
         self._initializer_count = 0
         """Initializer counter. Tracker is here to ensure they have unique ids."""
-        self._graph: nx.DiGraph | None = None
+        self._graph = nx.DiGraph()
         """Attribute used for lazy (but cached) graph initialization."""
-        self._sorted_nodes: list[Resource] | None = None
+        self._sorted_nodes: list[Resource] = []
         """Attribute used for lazy (but cached) graph topological sort."""
+        self._required_resources_dirty = True
+        """Flag indicating that at least one resource's required resources have changed
+        since the last graph build.  Starts True so the first access builds the graph."""
 
     @property
     def name(self) -> str:
@@ -41,8 +44,9 @@ class ResourceManager(Manager):
 
     def get_graph(self) -> nx.DiGraph:
         """The networkx graph representation of the resource pool."""
-        if self._graph is None:
+        if self._required_resources_dirty:
             self._graph = self._to_graph()
+            self._required_resources_dirty = False
         return self._graph
 
     @property
@@ -54,7 +58,7 @@ class ResourceManager(Manager):
         Topological sorts are not stable. Be wary of depending on order
         where you shouldn't.
         """
-        if self._sorted_nodes is None:
+        if self._required_resources_dirty:
             try:
                 self._sorted_nodes = list(nx.algorithms.topological_sort(self.get_graph()))  # type: ignore[func-returns-value]
             except nx.NetworkXUnfeasible:
@@ -107,6 +111,7 @@ class ResourceManager(Manager):
                 f" '{other_resource.component.name}'."
             )
         self._resources[resource.resource_id] = resource
+        resource.on_dependencies_changed = self._mark_dependencies_dirty
 
     def add_private_columns(
         self,
@@ -139,6 +144,10 @@ class ResourceManager(Manager):
         for col in columns_:
             column_resource = Column(col, component, [initializer_resource])
             self.add_resource(column_resource)
+
+    def _mark_dependencies_dirty(self) -> None:
+        """Mark that the resource dependency graph needs to be rebuilt."""
+        self._required_resources_dirty = True
 
     def _to_graph(self) -> nx.DiGraph:
         """Constructs the full resource graph from information in the groups.

@@ -43,11 +43,29 @@ class Resource:
         """The name of the resource."""
         self._component = component
         """The component that creates the resource. Can be None if not yet set."""
-        self._required_resources: list[str | Resource] = list(required_resources)
-        """
-        The resources required to produce this resource. A string is interpreted
-        as the name of an AttributePipeline resource.
-        """
+        self.on_dependencies_changed: Callable[[], None] | None = None
+        """Optional callback invoked when this resource's dependencies change.
+        Set by the ResourceManager when the resource is registered."""
+        self._raw_required_resources: list[str | Resource] = list(required_resources)
+        """The resources required to produce this resource. A string is interpreted
+        as the name of an AttributePipeline resource."""
+
+    @property
+    def _required_resources(self) -> list[str | Resource]:
+        """The raw required resources list. Setting this calls the dependency change callback."""
+        return self._raw_required_resources
+
+    @_required_resources.setter
+    def _required_resources(self, value: Iterable[str | Resource]) -> None:
+        new_value = list(value)
+        if new_value != self._raw_required_resources:
+            self._raw_required_resources = new_value
+            self.notify_dependencies_changed()
+
+    def notify_dependencies_changed(self) -> None:
+        """Notify the resource manager that this resource's dependencies have changed."""
+        if self.on_dependencies_changed is not None:
+            self.on_dependencies_changed()
 
     @property
     def component(self) -> Component | Manager:
