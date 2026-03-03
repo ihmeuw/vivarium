@@ -118,3 +118,7 @@ class PopulationInterface(Interface):
     def get_tracked_query(self) -> Callable[[], str]:
         """Gets a callable that returns the combined tracked query for the population."""
         return self._manager.get_tracked_query
+
+    def get_population_index(self) -> Callable[[], pd.Index[int]]:
+        """Gets a callable that returns the population index."""
+        return self._manager.get_population_index

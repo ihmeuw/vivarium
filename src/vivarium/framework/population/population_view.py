@@ -91,7 +91,7 @@ class PopulationView:
         index: pd.Index[int],
         attributes: str,
         query: str = "",
-        include_untracked: bool = False,
+        include_untracked: bool | None = None,
         skip_post_processor: bool = False,
     ) -> pd.Series[Any]:
         ...
@@ -102,7 +102,7 @@ class PopulationView:
         index: pd.Index[int],
         attributes: list[str] | tuple[str, ...],
         query: str = "",
-        include_untracked: bool = False,
+        include_untracked: bool | None = None,
         skip_post_processor: bool = False,
     ) -> pd.DataFrame:
         ...
@@ -113,7 +113,7 @@ class PopulationView:
         index: pd.Index[int],
         attributes: str | list[str] | tuple[str, ...],
         query: str = "",
-        include_untracked: bool = False,
+        include_untracked: bool | None = None,
         skip_post_processor: bool = True,
     ) -> Any:
         ...
@@ -123,7 +123,7 @@ class PopulationView:
         index: pd.Index[int],
         attributes: str | list[str] | tuple[str, ...],
         query: str = "",
-        include_untracked: bool = False,
+        include_untracked: bool | None = None,
         skip_post_processor: Literal[True, False] = False,
     ) -> Any:
         """Gets a specific subset of the population state table.
@@ -143,7 +143,10 @@ class PopulationView:
         query
             Additional conditions used to filter the index.
         include_untracked
-            Whether to include untracked simulants.
+            Whether to include untracked simulants. If None (default), untracked
+            simulants are excluded unless this pipeline was called during population
+            creation or inside another pipeline call. Untracked simulants are always
+            included if True and always excluded if False.
         skip_post_processor
             Whether we should invoke the post-processor on the combined
             source and mutator output or return without post-processing.
@@ -189,7 +192,7 @@ class PopulationView:
         index: pd.Index[int],
         attribute: str,
         query: str = "",
-        include_untracked: bool = False,
+        include_untracked: bool | None = None,
     ) -> pd.DataFrame:
         """Gets a single attribute as a DataFrame.
 
@@ -206,7 +209,10 @@ class PopulationView:
         query
             Additional conditions used to filter the index.
         include_untracked
-            Whether to include untracked simulants.
+            Whether to include untracked simulants. If None (default), untracked
+            simulants are excluded unless this pipeline was called during population
+            creation or inside another pipeline call. Untracked simulants are always
+            included if True and always excluded if False.
 
         Notes
         -----
@@ -240,7 +246,7 @@ class PopulationView:
         index: pd.Index[int],
         private_columns: str = ...,
         query: str = "",
-        include_untracked: bool = False,
+        include_untracked: bool | None = None,
     ) -> pd.Series[Any]:
         ...
 
@@ -250,7 +256,7 @@ class PopulationView:
         index: pd.Index[int],
         private_columns: list[str] | tuple[str, ...] = ...,
         query: str = "",
-        include_untracked: bool = False,
+        include_untracked: bool | None = None,
     ) -> pd.DataFrame:
         ...
 
@@ -260,7 +266,7 @@ class PopulationView:
         index: pd.Index[int],
         private_columns: None = None,
         query: str = "",
-        include_untracked: bool = False,
+        include_untracked: bool | None = None,
     ) -> pd.Series[Any] | pd.DataFrame:
         ...
 
@@ -269,7 +275,7 @@ class PopulationView:
         index: pd.Index[int],
         private_columns: str | list[str] | tuple[str, ...] | None = None,
         query: str = "",
-        include_untracked: bool = False,
+        include_untracked: bool | None = None,
     ) -> pd.Series[Any] | pd.DataFrame:
         """Gets a specific subset of this ``PopulationView's`` private columns.
 
@@ -287,7 +293,10 @@ class PopulationView:
         query
             Additional conditions used to filter the index.
         include_untracked
-            Whether to include untracked simulants.
+            Whether to include untracked simulants. If None (default), untracked
+            simulants are excluded unless this pipeline was called during population
+            creation or inside another pipeline call. Untracked simulants are always
+            included if True and always excluded if False.
 
         Returns
         -------
@@ -319,7 +328,7 @@ class PopulationView:
         self,
         index: pd.Index[int],
         query: str = "",
-        include_untracked: bool = False,
+        include_untracked: bool | None = None,
     ) -> pd.Index[int]:
         """Gets a specific index of the population.
 
@@ -333,7 +342,10 @@ class PopulationView:
         query
             Additional conditions used to filter the index.
         include_untracked
-            Whether to include untracked simulants.
+            Whether to include untracked simulants. If None (default), untracked
+            simulants are excluded unless this pipeline was called during population
+            creation or inside another pipeline call. Untracked simulants are always
+            included if True and always excluded if False.
 
         Returns
         -------
@@ -606,22 +618,38 @@ class PopulationView:
         )
         return new_data
 
-    def _build_query(self, query: str, include_untracked: bool) -> str:
+    def _build_query(self, query: str, include_untracked: bool | None) -> str:
         """Builds the full query for this PopulationView.
 
         This combines the provided query with the population manager's tracked query
         as appropriate.
 
+        Parameters
+        ----------
+        query
+            An explicit query string to filter the index.
+        include_untracked
+            Controls whether the tracked query is applied:
+
+            - None (default): The tracked query is applied at top level, but automatically
+              suppressed during nested pipeline evaluation (``pipeline_evaluation_depth > 0``)
+              or during initialization population creation lifecycle phases.
+            - True: The tracked query is always suppressed (untracked simulants are included).
+            - False: The tracked query is always applied (untracked simulants are excluded).
+
         Notes
         -----
-        We explicitly set 'include_untracked' to True during initialization and
-        population creation lifecycle phases.
+        Only the tracked query is affected. Any explicit ``query`` argument is
+        always preserved so that pipeline sources can further subdivide the index.
         """
-        include_untracked = include_untracked or self._manager.get_current_state() in [
-            lifecycle_states.INITIALIZATION,
-            lifecycle_states.POPULATION_CREATION,
-        ]
+        skip_tracked_query = include_untracked is True or (
+            include_untracked is None
+            and (
+                self._manager.get_current_state() == lifecycle_states.POPULATION_CREATION
+                or self._manager.pipeline_evaluation_depth > 0
+            )
+        )
         return pop_utils.combine_queries(
             query,
-            self._manager.get_tracked_query() if not include_untracked else "",
+            self._manager.get_tracked_query() if not skip_tracked_query else "",
         )
