@@ -23,11 +23,7 @@ import pandas as pd
 from vivarium.component import Component
 from vivarium.framework.lookup.interpolation import Interpolation
 from vivarium.framework.population.population_view import PopulationView
-<<<<<<< HEAD
 from vivarium.framework.resource import Resource
-=======
-from vivarium.framework.resource import Resource, ResourceId
->>>>>>> release_candidate/v4.1.0
 from vivarium.types import LookupTableData
 
 if TYPE_CHECKING:
