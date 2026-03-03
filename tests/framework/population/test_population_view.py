@@ -864,21 +864,84 @@ def test__update_column_and_ensure_dtype_unmatched_dtype() -> None:
 ##################################################
 
 
-def test__skip_tracked_query_if_initializing(
+@pytest.mark.parametrize("include_untracked", [None, False, True])
+@pytest.mark.parametrize(
+    "lifecycle_state",
+    [lifecycle_states.POPULATION_CREATION, lifecycle_states.TIME_STEP],
+)
+def test__build_query_different_lifecycle_phases(
+    include_untracked: bool | None,
+    lifecycle_state: str,
+    pies_and_cubes_pop_mgr: PopulationManager,
+    mocker: MockerFixture,
+) -> None:
+    query = "one == 1"
+    tracking_query = "tracked == True"
+    pies_and_cubes_pop_mgr.register_tracked_query(tracking_query)
+    mocker.patch.object(pies_and_cubes_pop_mgr, "get_current_state", lambda: lifecycle_state)
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+
+    combined_query = pv._build_query(query=query, include_untracked=include_untracked)
+
+    if include_untracked is None:
+        if lifecycle_state == lifecycle_states.POPULATION_CREATION:
+            assert combined_query == f"({query})"
+        else:
+            assert combined_query == f"({query}) and ({tracking_query})"
+    elif include_untracked == True:
+        assert combined_query == f"({query})"
+    elif include_untracked == False:
+        assert combined_query == f"({query}) and ({tracking_query})"
+    else:
+        raise NotImplementedError
+
+
+def test__build_query_handles_tracked_queries(
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
-    pies_and_cubes_pop_mgr.tracked_queries = ["one == 1"]
+    """Check that we are correctly handling tracked queries.
+
+    Tracked queries are suppressed during pipeline evaluation when include_untracked
+    is None, but NOT when it is explicitly False. Explicit queries are always preserved.
+    """
+    query = "foo == 'bar'"
+    tracking_query = "tracked == True"
+
+    pies_and_cubes_pop_mgr.register_tracked_query(tracking_query)
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
-    # lifecycle_states is not directly iterable so just look for constants manually
-    states = [state for state in dir(lifecycle_states) if not state.startswith("_")]
-    for state in states:
-        query = pv._build_query("", include_untracked=False)
-        if state in [lifecycle_states.INITIALIZATION, lifecycle_states.POPULATION_CREATION]:
-            # We DO include the untracked people here so make sure the query does
-            # NOT include the tracking query
-            assert query == ""
-        else:
-            assert query == "(one == 1)"
+
+    # Depth starts at 0: tracking query is included for both None and False
+    assert pies_and_cubes_pop_mgr.pipeline_evaluation_depth == 0
+    assert (
+        pv._build_query(query, include_untracked=None) == f"({query}) and ({tracking_query})"
+    )
+    assert (
+        pv._build_query(query, include_untracked=False) == f"({query}) and ({tracking_query})"
+    )
+    assert pv._build_query(query, include_untracked=True) == f"({query})"
+
+    for depth in range(1, 3):
+        pies_and_cubes_pop_mgr.pipeline_evaluation_depth = depth
+
+        # None (default) and True: tracked query suppressed at depth > 0
+        assert pv._build_query(query, include_untracked=None) == f"({query})"
+        assert pv._build_query(query, include_untracked=True) == f"({query})"
+
+        # Explicit False: tracked query is NOT suppressed, even at depth > 0
+        assert (
+            pv._build_query(query, include_untracked=False)
+            == f"({query}) and ({tracking_query})"
+        )
+
+    # Depth resets back with same behavior as before
+    pies_and_cubes_pop_mgr.pipeline_evaluation_depth = 0
+    assert (
+        pv._build_query(query, include_untracked=None) == f"({query}) and ({tracking_query})"
+    )
+    assert (
+        pv._build_query(query, include_untracked=False) == f"({query}) and ({tracking_query})"
+    )
+    assert pv._build_query(query, include_untracked=True) == f"({query})"
 
 
 #########################

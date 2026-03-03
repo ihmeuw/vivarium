@@ -245,37 +245,57 @@ class AttributePipelineCreator(Component):
         )
 
 
-class NestedPipelineCreator(Component):
+class NestedAttributeCreator(Component):
     """A helper class to register nested pipelines."""
 
     def setup(self, builder: Builder) -> None:
 
         builder.value.register_attribute_producer(
-            "outer_attribute",
+            "outer",
             self.outer_source,
         )
-        builder.value.register_attribute_producer(
-            "foo",
-            lambda idx: pd.Series(
-                [i % 3 for i in idx],
-                index=idx,
-                name="foo",
-            ),
+
+        builder.population.register_initializer(
+            initializer=self.initialize_inner,
+            columns="inner",
         )
-        builder.value.register_attribute_modifier(
-            "outer_attribute",
-            lambda index, df: df,
-        )
-        builder.value.register_attribute_modifier(
-            "foo",
-            lambda index, series: series,
-        )
+
+    def initialize_inner(self, pop_data: SimulantData) -> None:
+        inner = pd.Series([i % 3 for i in pop_data.index], index=pop_data.index, name="inner")
+        self.population_view.update(inner)
 
     def outer_source(self, idx: pd.Index[int]) -> pd.DataFrame:
         """Calls another pipeline to generate a dataframe"""
-        inner = self.population_view.get_attribute_frame(idx, "foo")
-        df = pd.DataFrame({"bar": [i % 3 for i in idx]}, index=idx)
-        return pd.concat([inner, df], axis=1)
+        inner = self.population_view.get_attribute_frame(idx, "inner")
+        outer = pd.DataFrame(inner)
+        outer.rename(columns={"inner": "outer"}, inplace=True)
+        return pd.concat([inner, outer], axis=1)
+
+
+class NestedPrivateColumnCaller(NestedAttributeCreator):
+    """Like NestedPipelineCreator but outer_source calls get_private_columns."""
+
+    def outer_source(self, idx: pd.Index[int]) -> pd.DataFrame:
+        """Call get_private_columns inside a nested pipeline evaluation."""
+        inner_private = self.population_view.get_private_columns(idx, "inner")
+        return pd.DataFrame({"doubled_inner": inner_private * 2})
+
+
+class NestedLookupCaller(NestedAttributeCreator):
+    """Like NestedAttributeCreator but outer_source calls a lookup table keyed on 'inner'."""
+
+    def setup(self, builder: Builder) -> None:
+        super().setup(builder)
+        self.inner_lookup = self.build_lookup_table(
+            builder,
+            "inner_lookup",
+            data_source=pd.DataFrame({"inner": [0, 1, 2], "value": [10, 20, 30]}),
+        )
+
+    def outer_source(self, idx: pd.Index[int]) -> pd.DataFrame:
+        """Call a lookup table inside a nested pipeline evaluation."""
+        looked_up = self.inner_lookup(idx)
+        return pd.DataFrame({"lookup_value": looked_up})
 
 
 class LookupCreator(ColumnCreator):

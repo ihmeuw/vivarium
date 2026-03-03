@@ -91,6 +91,7 @@ class PopulationManager(Manager):
         self.adding_simulants = False
         self._last_id = -1
         self.tracked_queries: list[str] = []
+        self.pipeline_evaluation_depth: int = 0
 
     def setup(self, builder: Builder) -> None:
         """Registers the population manager with other vivarium systems."""
@@ -613,6 +614,7 @@ class PopulationManager(Manager):
             skip_post_processor,
         )
         if skip_post_processor:
+            # FIXME [MIC-6855] Does not return requested_query_columns
             return data
 
         # Add on any query columns that are actually requested to be returned
@@ -678,7 +680,31 @@ class PopulationManager(Manager):
         requested_attributes: Sequence[str],
         skip_post_processor: Literal[True, False] = False,
     ) -> Any:
-        """Gets the population for a given index and requested attributes."""
+        """Get the population for a given index and requested attributes.
+
+        While evaluating attribute pipelines, we increment ``pipeline_evaluation_depth``
+        so that nested calls to ``PopulationView.get_attributes`` (which may be
+        triggered by pipeline sources or mutators) do not automatically re-apply
+        tracked queries. The index passed to each pipeline has already been filtered
+        appropriately by the enclosing ``get_population`` call.
+
+        Note that only tracked queries are suppressed. Explicit ``query`` arguments
+        passed by the pipeline source/mutator are supported.
+        """
+
+        self.pipeline_evaluation_depth += 1
+        try:
+            return self.__get_attributes(idx, requested_attributes, skip_post_processor)
+        finally:
+            self.pipeline_evaluation_depth -= 1
+
+    def __get_attributes(
+        self,
+        idx: pd.Index[int],
+        requested_attributes: Sequence[str],
+        skip_post_processor: Literal[True, False] = False,
+    ) -> Any:
+        """Core implementation of ``_get_attributes``."""
 
         if skip_post_processor:
             if len(requested_attributes) != 1:
