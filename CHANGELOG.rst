@@ -1,6 +1,9 @@
 **4.1.0 - 12/16/25**
 
-  - Enable changing the data of a LookupTable during the simulation loop.
+  - Feature: Enable changing the data of a LookupTable during post-setup or the simulation loop.
+  - Feature: Enable Pipelines and AttributePipelines to register multiple post-processors.
+  - Feature: Enable calling Pipelines (though not AttributePipelines) during the post-setup lifecycle phase.
+  - Feature: Create a `raw_union_post_processor` that doesn't conform the returned value to the population index.
   - Refactor: use a context manager to track which component is being set up during component setup.
 
 **4.0.0 - TBD TBD TBD**
