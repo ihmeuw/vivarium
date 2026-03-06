@@ -191,7 +191,7 @@ def test_setting_default_stratifications(
 ) -> None:
     """Test that default stratifications are set as expected."""
     mgr = ResultsManager()
-    builder = mocker.Mock()
+    builder = mocker.MagicMock()
     builder.configuration.stratification.default = default_stratifications
 
     mgr.setup(builder)

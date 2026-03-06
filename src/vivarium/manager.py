@@ -47,12 +47,37 @@ class Manager(ABC):
     # Lifecycle methods #
     #####################
 
+    def setup_manager(self, builder: Builder) -> None:
+        """Sets up the manager for a Vivarium simulation.
+
+        This method is run by Vivarium during the setup phase. It performs a series
+        of operations to prepare the manager for the simulation.
+
+        It sets the :attr:`logger` for the manager, sets up the manager, sets the
+        population view, and registers various listeners including ``post_setup``,
+        ``simulant_initializer``, ``time_step__prepare``, ``time_step``, ``time_step__cleanup``,
+        ``collect_metrics``, and ``simulation_end`` listeners.
+
+        Parameters
+        ----------
+        builder
+            The builder object used to set up the manager.
+        """
+        with builder.components._tracking_setup(self):
+            self._logger = builder.logging.get_logger(self.name)
+            self.setup(builder)
+
+    #######################
+    # Methods to override #
+    #######################
+
     def setup(self, builder: Builder) -> None:
         """Defines custom actions this manager needs to run during the setup
         lifecycle phase.
 
         This method is intended to be overridden by subclasses to perform any
-        necessary setup operations specific to the manager.
+        necessary setup operations specific to the manager. By default, it
+        does nothing.
 
         Parameters
         ----------
