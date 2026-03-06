@@ -8,7 +8,7 @@ Values Manager
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Sequence
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, overload
 
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
@@ -99,7 +99,7 @@ class ValuesManager(Manager):
         source: Callable[..., Any],
         required_resources: Iterable[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
-        preferred_post_processor: PostProcessor | None = None,
+        preferred_post_processor: PostProcessor | Sequence[PostProcessor] = (),
     ) -> Pipeline:
         """Registers a ``Pipeline`` as the producer of a named value.
 
@@ -123,7 +123,8 @@ class ValuesManager(Manager):
             ``vivarium`` provides the strategies ``rescale_post_processor``
             and ``union_post_processor`` which are importable from
             ``vivarium.framework.values``. Client code may define additional
-            strategies as necessary.
+            strategies as necessary. If a sequence of post processors is provided,
+            they will be applied in the order they are provided.
 
         Returns
         -------
@@ -146,7 +147,8 @@ class ValuesManager(Manager):
         source: Callable[[pd.Index[int]], Any] | list[str],
         required_resources: Iterable[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
-        preferred_post_processor: AttributePostProcessor | None = None,
+        preferred_post_processor: AttributePostProcessor
+        | Sequence[AttributePostProcessor] = (),
         source_is_private_column: bool = False,
     ) -> None:
         """Registers an ``AttributePipeline`` as the producer of a named attribute.
@@ -174,7 +176,8 @@ class ValuesManager(Manager):
             ``vivarium`` provides the strategies ``rescale_post_processor``
             and ``union_post_processor`` which are importable from
             ``vivarium.framework.values``. Client code may define additional
-            strategies as necessary.
+            strategies as necessary. If a sequence of post processors is provided,
+            they will be applied in the order they are provided.
         source_is_private_column
             Whether or not the source is the name of a private column created by
             this component.
@@ -334,13 +337,41 @@ class ValuesManager(Manager):
     # Helper methods #
     ##################
 
+    @overload
+    def _configure_pipeline(
+        self,
+        pipeline: Pipeline,
+        source: Callable[..., Any] | list[str],
+        required_resources: Iterable[str | Resource] = (),
+        preferred_combiner: ValueCombiner = replace_combiner,
+        preferred_post_processor: PostProcessor | Sequence[PostProcessor] = (),
+        source_is_private_column: bool = False,
+    ) -> None:
+        ...
+
+    @overload
+    def _configure_pipeline(
+        self,
+        pipeline: AttributePipeline,
+        source: Callable[..., Any] | list[str],
+        required_resources: Iterable[str | Resource] = (),
+        preferred_combiner: ValueCombiner = replace_combiner,
+        preferred_post_processor: AttributePostProcessor
+        | Sequence[AttributePostProcessor] = (),
+        source_is_private_column: bool = False,
+    ) -> None:
+        ...
+
     def _configure_pipeline(
         self,
         pipeline: Pipeline | AttributePipeline,
         source: Callable[..., Any] | list[str],
         required_resources: Iterable[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
-        preferred_post_processor: PostProcessor | AttributePostProcessor | None = None,
+        preferred_post_processor: PostProcessor
+        | AttributePostProcessor
+        | Sequence[PostProcessor]
+        | Sequence[AttributePostProcessor] = (),
         source_is_private_column: bool = False,
     ) -> None:
         component = self._get_current_component()
@@ -378,24 +409,26 @@ class ValuesManager(Manager):
         else:
             value_source = ValueSource(pipeline, source)
 
+        if not isinstance(preferred_post_processor, Sequence):
+            preferred_post_processor_sequence = [preferred_post_processor]
+        else:
+            preferred_post_processor_sequence = list(preferred_post_processor)
+
         pipeline.set_attributes(
             component=component,
             source=value_source,
             combiner=preferred_combiner,
-            post_processor=preferred_post_processor,  # type: ignore[arg-type]
+            post_processor=preferred_post_processor_sequence,  # type: ignore[arg-type]
             required_resources=required_resources,
             manager=self,
         )
 
         self._add_resource(pipeline)
-        self._add_constraint(
-            pipeline._call,
-            restrict_during=[
-                lifecycle_states.INITIALIZATION,
-                lifecycle_states.SETUP,
-                lifecycle_states.POST_SETUP,
-            ],
-        )
+        restricted_states = [lifecycle_states.INITIALIZATION, lifecycle_states.SETUP]
+        if isinstance(pipeline, AttributePipeline):
+            restricted_states.append(lifecycle_states.POST_SETUP)
+
+        self._add_constraint(pipeline._call, restrict_during=restricted_states)
 
     def _configure_modifier(
         self,
