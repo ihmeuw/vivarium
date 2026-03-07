@@ -53,10 +53,9 @@ class Manager(ABC):
         This method is run by Vivarium during the setup phase. It performs a series
         of operations to prepare the manager for the simulation.
 
-        It sets the :attr:`logger` for the manager, sets up the manager, sets the
-        population view, and registers various listeners including ``post_setup``,
-        ``simulant_initializer``, ``time_step__prepare``, ``time_step``, ``time_step__cleanup``,
-        ``collect_metrics``, and ``simulation_end`` listeners.
+        It sets up the manager, sets the population view, and registers various listeners
+        including ``post_setup``, ``simulant_initializer``, ``time_step__prepare``, ``time_step``,
+        ``time_step__cleanup``, ``collect_metrics``, and ``simulation_end`` listeners.
 
         Parameters
         ----------
@@ -64,7 +63,6 @@ class Manager(ABC):
             The builder object used to set up the manager.
         """
         with builder.components._tracking_setup(self):
-            self._logger = builder.logging.get_logger(self.name)
             self.setup(builder)
 
     #######################
