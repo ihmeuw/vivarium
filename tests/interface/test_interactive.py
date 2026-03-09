@@ -239,7 +239,30 @@ class TestGetPopulationNestedAttributes:
         # False inside the nested source should have applied the tracked query
         assert tracked_count == pop["inner"].eq(1).sum()
 
-        self._assert_depth(sim, max_depth, 2)
+        self._assert_depth(sim, max_depth, 3)
+
+    @pytest.mark.parametrize("include_untracked", [None, True, False])
+    def test_get_private_columns_nested_path(
+        self,
+        include_untracked: bool | None,
+        mocker: MockerFixture,
+    ) -> None:
+        """Test get_private_columns inside a nested pipeline call suppresses tracked queries."""
+        sim = self._create_sim(
+            NestedPrivateColumnCaller,
+            tracked_query="inner == 1",
+            mocker=mocker,
+        )
+        self._assert_nested_query_suppression(
+            sim,
+            include_untracked,
+            mocker,
+            expected_filtered_inner={1},
+            outer_column=("outer", "doubled_inner"),
+            expected_baseline_outer={0, 2, 4},
+            expected_filtered_outer={2},
+            expected_depth=2,
+        )
 
     @pytest.mark.parametrize("include_untracked", [None, True, False])
     def test_lookup_table_nested_path(
@@ -281,7 +304,7 @@ class TestGetPopulationNestedAttributes:
         outer_column: str | tuple[str, str] | None = None,
         expected_baseline_outer: set[int] | None = None,
         expected_filtered_outer: set[int] | None = None,
-        expected_depth: int = 2,
+        expected_depth: int = 3,
     ) -> None:
         """Common assertion pattern for nested query suppression tests.
 
