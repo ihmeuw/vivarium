@@ -10,6 +10,7 @@ This module provides an interface to the :class:`ComponentManager <vivarium.fram
 from __future__ import annotations
 
 from collections.abc import Sequence
+from contextlib import AbstractContextManager
 from typing import TYPE_CHECKING, Union
 
 from vivarium import Component
@@ -98,3 +99,20 @@ class ComponentInterface(Interface):
                 If there is no component or manager currently being set up.
         """
         return self._manager.get_current_component_or_manager()
+
+    def _tracking_setup(self, component: Component | Manager) -> AbstractContextManager[None]:
+        """Context manager that tracks the component currently being set up.
+
+        Delegates to
+        :meth:`ComponentManager._tracking_setup
+        <vivarium.framework.components.manager.ComponentManager._tracking_setup>`.
+        This is intentionally private: write-access to
+        ``ComponentManager._current_component`` should remain confined to the
+        setup lifecycle.
+
+        Parameters
+        ----------
+        component
+            The component or manager currently being set up.
+        """
+        return self._manager.tracking_setup(component)

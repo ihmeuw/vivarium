@@ -10,7 +10,7 @@ for handling complex data bound up in a data artifact.
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -20,12 +20,10 @@ from layered_config_tree.main import LayeredConfigTree
 from vivarium.framework.artifact import ArtifactException
 from vivarium.framework.artifact.artifact import Artifact
 from vivarium.framework.lifecycle import lifecycle_states
-from vivarium.manager import Interface, Manager
-from vivarium.types import LookupTableData
+from vivarium.manager import Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
-    from vivarium.types import ScalarValue
 
 
 class ArtifactManager(Manager):

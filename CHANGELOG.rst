@@ -1,6 +1,7 @@
 **4.1.0 - 04/16/26**
 
 - Enable changing the data of a LookupTable during the simulation loop.
+- Refactor: use a context manager to track which component is being set up during component setup.
 
 **4.0.3 - 04/16/26**
 
