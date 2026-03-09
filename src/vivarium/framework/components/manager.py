@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from typing import TYPE_CHECKING, Generic, TypeVar
 
 from layered_config_tree import (
@@ -143,10 +144,14 @@ class ComponentManager(Manager):
         """The name of this component."""
         return "component_manager"
 
-    def setup_manager(
+    def setup_manager(  # type: ignore[override]
         self, configuration: LayeredConfigTree, lifecycle_manager: LifeCycleManager
     ) -> None:
-        """Called by the simulation context."""
+        """Sets up the component manager.
+
+        It registers lifecycle constraints and stores the configuration tree. Unlike other
+        managers, this is called directly by the simulation context during its __init__.
+        """
         self._configuration = configuration
 
         lifecycle_manager.add_constraint(
@@ -275,6 +280,27 @@ class ComponentManager(Manager):
             raise LifeCycleError("No component or manager is currently being set up.")
         return self._current_component
 
+    @contextmanager
+    def tracking_setup(self, component: Component | Manager) -> Iterator[None]:
+        """Context manager that sets ``_current_component`` to ``component``
+        for the duration of the block, then restores the previous value.
+
+        Using save-and-restore rather than a plain assignment means nested
+        calls (e.g. a manager whose ``setup`` calls ``super().setup``) work
+        correctly.
+
+        Parameters
+        ----------
+        component
+            The component or manager currently being set up.
+        """
+        previous = self._current_component
+        self._current_component = component
+        try:
+            yield
+        finally:
+            self._current_component = previous
+
     def setup_components(self, builder: Builder) -> None:
         """Separately configure and set up the managers and components held by
         the component manager, in that order.
@@ -290,14 +316,10 @@ class ComponentManager(Manager):
             Interface to several simulation tools.
         """
         for manager in self._managers:
-            self._current_component = manager
-            manager.setup(builder)
+            manager.setup_manager(builder)
 
         for component in self._components:
-            self._current_component = component
             component.setup_component(builder)
-
-        self._current_component = None
 
     def apply_configuration_defaults(self, component: Component | Manager) -> None:
         try:

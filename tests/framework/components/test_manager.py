@@ -183,7 +183,7 @@ def test_flatten_with_nested_sub_components() -> None:
 
 
 def test_setup_components(mocker: MockerFixture) -> None:
-    builder = mocker.Mock()
+    builder = mocker.MagicMock()
     builder.configuration = {}
     mocker.patch("vivarium.framework.results.observer.Observer.set_results_dir")
     mocker.patch("vivarium.framework.results.observer.Observer.get_configuration")
