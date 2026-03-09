@@ -65,9 +65,10 @@ class Observer(Component, ABC):
 
     def setup_component(self, builder: Builder) -> None:
         """Sets up the observer component."""
-        super().setup_component(builder)
-        self.register_observations(builder)
-        self.set_results_dir(builder)
+        with builder.components._tracking_setup(self):
+            super().setup_component(builder)
+            self.register_observations(builder)
+            self.set_results_dir(builder)
 
     def set_results_dir(self, builder: Builder) -> None:
         """Defines the results directory from the configuration."""

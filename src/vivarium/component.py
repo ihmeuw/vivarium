@@ -277,16 +277,17 @@ class Component(ABC):
         builder
             The builder object used to set up the component.
         """
-        self._logger = builder.logging.get_logger(self.name)
-        self.configuration = self.get_configuration(builder)
-        self.setup(builder)
-        self._set_population_view(builder)
-        self._register_post_setup_listener(builder)
-        self._register_time_step_prepare_listener(builder)
-        self._register_time_step_listener(builder)
-        self._register_time_step_cleanup_listener(builder)
-        self._register_collect_metrics_listener(builder)
-        self._register_simulation_end_listener(builder)
+        with builder.components._tracking_setup(self):
+            self._logger = builder.logging.get_logger(self.name)
+            self.configuration = self.get_configuration(builder)
+            self.setup(builder)
+            self._set_population_view(builder)
+            self._register_post_setup_listener(builder)
+            self._register_time_step_prepare_listener(builder)
+            self._register_time_step_listener(builder)
+            self._register_time_step_cleanup_listener(builder)
+            self._register_collect_metrics_listener(builder)
+            self._register_simulation_end_listener(builder)
 
     #######################
     # Methods to override #

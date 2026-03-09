@@ -114,7 +114,7 @@ def test_register_stratification(
     is_vectorized: bool,
 ) -> None:
     mgr = ResultsManager()
-    builder = mocker.Mock()
+    builder = mocker.MagicMock()
     builder.configuration.stratification = LayeredConfigTree(
         {"default": [], "excluded_categories": {}}
     )
@@ -209,7 +209,7 @@ def test_add_observation_nop_stratifications(
     caplog: LogCaptureFixture,
 ) -> None:
     mgr = ResultsManager()
-    builder = mocker.Mock()
+    builder = mocker.MagicMock()
     mgr.setup(builder)
     mgr.logger = logger
 
@@ -233,7 +233,7 @@ def test_add_observation_nop_stratifications(
 def test_setting_default_stratifications_at_setup(mocker: pytest_mock.MockFixture) -> None:
     """Test that set default stratifications happens at setup"""
     mgr = ResultsManager()
-    builder = mocker.Mock()
+    builder = mocker.MagicMock()
     mocker.patch.object(mgr._results_context, "set_default_stratifications")
     mgr._results_context.set_default_stratifications.assert_not_called()  # type: ignore[attr-defined]
 
@@ -252,7 +252,7 @@ def test_setting_default_stratifications_at_setup(mocker: pytest_mock.MockFixtur
 def test__raw_results_initialized_as_empty_dict(mocker: pytest_mock.MockFixture) -> None:
     """Test that raw results are initialized as an empty dictionary"""
     mgr = ResultsManager()
-    builder = mocker.Mock()
+    builder = mocker.MagicMock()
     mgr.setup(builder)
     assert mgr._raw_results == {}
 
