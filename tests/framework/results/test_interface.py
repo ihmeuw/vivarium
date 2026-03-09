@@ -36,7 +36,7 @@ def test_register_stratification(mocker: MockerFixture) -> None:
         # NOTE: it does not actually matter what this mapper returns for this test
         return "this was pointless"
 
-    builder = mocker.Mock()
+    builder = mocker.MagicMock()
     # Set up mock builder with mocked get_attribute call for Pipelines
     mocker.patch.object(builder, "value.get_attribute")
     mgr = ResultsManager()
@@ -73,7 +73,7 @@ def test_register_binned_stratification(mocker: MockerFixture) -> None:
 
     mgr = ResultsManager()
     mgr.logger = logger
-    builder = mocker.Mock()
+    builder = mocker.MagicMock()
     mocker.patch.object(builder, "value.get_attribute")
     mgr.setup(builder)
 
@@ -122,7 +122,7 @@ def test_register_binned_stratification(mocker: MockerFixture) -> None:
 def test_register_observation_raises(
     obs_type: str, missing_args: list[str], mocker: MockerFixture
 ) -> None:
-    builder = mocker.Mock()
+    builder = mocker.MagicMock()
     builder.configuration.stratification.default = []
     mgr = ResultsManager()
     mgr.setup(builder)
@@ -140,7 +140,7 @@ def test_register_observation_raises(
 def test_register_stratified_observation(mocker: MockerFixture) -> None:
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
-    builder = mocker.Mock()
+    builder = mocker.MagicMock()
     builder.configuration.stratification.default = ["default-stratification", "exclude-this"]
     mgr.setup(builder)
     for strat in [
@@ -207,7 +207,7 @@ def test_register_stratified_observation(mocker: MockerFixture) -> None:
 def test_register_unstratified_observation(mocker: MockerFixture) -> None:
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
-    builder = mocker.Mock()
+    builder = mocker.MagicMock()
     mgr.setup(builder)
     assert len(interface._manager._results_context.grouped_observations) == 0
     interface.register_unstratified_observation(
@@ -288,7 +288,7 @@ def test_register_adding_observation(
 ) -> None:
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
-    builder = mocker.Mock()
+    builder = mocker.MagicMock()
     builder.configuration.stratification.default = []
     mgr.setup(builder)
     assert len(interface._manager._results_context.grouped_observations) == 0
@@ -308,7 +308,7 @@ def test_register_adding_observation(
 def test_register_multiple_adding_observations(mocker: MockerFixture) -> None:
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
-    builder = mocker.Mock()
+    builder = mocker.MagicMock()
     builder.configuration.stratification.default = []
     mgr.setup(builder)
 
@@ -354,7 +354,7 @@ def test_register_multiple_adding_observations(mocker: MockerFixture) -> None:
 def test_unhashable_pipeline(mocker: MockerFixture) -> None:
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
-    builder = mocker.Mock()
+    builder = mocker.MagicMock()
     builder.configuration.stratification.default = []
     mgr.setup(builder)
 
@@ -385,7 +385,7 @@ def test_register_adding_observation_when_options(when: str, mocker: MockerFixtu
     """Test the full interface lifecycle of adding an observation and simulation event."""
     mgr = ResultsManager()
     results_interface = ResultsInterface(mgr)
-    builder = mocker.Mock()
+    builder = mocker.MagicMock()
     builder.configuration.stratification = LayeredConfigTree(
         {"default": [], "excluded_categories": {}}
     )
@@ -450,7 +450,7 @@ def test_register_adding_observation_when_options(when: str, mocker: MockerFixtu
 def test_register_concatenating_observation(mocker: MockerFixture) -> None:
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
-    builder = mocker.Mock()
+    builder = mocker.MagicMock()
     builder.configuration.stratification.default = []
     # Set up mock builder with mocked get_attribute call for Pipelines
     mocker.patch.object(builder, "value.get_attribute")
