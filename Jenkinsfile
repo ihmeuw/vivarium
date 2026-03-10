@@ -26,7 +26,7 @@ Note that updating the shared repo will take affect on the next pipeline invocat
 
 // Load the full vivarium_build_utils library at the expected version
 // Testing coverage report directory
-library("vivarium_build_utils@albrja/mic-6852/cleanup-builds")
+library("vivarium_build_utils@bugfix/determine-max-python-verison")
 
 reusable_pipeline(
     scheduled_branches: [
