@@ -614,7 +614,9 @@ class PopulationManager(Manager):
             skip_post_processor,
         )
         if skip_post_processor:
-            # FIXME [MIC-6855] Does not return requested_query_columns
+            # NOTE: This correctly returns the requested attribute even when it
+            # overlaps with query columns because we pass `requested_attributes`
+            # (not `columns_to_get`) above when `skip_post_processor` is True.
             return data
 
         # Add on any query columns that are actually requested to be returned

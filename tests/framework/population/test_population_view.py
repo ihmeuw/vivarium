@@ -227,6 +227,35 @@ def test_get_attributes_skip_post_processor_with_query(
     assert call_args[1] == {"skip_post_processor": True}
 
 
+def test_get_attributes_skip_post_processor_returns_queried_attribute(
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    """Test that skip_post_processor returns the attribute even when it's also used in the query."""
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+
+    def mock_pie_pipeline(idx: pd.Index[int], skip_post_processor: bool) -> pd.Series[Any]:
+        private_col_df = pies_and_cubes_pop_mgr._private_columns
+        assert isinstance(private_col_df, pd.DataFrame)
+        return private_col_df.loc[idx, "pie"]
+
+    pies_and_cubes_pop_mgr._attribute_pipelines["pie"].side_effect = mock_pie_pipeline  # type: ignore[attr-defined]
+
+    # No query - full attribute
+    result = pv.get_attributes(full_idx, "pie", skip_post_processor=True)
+    pd.testing.assert_series_equal(result, PIE_DF["pie"])
+
+    # Request "pie" while querying "cube"
+    result = pv.get_attributes(full_idx, "pie", query="pi > 1000", skip_post_processor=True)
+    pd.testing.assert_series_equal(result, PIE_DF.loc[PIE_DF["pi"] > 1000, "pie"])
+
+    # Request "pie" while also querying on "pie" -- the attribute should still be returned
+    result = pv.get_attributes(
+        full_idx, "pie", query="pie == 'apple'", skip_post_processor=True
+    )
+    pd.testing.assert_series_equal(result, PIE_DF.loc[PIE_DF["pie"] == "apple", "pie"])
+
+
 @pytest.mark.parametrize("register_tracked_query", [True, False])
 @pytest.mark.parametrize("include_untracked", [True, False])
 def test_get_attributes_combined_query(
