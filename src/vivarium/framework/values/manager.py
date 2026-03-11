@@ -410,15 +410,15 @@ class ValuesManager(Manager):
             value_source = ValueSource(pipeline, source)
 
         if not isinstance(preferred_post_processor, Sequence):
-            preferred_post_processor_sequence = [preferred_post_processor]
+            preferred_post_processor_list = [preferred_post_processor]
         else:
-            preferred_post_processor_sequence = list(preferred_post_processor)
+            preferred_post_processor_list = list(preferred_post_processor)
 
         pipeline.set_attributes(
             component=component,
             source=value_source,
             combiner=preferred_combiner,
-            post_processor=preferred_post_processor_sequence,  # type: ignore[arg-type]
+            post_processor=preferred_post_processor_list,  # type: ignore[arg-type]
             required_resources=required_resources,
             manager=self,
         )

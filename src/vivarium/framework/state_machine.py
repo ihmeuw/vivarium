@@ -289,7 +289,7 @@ class State(Component):
         population_view
             A view of the internal state of the simulation.
         """
-        population_view.update(pd.Series(self.state_id, index=index))
+        population_view.update(pd.Series(self.state_id, index=index, name=self.model))
         self.transition_side_effect(index, event_time)
 
     def cleanup_effect(self, index: pd.Index[int], event_time: ClockTime) -> None:
