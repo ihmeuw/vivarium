@@ -187,15 +187,11 @@ def test_multiplication_combiner(manager: ValuesManager) -> None:
     assert np.all(value(INDEX) == 2.0)
 
     # One modifier: source * modifier = 2.0 * 3.0 = 6.0
-    manager.register_value_modifier(
-        "test", modifier=lambda idx: pd.Series(3.0, index=idx)
-    )
+    manager.register_value_modifier("test", modifier=lambda idx: pd.Series(3.0, index=idx))
     assert np.all(value(INDEX) == 6.0)
 
     # Two modifiers: source * modifier1 * modifier2 = 2.0 * 3.0 * 0.5 = 3.0
-    manager.register_value_modifier(
-        "test", modifier=lambda idx: pd.Series(0.5, index=idx)
-    )
+    manager.register_value_modifier("test", modifier=lambda idx: pd.Series(0.5, index=idx))
     assert np.all(value(INDEX) == 3.0)
 
 
@@ -210,15 +206,11 @@ def test_addition_combiner(manager: ValuesManager) -> None:
     assert np.all(value(INDEX) == 2.0)
 
     # One modifier: source + modifier = 2.0 + 3.0 = 5.0
-    manager.register_value_modifier(
-        "test", modifier=lambda idx: pd.Series(3.0, index=idx)
-    )
+    manager.register_value_modifier("test", modifier=lambda idx: pd.Series(3.0, index=idx))
     assert np.all(value(INDEX) == 5.0)
 
     # Two modifiers: source + modifier1 + modifier2 = 2.0 + 3.0 + (-0.5) = 4.5
-    manager.register_value_modifier(
-        "test", modifier=lambda idx: pd.Series(-0.5, index=idx)
-    )
+    manager.register_value_modifier("test", modifier=lambda idx: pd.Series(-0.5, index=idx))
     assert np.all(value(INDEX) == 4.5)
 
 
