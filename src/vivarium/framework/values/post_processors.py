@@ -79,9 +79,7 @@ def rescale_post_processor(
         raise NotImplementedError
 
 
-def raw_union_post_processor(
-    value: list[NumberLike], manager: ValuesManager
-) -> NumberLike:
+def raw_union_post_processor(value: list[NumberLike], manager: ValuesManager) -> NumberLike:
     """Computes a probability on the union of the sample spaces in the values.
 
     Given a list of values where each value is a probability of an independent
