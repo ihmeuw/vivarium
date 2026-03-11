@@ -4,6 +4,7 @@
   - Feature: Enable Pipelines and AttributePipelines to register multiple post-processors.
   - Feature: Enable calling Pipelines (though not AttributePipelines) during the post-setup lifecycle phase.
   - Feature: Create a `raw_union_post_processor` that doesn't conform the returned value to the population index.
+  - Feature: Add `multiplication_combiner` and `addition_combiner` to the values system.
   - Refactor: use a context manager to track which component is being set up during component setup.
 
 **4.0.0 - TBD TBD TBD**
