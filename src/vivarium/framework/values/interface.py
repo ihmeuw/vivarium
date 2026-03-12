@@ -53,7 +53,7 @@ class ValuesInterface(Interface):
         source: Callable[..., Any],
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
-        preferred_post_processor: PostProcessor | None = None,
+        preferred_post_processor: PostProcessor | Sequence[PostProcessor] = (),
     ) -> Pipeline:
         """Registers a ``Pipeline`` as the producer of a named value.
 
@@ -77,7 +77,8 @@ class ValuesInterface(Interface):
             ``vivarium`` provides the strategies ``rescale_post_processor``
             and ``union_post_processor`` which are importable from
             ``vivarium.framework.values``. Client code may define additional
-            strategies as necessary.
+            strategies as necessary. If a sequence of post processors is provided,
+            they will be applied in the order they are provided.
 
         Returns
         -------
@@ -97,7 +98,8 @@ class ValuesInterface(Interface):
         source: Callable[[pd.Index[int]], Any] | list[str],
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
-        preferred_post_processor: AttributePostProcessor | None = None,
+        preferred_post_processor: AttributePostProcessor
+        | Sequence[AttributePostProcessor] = (),
         source_is_private_column: bool = False,
     ) -> None:
         """Registers an ``AttributePipeline`` as the producer of a named attribute.
@@ -125,7 +127,8 @@ class ValuesInterface(Interface):
             ``vivarium`` provides the strategies ``rescale_post_processor``
             and ``union_post_processor`` which are importable from
             ``vivarium.framework.values``. Client code may define additional
-            strategies as necessary.
+            strategies as necessary. If a sequence of post processors is provided,
+            they will be applied in the order they are provided.
         source_is_private_column
             Whether or not the source is the name of a private column created by
             this component.
@@ -144,6 +147,9 @@ class ValuesInterface(Interface):
         rate_name: str,
         source: Callable[[pd.Index[int]], Any] | list[str],
         required_resources: Sequence[str | Resource] = (),
+        preferred_combiner: ValueCombiner = replace_combiner,
+        preferred_post_processor: AttributePostProcessor
+        | Sequence[AttributePostProcessor] = (),
     ) -> None:
         """Registers an ``AttributePipeline`` as the producer of a named rate.
 
@@ -164,12 +170,31 @@ class ValuesInterface(Interface):
         required_resources
             A list of resources that the producer requires. A string represents
             a population attribute.
+        preferred_combiner
+            A strategy for combining the source and the results of any calls
+            to mutators in the pipeline. ``vivarium`` provides the strategies
+            ``replace_combiner`` (the default) and ``list_combiner``, which
+            are importable from ``vivarium.framework.values``. Client code
+            may define additional strategies as necessary.
+        preferred_post_processor
+            A strategy for processing the final output of the pipeline. These will
+            be applied after the ``rescale_post_processor`` has been applied first.
+            ``vivarium`` provides the strategy ``union_post_processor`` which is
+            importable from ``vivarium.framework.values``. Client code may define additional
+            strategies as necessary. If a sequence of post processors is provided,
+            they will be applied in the order they are provided.
         """
+        preferred_post_processor_list = (
+            preferred_post_processor
+            if isinstance(preferred_post_processor, Sequence)
+            else [preferred_post_processor]
+        )
         self.register_attribute_producer(
             rate_name,
             source,
             required_resources,
-            preferred_post_processor=rescale_post_processor,
+            preferred_combiner=preferred_combiner,
+            preferred_post_processor=[rescale_post_processor, *preferred_post_processor_list],
         )
 
     def register_value_modifier(
