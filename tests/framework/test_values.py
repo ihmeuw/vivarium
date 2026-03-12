@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -12,7 +12,7 @@ from pytest_mock import MockerFixture, MockFixture
 from tests.helpers import ColumnCreator
 from vivarium import Component
 from vivarium.framework.lifecycle import lifecycle_states
-from vivarium.framework.resource import Column, Resource
+from vivarium.framework.resource import Resource
 from vivarium.framework.utilities import from_yearly
 from vivarium.framework.values import (
     AttributePipeline,
@@ -23,6 +23,7 @@ from vivarium.framework.values import (
     rescale_post_processor,
     union_post_processor,
 )
+from vivarium.framework.values.interface import ValuesInterface
 from vivarium.framework.values.pipeline import (
     AttributesValueSource,
     PrivateColumnValueSource,
@@ -40,15 +41,26 @@ if TYPE_CHECKING:
 INDEX = pd.Index([4, 8, 15, 16, 23, 42])
 
 
-def test_configure_pipeline_calls_methods_correctly(mocker: MockerFixture) -> None:
+@pytest.mark.parametrize("pipeline_type", [Pipeline, AttributePipeline])
+@pytest.mark.parametrize("multiple_post_processors", [False, True])
+def test_configure_pipeline_calls_methods_correctly(
+    mocker: MockerFixture, pipeline_type: type[Pipeline], multiple_post_processors: bool
+) -> None:
     """Test that _configure_pipeline orchestrates calls to helper methods correctly."""
     # Setup
     manager = ValuesManager()
     test_component = Component()
-    test_pipeline = mocker.Mock()
+    test_pipeline = mocker.Mock(spec_set=pipeline_type)
     test_required_resources = ["resource1", "resource2"]
     test_combiner = mocker.Mock()
     test_post_processor = mocker.Mock()
+    if multiple_post_processors:
+        test_post_processor_2 = mocker.Mock()
+        post_processor_arg = [test_post_processor, test_post_processor_2]
+        expected_post_processors = [test_post_processor, test_post_processor_2]
+    else:
+        post_processor_arg = test_post_processor
+        expected_post_processors = [test_post_processor]
 
     # Inject mocks into the manager
     manager._get_current_component = mocker.Mock(return_value=test_component)
@@ -61,7 +73,7 @@ def test_configure_pipeline_calls_methods_correctly(mocker: MockerFixture) -> No
         lambda idx: pd.Series(1, index=idx),
         test_required_resources,
         test_combiner,
-        test_post_processor,
+        post_processor_arg,
         source_is_private_column=False,
     )
 
@@ -71,7 +83,7 @@ def test_configure_pipeline_calls_methods_correctly(mocker: MockerFixture) -> No
     assert call_args[1]["component"] == test_component
     assert isinstance(call_args[1]["source"], ValueSource)
     assert call_args[1]["combiner"] == test_combiner
-    assert call_args[1]["post_processor"] == test_post_processor
+    assert call_args[1]["post_processor"] == expected_post_processors
     assert call_args[1]["manager"] == manager
 
     # Assert _add_resource was called with correct arguments
@@ -81,11 +93,10 @@ def test_configure_pipeline_calls_methods_correctly(mocker: MockerFixture) -> No
     manager._add_constraint.assert_called_once()  # type: ignore[attr-defined]
     call_args = manager._add_constraint.call_args  # type: ignore[attr-defined]
     assert call_args[0][0] == test_pipeline._call
-    assert call_args[1]["restrict_during"] == [
-        lifecycle_states.INITIALIZATION,
-        lifecycle_states.SETUP,
-        lifecycle_states.POST_SETUP,
-    ]
+    expected_restrict_during = [lifecycle_states.INITIALIZATION, lifecycle_states.SETUP]
+    if isinstance(test_pipeline, AttributePipeline):
+        expected_restrict_during.append(lifecycle_states.POST_SETUP)
+    assert call_args[1]["restrict_during"] == expected_restrict_during
 
 
 def test_configure_modifier_calls_methods_correctly(mocker: MockerFixture) -> None:
@@ -206,15 +217,31 @@ def test_returned_series_name(manager: ValuesManager) -> None:
 
 
 @pytest.mark.parametrize("manager_with_step_size", ["static_step"], indirect=True)
-def test_rescale_post_processor_static(manager_with_step_size: ValuesManager) -> None:
+@pytest.mark.parametrize("post_processor_mode", ["single", "multiple"])
+def test_rescale_post_processor_static(
+    manager_with_step_size: ValuesManager, post_processor_mode: str
+) -> None:
+    rescaled = from_yearly(0.75, pd.Timedelta(days=6))
+
+    def double_pp(
+        index: pd.Index[int], value: pd.Series[float], manager: ValuesManager
+    ) -> pd.Series[float]:
+        return value * 2
+
+    pp_arg: Any = (
+        [rescale_post_processor, double_pp]
+        if post_processor_mode == "multiple"
+        else rescale_post_processor
+    )
+    expected = rescaled * 2 if post_processor_mode == "multiple" else rescaled
 
     manager_with_step_size.register_attribute_producer(
         "test",
         source=lambda idx: pd.Series(0.75, index=idx),
-        preferred_post_processor=rescale_post_processor,
+        preferred_post_processor=pp_arg,
     )
     pipeline = manager_with_step_size.get_attribute_pipelines()["test"]
-    assert np.all(pipeline(INDEX) == from_yearly(0.75, pd.Timedelta(days=6)))
+    assert np.all(pipeline(INDEX) == expected)
 
 
 @pytest.mark.parametrize("manager_with_step_size", ["variable_step"], indirect=True)
@@ -298,6 +325,45 @@ def test_rescale_post_processor_types(
 
 
 # Tests for union_post_processor
+
+
+@pytest.mark.parametrize("manager_with_step_size", ["static_step"], indirect=True)
+@pytest.mark.parametrize("post_processor_mode", ["none", "single", "multiple"])
+def test_register_rate_producer(
+    manager_with_step_size: ValuesManager, post_processor_mode: str
+) -> None:
+    """Test that register_rate_producer always applies rescale_post_processor first,
+    followed by any additional post processors in order."""
+
+    def double_pp(
+        index: pd.Index[int], value: pd.Series[float], manager: ValuesManager
+    ) -> pd.Series[float]:
+        return value * 2
+
+    def negate_pp(
+        index: pd.Index[int], value: pd.Series[float], manager: ValuesManager
+    ) -> pd.Series[float]:
+        return -value
+
+    rescaled = from_yearly(0.75, pd.Timedelta(days=6))
+    if post_processor_mode == "none":
+        pp_arg: AttributePostProcessor | Sequence[AttributePostProcessor] = ()
+        expected = rescaled
+    elif post_processor_mode == "single":
+        pp_arg = double_pp
+        expected = rescaled * 2
+    else:  # "multiple"
+        pp_arg = [double_pp, negate_pp]
+        expected = -(rescaled * 2)
+
+    interface = ValuesInterface(manager_with_step_size)
+    interface.register_rate_producer(
+        "test",
+        source=lambda idx: pd.Series(0.75, index=idx),
+        preferred_post_processor=pp_arg,
+    )
+    pipeline = manager_with_step_size.get_attribute_pipelines()["test"]
+    assert np.all(pipeline(INDEX) == expected)
 
 
 def test_union_post_processor_not_list(manager: ValuesManager) -> None:
@@ -567,8 +633,8 @@ def test_attribute_pipeline_register_producer(manager: ValuesManager) -> None:
     assert all(result["birth_year"] == [1999, 1994, 1989])
 
 
-@pytest.mark.parametrize("use_postprocessor", [True, False])
-def test_attribute_pipeline_usage(use_postprocessor: bool, manager: ValuesManager) -> None:
+@pytest.mark.parametrize("post_processor_mode", ["none", "single", "multiple"])
+def test_attribute_pipeline_usage(post_processor_mode: str, manager: ValuesManager) -> None:
 
     # Create initialized dataframe
     data = pd.DataFrame({"col1": [0.0] * (max(INDEX) + 5), "col2": [0.0] * (max(INDEX) + 5)})
@@ -584,6 +650,12 @@ def test_attribute_pipeline_usage(use_postprocessor: bool, manager: ValuesManage
     ) -> pd.DataFrame:
         return value * 10
 
+    def second_post_processor(
+        index: pd.Index[int], value: pd.DataFrame, manager: ValuesManager
+    ) -> pd.DataFrame:
+        """Applied after attribute_post_processor; adds 1 to all values."""
+        return value + 1
+
     def attribute_modifier1(index: pd.Index[int], value: pd.DataFrame) -> pd.DataFrame:
         """modify col1 only"""
         df = value.copy()
@@ -596,10 +668,23 @@ def test_attribute_pipeline_usage(use_postprocessor: bool, manager: ValuesManage
         df["col2"] += 2.0
         return df
 
+    # source produces col1=1, col2=2; modifiers add 1 and 2 → col1=2, col2=4
+    # "single":   x10         → col1=20, col2=40
+    # "multiple": x10 then +1 → col1=21, col2=41
+    if post_processor_mode == "none":
+        pp_arg: Any = []
+        expected_col1, expected_col2 = 2.0, 4.0
+    elif post_processor_mode == "single":
+        pp_arg = attribute_post_processor
+        expected_col1, expected_col2 = 20.0, 40.0
+    else:  # "multiple"
+        pp_arg = [attribute_post_processor, second_post_processor]
+        expected_col1, expected_col2 = 21.0, 41.0
+
     manager.register_attribute_producer(
         "test_attribute",
         source=attribute_source,
-        preferred_post_processor=attribute_post_processor if use_postprocessor else None,
+        preferred_post_processor=pp_arg,
     )
     pipeline = manager.get_attribute_pipelines()["test_attribute"]
     manager.register_attribute_modifier("test_attribute", modifier=attribute_modifier1)
@@ -610,8 +695,8 @@ def test_attribute_pipeline_usage(use_postprocessor: bool, manager: ValuesManage
     assert isinstance(result, pd.DataFrame)
     assert result.index.equals(INDEX)
     assert set(result.columns) == {"col1", "col2"}
-    assert all(result["col1"] == (20 if use_postprocessor else 2.0))
-    assert all(result["col2"] == (40 if use_postprocessor else 4.0))
+    assert all(result["col1"] == expected_col1)
+    assert all(result["col2"] == expected_col2)
 
 
 def test_attribute_pipeline_raises_returns_different_index(manager: ValuesManager) -> None:
@@ -790,15 +875,15 @@ def test_source_callable(
 @pytest.mark.parametrize(
     "source, post_processor, is_private_column, expected_is_simple",
     [
-        (["col1"], None, True, True),
-        (["col1"], None, False, False),
-        (lambda idx: pd.DataFrame({"col1": [1.0] * len(idx)}), None, False, False),
+        (["col1"], [], True, True),
+        (["col1"], [], False, False),
+        (lambda idx: pd.DataFrame({"col1": [1.0] * len(idx)}), [], False, False),
         (["col1"], lambda idx, val, mgr: val * 2, True, False),
     ],
 )
 def test_attribute_pipeline_is_simple(
     source: list[str] | Callable[[pd.Index[int]], pd.DataFrame],
-    post_processor: AttributePostProcessor | None,
+    post_processor: AttributePostProcessor | list[AttributePostProcessor],
     is_private_column: bool,
     expected_is_simple: bool,
     manager: ValuesManager,

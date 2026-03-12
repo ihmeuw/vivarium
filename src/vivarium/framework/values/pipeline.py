@@ -147,8 +147,8 @@ class Pipeline(Resource):
         """A list of callables that directly modify the pipeline source or
         contribute portions of the value."""
         self._combiner: ValueCombiner | None = None
-        self.post_processor: PostProcessor | None = None
-        """An optional final transformation to perform on the combined output of
+        self.post_processor: list[PostProcessor] = []
+        """A list of the transformations to perform in order on the combined output of
         the source and mutators."""
         self._manager: ValuesManager | None = None
 
@@ -215,8 +215,9 @@ class Pipeline(Resource):
         value = self.source(*args, **kwargs)
         for mutator in self.mutators:
             value = self.combiner(value, mutator, *args, **kwargs)
-        if self.post_processor and not skip_post_processor:
-            return self.post_processor(value, self.manager)
+        if not skip_post_processor:
+            for processor in self.post_processor:
+                value = processor(value, self.manager)
         if isinstance(value, pd.Series):
             value.name = self.name
 
@@ -255,7 +256,7 @@ class Pipeline(Resource):
         component: Component | Manager,
         source: ValueSource,
         combiner: ValueCombiner,
-        post_processor: PostProcessor | None,
+        post_processor: list[PostProcessor],
         required_resources: Iterable[str | Resource],
         manager: ValuesManager,
     ) -> None:
@@ -316,8 +317,8 @@ class AttributePipeline(Pipeline):
     def __init__(self, name: str, component: Component | None = None) -> None:
         super().__init__(name, component=component)
         # Re-define the post-processor type to be more specific
-        self.post_processor: AttributePostProcessor | None = None  # type: ignore[assignment]
-        """An optional final transformation to perform on the combined output of
+        self.post_processor: list[AttributePostProcessor] = []  # type: ignore[assignment]
+        """A list of the transformations to perform in order on the combined output of
         the source and mutators."""
 
     def __call__(  # type: ignore[override]
@@ -345,8 +346,9 @@ class AttributePipeline(Pipeline):
         """
         # NOTE: must pass index in as arg (NOT kwarg!) to match signature of parent Pipeline._call()
         attribute = self._call(index, skip_post_processor=True)
-        if self.post_processor and not skip_post_processor:
-            attribute = self.post_processor(index, attribute, self.manager)
+        if not skip_post_processor:
+            for processor in self.post_processor:
+                attribute = processor(index, attribute, self.manager)
         if not isinstance(attribute, (pd.Series, pd.DataFrame)):
             raise DynamicValueError(
                 f"The dynamic attribute pipeline for {self.name} returned a {type(attribute)} "

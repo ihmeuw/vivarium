@@ -79,9 +79,7 @@ def rescale_post_processor(
         raise NotImplementedError
 
 
-def union_post_processor(
-    index: pd.Index[int], value: list[NumberLike], manager: ValuesManager
-) -> pd.Series[Any] | pd.DataFrame:
+def raw_union_post_processor(value: list[NumberLike], manager: ValuesManager) -> NumberLike:
     """Computes a probability on the union of the sample spaces in the values.
 
     Given a list of values where each value is a probability of an independent
@@ -133,6 +131,43 @@ def union_post_processor(
             new_value = 1 - v
             product = product * new_value
         joint_value = 1 - product
+
+    return joint_value
+
+
+def union_post_processor(
+    index: pd.Index[int], value: list[NumberLike], manager: ValuesManager
+) -> pd.Series[Any] | pd.DataFrame:
+    """Computes a probability on the union of the sample spaces in the values.
+
+    Given a list of values where each value is a probability of an independent
+    event, this post processor computes the probability of the union of the events.
+
+    .. list-table::
+       :width: 100%
+       :widths: 1 3
+
+       * - :math:`p_x`
+         - Probability of event x
+       * - :math:`1 - p_x`
+         - Probability of not event x
+       * - :math:`\prod_x(1 - p_x)`
+         - Probability of not any events x
+       * - :math:`1 - \prod_x(1 - p_x)`
+         - Probability of any event x
+
+    Parameters
+    ----------
+    values
+        A list of independent proportions or probabilities, either as numbers or
+        as a something we can broadcast addition and multiplication over.
+
+    Returns
+    -------
+        The probability over the union of the sample spaces represented
+        by the original probabilities.
+    """
+    joint_value = raw_union_post_processor(value, manager)
 
     if isinstance(joint_value, np.ndarray):
         if joint_value.ndim == 1:
