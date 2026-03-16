@@ -194,8 +194,8 @@ texinfo_documents = [
 
 # Other docs we can link to
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/", None),
-    "pandas": ("https://pandas.pydata.org/pandas-docs/stable/", None),
+    "python": ("https://docs.python.org/3/", None),
+    "pandas": ("https://pandas.pydata.org/docs/", None),
     "tables": ("https://www.pytables.org/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "networkx": ("https://networkx.org/documentation/stable/", None),

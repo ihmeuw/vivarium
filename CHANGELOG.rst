@@ -1,3 +1,7 @@
+**3.6.8 - 03/16/26**
+
+  - Bugfix: Update intersphinx mapping for python and pandas
+  
 **3.6.7 - 02/23/26**
 
   - Bugfix: Remove duplicated pytest options
