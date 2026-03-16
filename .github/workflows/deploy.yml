@@ -11,6 +11,12 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Validate version
+        run: |
+          pip install vivarium_build_utils
+          make validate-tag
       - name: Validate Release Date
         run: |
           CHANGELOG_DATE=$(head -n 1 CHANGELOG.rst | grep -oP '\d{2}/\d{2}/\d{2}')          
