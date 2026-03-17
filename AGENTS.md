@@ -1,10 +1,10 @@
 # Commands
 
 ## Environment
-This repository uses a `conda` environment to manage dependencies. The name of this environment will be user-specific, and most likely will be the interpreter configured for this folder or workspace in VSCode. If you are uncertain about the environment name, please ask the user. Always ensure you have the conda environment active when working within the workspace.
+This repository uses a `conda` environment to manage dependencies. The name of this environment will be user-specific, and most likely will be the interpreter configured for this folder or workspace in VSCode. If you are uncertain about the environment name, please ask the user.
 
 ## Make
-We have the following make targets that may be useful in feature development. The make commands will NOT work unless you have the appropriate conda environment active.
+We have the following make targets (given an active conda environment) that may be useful in feature development:
 
 make check                          Run development checks (preferred end-stage validation wrapper of formatting, static type checking, non-"slow" tests, doc build, and doc tests, designed to mirror Jenkins CI.)
 
