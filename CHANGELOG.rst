@@ -1,3 +1,7 @@
+**3.6.9 - 03/19/26**
+
+ - Add AGENTS.md file
+
 **3.6.8 - 03/16/26**
 
   - Validate version prior to deploying
