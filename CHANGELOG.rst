@@ -1,3 +1,7 @@
+**3.6.10 - 03/25/26**
+
+ - Remove upstream_repos from Jenkinsfile
+
 **3.6.9 - 03/19/26**
 
  - Add AGENTS.md file

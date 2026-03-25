@@ -35,5 +35,4 @@ reusable_pipeline(
       "main",
       "release_candidate/v4.0.0",
     ], 
-    upstream_repos: ["layered_config_tree"]
 )
