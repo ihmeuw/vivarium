@@ -70,7 +70,7 @@ class Movement(Component):
     # docs-start: on_time_step
     def on_time_step(self, event: Event) -> None:
         def _apply_physics(pop: pd.DataFrame) -> pd.DataFrame:
-            acceleration = self.population_view.get_attribute_frame(event.index, "acceleration")
+            acceleration = self.population_view.get_frame(event.index, "acceleration")
 
             # Accelerate and limit velocity
             if not isinstance(acceleration, pd.DataFrame):

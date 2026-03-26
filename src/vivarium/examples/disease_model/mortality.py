@@ -91,7 +91,7 @@ class Mortality(Component):
             representing the simulants affected by the event and timing
             information.
         """
-        effective_rate = self.population_view.get_attributes(event.index, "mortality_rate")
+        effective_rate = self.population_view.get(event.index, "mortality_rate")
         effective_probability = 1 - np.exp(-effective_rate)
         draw = self.randomness.get_draw(event.index)
         affected_simulants = draw < effective_probability

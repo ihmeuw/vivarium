@@ -87,8 +87,8 @@ There are two types of filtering that can be applied when using a population vie
 to get attributes or private columns.
 
 First, a ``query`` argument can be passed in to any of the population view's
-:meth:`~vivarium.framework.population.population_view.PopulationView.get_attributes`,
-:meth:`~vivarium.framework.population.population_view.PopulationView.get_attribute_frame`, or
+:meth:`~vivarium.framework.population.population_view.PopulationView.get`,
+:meth:`~vivarium.framework.population.population_view.PopulationView.get_frame`, or
 :meth:`~vivarium.framework.population.population_view.PopulationView.get_filtered_index`
 to filter the simulants returned for that specific call.
 

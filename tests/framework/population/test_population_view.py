@@ -112,11 +112,11 @@ def test_initialization(pies_and_cubes_pop_mgr: PopulationManager) -> None:
 
 
 #################################
-# PopulationView.get_attributes #
+# PopulationView.get #
 #################################
 
 
-def test_get_attributes(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+def test_get(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     ########################
     # Full population view #
     ########################
@@ -125,26 +125,26 @@ def test_get_attributes(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
 
     # Get full data set
-    pop_full = pv.get_attributes(full_idx, PIE_COL_NAMES)
+    pop_full = pv.get(full_idx, PIE_COL_NAMES)
     assert set(pop_full.columns) == set(PIE_COL_NAMES)
     assert pop_full.index.equals(full_idx)
 
     # Get data subset
-    pop = pv.get_attributes(full_idx, PIE_COL_NAMES, query=f"pie == 'apple'")
+    pop = pv.get(full_idx, PIE_COL_NAMES, query=f"pie == 'apple'")
     assert set(pop.columns) == set(PIE_COL_NAMES)
     assert pop.index.equals(pop_full[pop_full["pie"] == "apple"].index)
 
 
-def test_get_attributes_empty_idx(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+def test_get_empty_idx(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
 
-    pop = pv.get_attributes(pd.Index([]), PIE_COL_NAMES)
+    pop = pv.get(pd.Index([]), PIE_COL_NAMES)
     assert isinstance(pop, pd.DataFrame)
     assert set(pop.columns) == set(PIE_COL_NAMES)
     assert pop.empty
 
 
-def test_get_attributes_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+def test_get_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
     index = pd.Index([])
 
@@ -152,11 +152,11 @@ def test_get_attributes_raises(pies_and_cubes_pop_mgr: PopulationManager) -> Non
         PopulationError,
         match="Requested attribute\(s\) \{'foo'\} not in population state table.",
     ):
-        pv.get_attributes(index, "foo")
+        pv.get(index, "foo")
 
 
 @pytest.mark.parametrize("attribute", ["pie", ["pie"]])
-def test_get_attributes_skip_post_processor(
+def test_get_skip_post_processor(
     attribute: str | list[str], pies_and_cubes_pop_mgr: PopulationManager
 ) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
@@ -164,11 +164,11 @@ def test_get_attributes_skip_post_processor(
 
     key = attribute if isinstance(attribute, str) else attribute[0]
     mocked_pie_pipeline = pies_and_cubes_pop_mgr._attribute_pipelines[key]
-    pv.get_attributes(full_idx, attribute, skip_post_processor=True)
+    pv.get(full_idx, attribute, skip_post_processor=True)
     mocked_pie_pipeline.assert_called_once_with(full_idx, skip_post_processor=True)  # type: ignore[attr-defined]
 
 
-def test_get_attributes_skip_post_processor_raises(
+def test_get_skip_post_processor_raises(
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
@@ -178,13 +178,13 @@ def test_get_attributes_skip_post_processor_raises(
         ValueError,
         match="When skip_post_processor is True, a single attribute must be requested.",
     ):
-        pv.get_attributes(full_idx, ["pie", "pi"], skip_post_processor=True)
+        pv.get(full_idx, ["pie", "pi"], skip_post_processor=True)
 
 
 @pytest.mark.parametrize(
     "attribute, query", [("pie", "pie == 'apple'"), ("pie", "cube > 1000")]
 )
-def test_get_attributes_skip_post_processor_with_query(
+def test_get_skip_post_processor_with_query(
     attribute: str,
     query: str,
     pies_and_cubes_pop_mgr: PopulationManager,
@@ -208,9 +208,9 @@ def test_get_attributes_skip_post_processor_with_query(
     pies_and_cubes_pop_mgr._attribute_pipelines["pie"].side_effect = mock_pie_pipeline  # type: ignore[attr-defined]
     pies_and_cubes_pop_mgr._attribute_pipelines["cube"].side_effect = mock_cube_pipeline  # type: ignore[attr-defined]
 
-    # Execute get_attributes with a query and skip_post_processor=True
+    # Execute get with a query and skip_post_processor=True
     # Query should filter the data
-    result = pv.get_attributes(full_idx, attribute, query=query, skip_post_processor=True)
+    result = pv.get(full_idx, attribute, query=query, skip_post_processor=True)
 
     # The expected index should be the filtered index based on the query
     expected_index = pd.concat([PIE_DF, CUBE_DF], axis=1).query(query).index
@@ -226,7 +226,7 @@ def test_get_attributes_skip_post_processor_with_query(
     assert call_args[1] == {"skip_post_processor": True}
 
 
-def test_get_attributes_skip_post_processor_returns_queried_attribute(
+def test_get_skip_post_processor_returns_queried_attribute(
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
     """Test that skip_post_processor returns the attribute even when it's also used in the query."""
@@ -241,23 +241,21 @@ def test_get_attributes_skip_post_processor_returns_queried_attribute(
     pies_and_cubes_pop_mgr._attribute_pipelines["pie"].side_effect = mock_pie_pipeline  # type: ignore[attr-defined]
 
     # No query - full attribute
-    result = pv.get_attributes(full_idx, "pie", skip_post_processor=True)
+    result = pv.get(full_idx, "pie", skip_post_processor=True)
     pd.testing.assert_series_equal(result, PIE_DF["pie"])
 
     # Request "pie" while querying "cube"
-    result = pv.get_attributes(full_idx, "pie", query="pi > 1000", skip_post_processor=True)
+    result = pv.get(full_idx, "pie", query="pi > 1000", skip_post_processor=True)
     pd.testing.assert_series_equal(result, PIE_DF.loc[PIE_DF["pi"] > 1000, "pie"])
 
     # Request "pie" while also querying on "pie" -- the attribute should still be returned
-    result = pv.get_attributes(
-        full_idx, "pie", query="pie == 'apple'", skip_post_processor=True
-    )
+    result = pv.get(full_idx, "pie", query="pie == 'apple'", skip_post_processor=True)
     pd.testing.assert_series_equal(result, PIE_DF.loc[PIE_DF["pie"] == "apple", "pie"])
 
 
 @pytest.mark.parametrize("register_tracked_query", [True, False])
 @pytest.mark.parametrize("include_untracked", [True, False])
-def test_get_attributes_combined_query(
+def test_get_combined_query(
     register_tracked_query: bool,
     include_untracked: bool,
     update_index: pd.Index[int],
@@ -265,7 +263,7 @@ def test_get_attributes_combined_query(
     tracked_query: str,
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
-    """Test that queries provided to the pop view and via get_attributes are combined correctly."""
+    """Test that queries provided to the pop view and via get are combined correctly."""
 
     if register_tracked_query:
         pies_and_cubes_pop_mgr.register_tracked_query(tracked_query)
@@ -281,7 +279,7 @@ def test_get_attributes_combined_query(
         col_request += ["cube"]
 
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
-    pop = pv.get_attributes(update_index, col_request, **kwargs)
+    pop = pv.get(update_index, col_request, **kwargs)
     assert isinstance(pop, pd.DataFrame)
 
     expected_pop = _get_expected(update_index, combined_query)
@@ -292,18 +290,18 @@ def test_get_attributes_combined_query(
     assert pop.equals(expected_pop)
 
 
-def test_get_attributes_empty_list(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+def test_get_empty_list(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
     full_index = pd.RangeIndex(0, len(PIE_RECORDS))
-    no_attributes = pv.get_attributes(full_index, [])
+    no_attributes = pv.get(full_index, [])
     assert no_attributes.empty
     assert no_attributes.index.equals(full_index)
 
 
-def test_get_attributes_query_removes_all(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+def test_get_query_removes_all(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
     full_index = pd.RangeIndex(0, len(PIE_RECORDS))
-    empty_pop = pv.get_attributes(full_index, PIE_COL_NAMES, "pi == 'oops'")
+    empty_pop = pv.get(full_index, PIE_COL_NAMES, "pi == 'oops'")
     assert isinstance(empty_pop, pd.DataFrame)
     assert empty_pop.equals(PIE_DF.iloc[0:0][PIE_COL_NAMES])
 
@@ -334,8 +332,8 @@ class TestGetAttributesReturnTypes:
         self, population_view: PopulationView, index: pd.Index[int]
     ) -> None:
         # Single-level, single-column -> series
-        unsqueezed = population_view.get_attributes(index, ["test_column_1"])
-        squeezed = population_view.get_attributes(index, "test_column_1")
+        unsqueezed = population_view.get(index, ["test_column_1"])
+        squeezed = population_view.get(index, "test_column_1")
         assert_squeezing_single_level_single_col(unsqueezed, squeezed)
 
     def test_single_level_multiple_columns(
@@ -343,7 +341,7 @@ class TestGetAttributesReturnTypes:
     ) -> None:
         # Single-level, multiple-column -> dataframe
         # There's no way to request a squeezed dataframe here.
-        df = population_view.get_attributes(index, ["test_column_1", "test_column_2"])
+        df = population_view.get(index, ["test_column_1", "test_column_2"])
         assert isinstance(df, pd.DataFrame)
         assert not isinstance(df.columns, pd.MultiIndex)
 
@@ -351,38 +349,36 @@ class TestGetAttributesReturnTypes:
         self, population_view: PopulationView, index: pd.Index[int]
     ) -> None:
         # Multi-level, single outer, single inner -> series
-        unsqueezed = population_view.get_attributes(index, ["attribute_generating_column_8"])
-        squeezed = population_view.get_attributes(index, "attribute_generating_column_8")
+        unsqueezed = population_view.get(index, ["attribute_generating_column_8"])
+        squeezed = population_view.get(index, "attribute_generating_column_8")
         assert_squeezing_multi_level_single_outer_single_inner(unsqueezed, squeezed)
 
     def test_single_dataframe_attribute_raises(
         self, population_view: PopulationView, index: pd.Index[int]
     ) -> None:
         with pytest.raises(ValueError, match="Expected a pandas Series to be returned"):
-            population_view.get_attributes(index, "attribute_generating_columns_4_5")
+            population_view.get(index, "attribute_generating_columns_4_5")
 
     def test_multi_level_multiple_outer(
         self, population_view: PopulationView, index: pd.Index[int]
     ) -> None:
         # Multi-level, multiple outer -> full unsqueezed multi-level dataframe
         # There's no way to request a squeezed dataframe here.
-        df = population_view.get_attributes(
-            index, ["test_column_1", "attribute_generating_columns_6_7"]
-        )
+        df = population_view.get(index, ["test_column_1", "attribute_generating_columns_6_7"])
         assert isinstance(df, pd.DataFrame)
         assert isinstance(df.columns, pd.MultiIndex)
 
     @pytest.mark.parametrize(
         "attribute", ["test_column_1", "attribute_generating_columns_6_7"]
     )
-    def test_get_attribute_frame(
+    def test_get_frame(
         self, population_view: PopulationView, index: pd.Index[int], attribute: str
     ) -> None:
-        df = population_view.get_attribute_frame(index, attribute)
+        df = population_view.get_frame(index, attribute)
         assert isinstance(df, pd.DataFrame)
         assert not isinstance(df.columns, pd.MultiIndex)
 
-        expected = population_view.get_attributes(index, [attribute])
+        expected = population_view.get(index, [attribute])
         assert (df.values == expected.values).all().all()
 
 

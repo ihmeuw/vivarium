@@ -259,8 +259,8 @@ class ValuesInterface(Interface):
         This is not the preferred access method to getting population attributes
         since it does not implement various features (e.g. querying, simulant
         tracking, etc); it exists for other managers to use if needed. Use
-        :meth:`vivarium.framework.population.population_view.PopulationView.get_attributes`
-        or :meth:`vivarium.framework.population.population_view.PopulationView.get_attribute_frame`
+        :meth:`vivarium.framework.population.population_view.PopulationView.get`
+        or :meth:`vivarium.framework.population.population_view.PopulationView.get_frame`
         instead.
         """
         return self._manager.get_attribute_pipelines

@@ -87,7 +87,7 @@ class PopulationView:
     ###########
 
     @overload
-    def get_attributes(
+    def get(
         self,
         index: pd.Index[int],
         attributes: str,
@@ -98,7 +98,7 @@ class PopulationView:
         ...
 
     @overload
-    def get_attributes(
+    def get(
         self,
         index: pd.Index[int],
         attributes: list[str] | tuple[str, ...],
@@ -109,7 +109,7 @@ class PopulationView:
         ...
 
     @overload
-    def get_attributes(
+    def get(
         self,
         index: pd.Index[int],
         attributes: str | list[str] | tuple[str, ...],
@@ -119,7 +119,7 @@ class PopulationView:
     ) -> Any:
         ...
 
-    def get_attributes(
+    def get(
         self,
         index: pd.Index[int],
         attributes: str | list[str] | tuple[str, ...],
@@ -184,11 +184,11 @@ class PopulationView:
             raise ValueError(
                 "Expected a pandas Series to be returned when requesting a single "
                 "attribute, but got a DataFrame instead. If you expect this attribute "
-                "to be a DataFrame, you should call `get_attribute_frame()` instead."
+                "to be a DataFrame, you should call `get_frame()` instead."
             )
         return population
 
-    def get_attribute_frame(
+    def get_frame(
         self,
         index: pd.Index[int],
         attribute: str,
@@ -217,12 +217,12 @@ class PopulationView:
 
         Notes
         -----
-        The difference between this method and ``get_attributes`` is subtle. This
+        The difference between this method and ``get`` is subtle. This
         method always returns a dataframe even if the requested attribute contains
         a single column. Further, in the event the attribute has multi-level columns,
         it will be squeezed to only return the inner columns.
 
-        Calling ``get_attributes`` to request a list of a single attribute seems
+        Calling ``get`` to request a list of a single attribute seems
         identical to this, but in that case the underlying data would not be squeezed
         at all, i.e. a dataframe with multi-level columns would also return the
         outer columns.
@@ -269,7 +269,7 @@ class PopulationView:
             The requested and filtered population index.
         """
 
-        return self.get_attributes(
+        return self.get(
             index,
             attributes=[],
             query=query,

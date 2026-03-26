@@ -290,11 +290,11 @@ to their velocity.
 To get population attributes such as ``acceleration`` inside on_time_step,
 we leverage a :class:`~vivarium.framework.population.population_view.PopulationView`
 which provides a handful of methods designed to get when you need. In this case, 
-we call :meth:`~vivarium.framework.population.population_view.PopulationView.get_attribute_frame` 
+we call :meth:`~vivarium.framework.population.population_view.PopulationView.get_frame` 
 to get the acceleration attribute. We pass in the ``event.index`` which is the set 
 of simulants affected by the event (in this case, all of them). Note that there is
-also available a :meth:`~vivarium.framework.population.population_view.PopulationView.get_attributes`
-method which is similar to ``get_attribute_frame`` but can request multiple attributes
+also available a :meth:`~vivarium.framework.population.population_view.PopulationView.get`
+method which is similar to ``get_frame`` but can request multiple attributes
 at once and does not necessarily return a dataframe.
 
 .. note::

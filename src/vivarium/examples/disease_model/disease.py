@@ -55,7 +55,7 @@ class DiseaseTransition(Transition):
     ##################################
 
     def _risk_deleted_rate(self, index: pd.Index[int]) -> pd.Series[float]:
-        joint_paf = self.population_view.get_attributes(index, self.joint_paf_pipeline)
+        joint_paf = self.population_view.get(index, self.joint_paf_pipeline)
         return self.base_rate * (1 - joint_paf)
 
     ##################
@@ -63,7 +63,7 @@ class DiseaseTransition(Transition):
     ##################
 
     def _probability(self, index: pd.Index[int]) -> pd.Series[float]:
-        effective_rate = self.population_view.get_attributes(index, self.rate_name)
+        effective_rate = self.population_view.get(index, self.rate_name)
         return pd.Series(rate_to_probability(effective_rate))
 
 
@@ -138,13 +138,13 @@ class DiseaseState(State):
     
     def risk_deleted_excess_mortality_rate(self, index: pd.Index[int]) -> pd.Series[float]:
         base_emr = self.emr_table(index)
-        emr_paf = self.population_view.get_attributes(index, self.emr_paf_pipeline)
+        emr_paf = self.population_view.get(index, self.emr_paf_pipeline)
         return base_emr * (1 - emr_paf)
 
     def add_in_excess_mortality(
         self, index: pd.Index[int], mortality_rates: pd.Series[float]
     ) -> pd.Series[float]:
-        mortality_rates.loc[index] += self.population_view.get_attributes(
+        mortality_rates.loc[index] += self.population_view.get(
             index, self.emr_pipeline
         )
         return mortality_rates
@@ -190,7 +190,7 @@ class DiseaseModel(Machine):
     ##################################
 
     def delete_cause_specific_mortality(self, index: pd.Index[int], rates: pd.Series[float]) -> pd.Series[float]:
-        csmr = self.population_view.get_attributes(index, self.csmr_pipeline)
+        csmr = self.population_view.get(index, self.csmr_pipeline)
         return rates - csmr
 
 

@@ -602,7 +602,7 @@ class Machine(Component):
 
     def initialize_state(self, pop_data: SimulantData) -> None:
         state_ids = [s.state_id for s in self.states]
-        state_weights = self.population_view.get_attributes(
+        state_weights = self.population_view.get(
             pop_data.index, self.initialization_weights_pipelines
         )
 
@@ -653,7 +653,7 @@ class Machine(Component):
                 state.cleanup_effect(affected.index, event_time)
 
     def _get_state_pops(self, index: pd.Index[int]) -> list[tuple[State, pd.Series[Any]]]:
-        population = self.population_view.get_attributes(index, self.state_column)
+        population = self.population_view.get(index, self.state_column)
         if not isinstance(population, pd.Series):
             raise TypeError(
                 "Expected population view to return a pandas Series for"

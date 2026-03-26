@@ -516,8 +516,8 @@ state table.
    Refer to the :ref:`population management documentation <population_concept>` for more details.
 
    The methods available to read attributes are:
-    - :meth:`~vivarium.framework.population.population_view.PopulationView.get_attributes`
-    - :meth:`~vivarium.framework.population.population_view.PopulationView.get_attribute_frame`
+    - :meth:`~vivarium.framework.population.population_view.PopulationView.get`
+    - :meth:`~vivarium.framework.population.population_view.PopulationView.get_frame`
 
     The methods available to update private columns are:
     - :meth:`~vivarium.framework.population.population_view.PopulationView.initialize`

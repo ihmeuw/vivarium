@@ -201,8 +201,8 @@ class TestGetPopulationNestedAttributes:
         """
 
         def outer_source(self_: NestedAttributeCreator, idx: pd.Index[int]) -> pd.DataFrame:
-            ones = self_.population_view.get_attributes(idx, "inner", query="inner == 1")
-            not_ones = self_.population_view.get_attributes(idx, "inner", query="inner != 1")
+            ones = self_.population_view.get(idx, "inner", query="inner == 1")
+            not_ones = self_.population_view.get(idx, "inner", query="inner != 1")
             combined = pd.concat([ones, not_ones]).sort_index()
             return pd.DataFrame({"doubled_inner": combined * 2})
 
@@ -229,13 +229,9 @@ class TestGetPopulationNestedAttributes:
 
         def outer_source(self_: NestedAttributeCreator, idx: pd.Index[int]) -> pd.DataFrame:
             # include_untracked=False at depth > 0: tracked query IS applied
-            tracked = self_.population_view.get_attributes(
-                idx, "inner", include_untracked=False
-            )
+            tracked = self_.population_view.get(idx, "inner", include_untracked=False)
             # include_untracked=True at depth > 0: tracked query NOT applied
-            all_inner = self_.population_view.get_attributes(
-                idx, "inner", include_untracked=True
-            )
+            all_inner = self_.population_view.get(idx, "inner", include_untracked=True)
             return pd.DataFrame(
                 {"tracked_count": len(tracked), "all_count": len(all_inner)}, index=idx
             )
@@ -270,7 +266,7 @@ class TestGetPopulationNestedAttributes:
         """Lookup table inside a nested pipeline call suppresses tracked queries.
 
         Uses NestedLookupCaller whose outer_source calls a lookup table keyed
-        on 'inner'. The table internally calls get_attributes(index, ["inner"])
+        on 'inner'. The table internally calls get(index, ["inner"])
         with the default include_untracked=None, exercising the lookup path.
         """
         sim = self._create_sim(

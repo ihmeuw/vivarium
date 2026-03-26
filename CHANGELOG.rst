@@ -11,12 +11,11 @@ Population management system refactor
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Interactive context: 'get_population()' will now error if requesting an attribute that doesn't exist.
-- Population views: Replace subviews and 'get()' method with 'get_attributes()',
-  'get_attribute_frame()', and 'get_private_columns()'.
+- Population views: Remove subviews, update 'get()' method, and add 'get_frame()' method.
 
   - You must now explicitly request which attributes you want to retrieve.
-  - Write access (via the 'update()' method) is now restricted to private columns
-    created by the component the view is attached to.
+  - Write access (via the 'initialize()' or 'update()' methods) is now restricted 
+    to private columns created by the component the view is attached to.
 
 - Population views: Remove support for population view default queries.
 - Population interface: Replace the 'tracked' column and corresponding auto-filter
@@ -57,7 +56,7 @@ Population management system refactor
 - InteractiveContext: Implement new 'get_columns()' method to get all attribute names.
 - Population views: Implement new 'get_filtered_index()' method.
 - Stop using population views inappropriately when using individualized clocks.
-- Implement 'skip_post_processor' argument to population view 'get_attributes()'
+- Implement 'skip_post_processor' argument to population view 'get()'
   and population manager 'get_population()' methods.
 - Ensure Pipeline 'union_post_processor' always returns a Series or DataFrame.
 - Change 'alive' string column to 'is_alive' boolean column in disease model example and various tests.

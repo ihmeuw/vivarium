@@ -266,7 +266,7 @@ class NestedAttributeCreator(Component):
 
     def outer_source(self, idx: pd.Index[int]) -> pd.DataFrame:
         """Calls another pipeline to generate a dataframe"""
-        inner = self.population_view.get_attribute_frame(idx, "inner")
+        inner = self.population_view.get_frame(idx, "inner")
         outer = pd.DataFrame(inner)
         outer.rename(columns={"inner": "outer"}, inplace=True)
         return pd.concat([inner, outer], axis=1)

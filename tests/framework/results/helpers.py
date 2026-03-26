@@ -59,15 +59,14 @@ class Hogwarts(Component):
     def setup(self, builder: Builder) -> None:
         builder.value.register_attribute_producer(
             "grade",
-            source=lambda index: self.population_view.get_attributes(index, "exam_score").map(
+            source=lambda index: self.population_view.get(index, "exam_score").map(
                 lambda x: x // 10
             ),
             required_resources=["exam_score"],
         )
         builder.value.register_attribute_producer(
             "double_power",
-            source=lambda index: self.population_view.get_attributes(index, "power_level")
-            * 2,
+            source=lambda index: self.population_view.get(index, "power_level") * 2,
             required_resources=["power_level"],
         )
         builder.population.register_initializer(
@@ -106,7 +105,7 @@ class Hogwarts(Component):
 
     def on_time_step(self, pop_data: Event) -> None:
         def _apply_updates(df: pd.DataFrame) -> pd.DataFrame:
-            attrs = self.population_view.get_attributes(
+            attrs = self.population_view.get(
                 pop_data.index,
                 ["student_house", "power_level", "familiar"],
                 include_untracked=True,
