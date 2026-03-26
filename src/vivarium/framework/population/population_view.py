@@ -488,6 +488,13 @@ class PopulationView:
                 f"The modifier returned data with unexpected columns: {extra_cols}."
             )
 
+        missing_cols = set(columns).difference(coerced.columns)
+        if missing_cols:
+            raise PopulationError(
+                f"The modifier did not return data for all requested columns. "
+                f"Missing: {missing_cols}."
+            )
+
         unknown = coerced.index.difference(existing_index)
         if len(unknown):
             raise PopulationError(

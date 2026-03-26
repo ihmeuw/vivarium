@@ -503,11 +503,6 @@ def test__coerce_update_result_dataframe() -> None:
     result = PopulationView._coerce_update_result(PIE_DF.copy(), columns, index)
     assert result.equals(PIE_DF)
 
-    # Subset of columns is OK
-    single_col_df = PIE_DF[["pi"]].copy()
-    result = PopulationView._coerce_update_result(single_col_df, columns, index)
-    assert result.equals(single_col_df)
-
     # Subset of rows is OK
     subset_idx = index[::2]
     result = PopulationView._coerce_update_result(PIE_DF.loc[subset_idx], columns, index)
@@ -516,12 +511,11 @@ def test__coerce_update_result_dataframe() -> None:
 
 def test__coerce_update_result_series() -> None:
     """Named Series → single-column DataFrame; unnamed when single column."""
-    columns = PIE_COL_NAMES
     index = PIE_DF.index
 
-    # Named series
+    # Named series with matching single-column list
     named = PIE_DF["pie"].copy()
-    result = PopulationView._coerce_update_result(named, columns, index)
+    result = PopulationView._coerce_update_result(named, ["pie"], index)
     assert isinstance(result, pd.DataFrame)
     assert list(result.columns) == ["pie"]
 
@@ -557,6 +551,13 @@ def test__coerce_update_result_bad_type_raises() -> None:
 def test__coerce_update_result_extra_columns_raises() -> None:
     with pytest.raises(PopulationError, match="unexpected columns"):
         PopulationView._coerce_update_result(CUBE_DF.copy(), PIE_COL_NAMES, PIE_DF.index)
+
+
+def test__coerce_update_result_missing_columns_raises() -> None:
+    # Return only one column when two were requested
+    partial = PIE_DF[["pie"]].copy()
+    with pytest.raises(PopulationError, match="Missing"):
+        PopulationView._coerce_update_result(partial, PIE_COL_NAMES, PIE_DF.index)
 
 
 def test__coerce_update_result_unknown_index_raises() -> None:
