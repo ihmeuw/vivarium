@@ -18,7 +18,6 @@ from tests.helpers import (
     MultiLevelSingleColumnCreator,
     NestedAttributeCreator,
     NestedLookupCaller,
-    NestedPrivateColumnCaller,
     SingleColumnCreator,
 )
 from vivarium import InteractiveContext
@@ -261,28 +260,6 @@ class TestGetPopulationNestedAttributes:
         assert tracked_count == pop["inner"].eq(1).sum()
 
         self._assert_depth(sim, max_depth, 2)
-
-    @pytest.mark.parametrize("include_untracked", [None, True, False])
-    def test_get_private_columns_nested_path(
-        self,
-        include_untracked: bool | None,
-        mocker: MockerFixture,
-    ) -> None:
-        """Test get_private_columns inside a nested pipeline call suppresses tracked queries."""
-        sim = self._create_sim(
-            NestedPrivateColumnCaller,
-            tracked_query="inner == 1",
-            mocker=mocker,
-        )
-        self._assert_nested_query_suppression(
-            sim,
-            include_untracked,
-            mocker,
-            expected_filtered_inner={1},
-            outer_column=("outer", "doubled_inner"),
-            expected_baseline_outer={0, 2, 4},
-            expected_filtered_outer={2},
-        )
 
     @pytest.mark.parametrize("include_untracked", [None, True, False])
     def test_lookup_table_nested_path(

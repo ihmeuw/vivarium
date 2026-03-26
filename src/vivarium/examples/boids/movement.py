@@ -65,33 +65,35 @@ class Movement(Component):
             },
             index=pop_data.index,
         )
-        self.population_view.update(new_population)
+        self.population_view.initialize(new_population)
 
     # docs-start: on_time_step
     def on_time_step(self, event: Event) -> None:
-        pop = self.population_view.get_private_columns(event.index)
-        acceleration = self.population_view.get_attribute_frame(event.index, "acceleration")
+        def _apply_physics(pop: pd.DataFrame) -> pd.DataFrame:
+            acceleration = self.population_view.get_attribute_frame(event.index, "acceleration")
 
-        # Accelerate and limit velocity
-        if not isinstance(acceleration, pd.DataFrame):
-            raise ValueError("Acceleration must be a pd.DataFrame")
-        pop[["vx", "vy"]] += acceleration.rename(columns=lambda c: c.replace("acc_", "v"))
-        speed = np.sqrt(np.square(pop.vx) + np.square(pop.vy))
-        velocity_scaling_factor = np.where(
-            speed > self.config.movement.max_speed,
-            self.config.movement.max_speed / speed,
-            1.0,
-        )
-        pop["vx"] *= velocity_scaling_factor
-        pop["vy"] *= velocity_scaling_factor
+            # Accelerate and limit velocity
+            if not isinstance(acceleration, pd.DataFrame):
+                raise ValueError("Acceleration must be a pd.DataFrame")
+            pop[["vx", "vy"]] += acceleration.rename(columns=lambda c: c.replace("acc_", "v"))
+            speed = np.sqrt(np.square(pop.vx) + np.square(pop.vy))
+            velocity_scaling_factor = np.where(
+                speed > self.config.movement.max_speed,
+                self.config.movement.max_speed / speed,
+                1.0,
+            )
+            pop["vx"] *= velocity_scaling_factor
+            pop["vy"] *= velocity_scaling_factor
 
-        # Move according to velocity
-        pop["x"] += pop.vx
-        pop["y"] += pop.vy
+            # Move according to velocity
+            pop["x"] += pop.vx
+            pop["y"] += pop.vy
 
-        # Loop around boundaries
-        pop["x"] = pop.x % self.config.field.width
-        pop["y"] = pop.y % self.config.field.height
+            # Loop around boundaries
+            pop["x"] = pop.x % self.config.field.width
+            pop["y"] = pop.y % self.config.field.height
 
-        self.population_view.update(pop)
+            return pop
+
+        self.population_view.update(["x", "y", "vx", "vy"], _apply_physics)
     # docs-end: on_time_step

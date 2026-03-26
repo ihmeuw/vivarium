@@ -67,7 +67,7 @@ class Risk(Component):
 
     def initialize_propensity(self, pop_data: SimulantData) -> None:
         draw = self.randomness.get_draw(pop_data.index)
-        self.population_view.update(pd.Series(draw, name=self.propensity_column))
+        self.population_view.initialize(pd.Series(draw, name=self.propensity_column))
 
     ##################################
     # Pipeline sources and modifiers #

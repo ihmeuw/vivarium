@@ -34,13 +34,13 @@ class DeathsObserver(Observer):
 
     def initialize_previous_alive(self, pop_data: SimulantData) -> None:
         """Initialize simulants as alive"""
-        self.population_view.update(pd.Series(True, index=pop_data.index, name="previous_alive"))
+        self.population_view.initialize(pd.Series(True, index=pop_data.index, name="previous_alive"))
 
     def on_time_step_prepare(self, event: Event) -> None:
         """Update the previous deaths column to the current deaths."""
         previous_alive = self.population_view.get_attributes(event.index, "is_alive")
         previous_alive.name = "previous_alive"
-        self.population_view.update(previous_alive)
+        self.population_view.update("previous_alive", lambda _: previous_alive)
 
 
 class YllsObserver(Observer):

@@ -69,11 +69,16 @@ created by the component they are attached to. This is how one might update the
 source data for attributes, e.g. updating all simulants' ages on every time step.
 
 There are several methods on a population view that facilitate working with the
-state table, including ones to get the population index, attributes, or private
-columns. There is also an :meth:`~vivarium.framework.population.population_view.PopulationView.update`
-method that accepts a dataframe and replaces private column data according to column
-and index. This method is also used at simulant initialization time to create initial
-state.
+state table, including ones to get the population index and attributes. There are
+also two methods for writing to private columns:
+
+- :meth:`~vivarium.framework.population.population_view.PopulationView.initialize`
+  is used during simulant creation (both initial population and new cohorts) to
+  write initial values for private columns.
+- :meth:`~vivarium.framework.population.population_view.PopulationView.update`
+  is used during the simulation to modify existing private column data. It takes
+  the column name(s) and a modifier function that receives the current values and
+  returns the updated values.
 
 Filtering Simulants
 +++++++++++++++++++
@@ -81,10 +86,9 @@ Filtering Simulants
 There are two types of filtering that can be applied when using a population view
 to get attributes or private columns.
 
-First, a ``query`` argument can be passed in to any of the population view's 
-:meth:`~vivarium.framework.population.population_view.PopulationView.get_attributes`, 
-:meth:`~vivarium.framework.population.population_view.PopulationView.get_attribute_frame`, 
-:meth:`~vivarium.framework.population.population_view.PopulationView.get_private_columns`, or
+First, a ``query`` argument can be passed in to any of the population view's
+:meth:`~vivarium.framework.population.population_view.PopulationView.get_attributes`,
+:meth:`~vivarium.framework.population.population_view.PopulationView.get_attribute_frame`, or
 :meth:`~vivarium.framework.population.population_view.PopulationView.get_filtered_index`
 to filter the simulants returned for that specific call.
 
@@ -143,12 +147,16 @@ Creating and Updating Private Columns
 
 To create a private column to be used as a source for an attribute pipeline, a component
 must register initializer methods during its setup. Any columns that are created
-and passed to the population view's ``update`` method within these methods will 
-be automatically registered as private columns for that component. The corresponding
-attribute pipelines will be registered automatically as well.
+and passed to the population view's
+:meth:`~vivarium.framework.population.population_view.PopulationView.initialize`
+method within these methods will be automatically registered as private columns
+for that component. The corresponding attribute pipelines will be registered
+automatically as well.
 
 To update private column data over the course of a simulation, a component can use
-the same population view ``update`` method as needed.
+the population view's
+:meth:`~vivarium.framework.population.population_view.PopulationView.update`
+method, passing the column name(s) and a modifier function.
 
 .. note::
 
@@ -190,8 +198,9 @@ Creating Simulants
 
 The population view pattern also underlies the creation of simulants, the only
 difference being that when simulations are being initialized for the first time,
-it is acceptable to create columns in the state table via update that don't
-already exist.
+it is acceptable to create columns in the state table via
+:meth:`~vivarium.framework.population.population_view.PopulationView.initialize`
+that don't already exist.
 
 The Simulant Creator Function
 +++++++++++++++++++++++++++++

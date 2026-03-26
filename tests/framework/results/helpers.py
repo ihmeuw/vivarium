@@ -102,36 +102,38 @@ class Hogwarts(Component):
         # Assume power level components are evenly split
         initialization_data["spell_power"] = initialization_data["power_level"] / 2
         initialization_data["potion_power"] = initialization_data["power_level"] / 2
-        self.population_view.update(initialization_data)
+        self.population_view.initialize(initialization_data)
 
     def on_time_step(self, pop_data: Event) -> None:
-        update = self.population_view.get_private_columns(
-            pop_data.index,
-            [
-                "student_house",
-                "power_level",
-                "familiar",
-                "exam_score",
-            ],
-        )
-        update["house_points"] = 0
-        update["quidditch_wins"] = 0
-        # House points are stratified by 'student_house' and 'power_level_group'.
-        # Let's have each wizard of gryffindor and of power level 20 or 80
-        # gain a point on each time step.
-        update.loc[
-            (update["student_house"] == "gryffindor")
-            & (update["power_level"].isin([20, 80])),
-            "house_points",
-        ] = 1
-        # Quidditch wins are stratified by 'familiar'.
-        # Let's have each wizard with a banana slug familiar gain a point
-        # on each time step.
-        update.loc[update["familiar"] == "banana_slug", "quidditch_wins"] = 1
-        # Update everyones test score to increase by 10 points per time step
-        update["exam_score"] += 10.0
+        def _apply_updates(df: pd.DataFrame) -> pd.DataFrame:
+            attrs = self.population_view.get_attributes(
+                pop_data.index,
+                ["student_house", "power_level", "familiar"],
+                include_untracked=True,
+            )
+            result = df.loc[pop_data.index]
+            result["house_points"] = 0
+            result["quidditch_wins"] = 0
+            # House points are stratified by 'student_house' and 'power_level_group'.
+            # Let's have each wizard of gryffindor and of power level 20 or 80
+            # gain a point on each time step.
+            result.loc[
+                (attrs["student_house"] == "gryffindor")
+                & (attrs["power_level"].isin([20, 80])),
+                "house_points",
+            ] = 1
+            # Quidditch wins are stratified by 'familiar'.
+            # Let's have each wizard with a banana slug familiar gain a point
+            # on each time step.
+            result.loc[attrs["familiar"] == "banana_slug", "quidditch_wins"] = 1
+            # Update everyones test score to increase by 10 points per time step
+            result["exam_score"] += 10.0
+            return result
 
-        self.population_view.update(update)
+        self.population_view.update(
+            ["house_points", "quidditch_wins", "exam_score"],
+            _apply_updates,
+        )
 
 
 class HousePointsObserver(Observer):

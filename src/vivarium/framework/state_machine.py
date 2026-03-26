@@ -289,7 +289,12 @@ class State(Component):
         population_view
             A view of the internal state of the simulation.
         """
-        population_view.update(pd.Series(self.state_id, index=index, name=self.model))
+        if self.model is None:
+            raise ValueError(
+                f"State '{self.state_id}' has no model set. "
+                "Call set_model() before transitioning."
+            )
+        population_view.update(self.model, lambda _: pd.Series(self.state_id, index=index))
         self.transition_side_effect(index, event_time)
 
     def cleanup_effect(self, index: pd.Index[int], event_time: ClockTime) -> None:
@@ -604,7 +609,7 @@ class Machine(Component):
         initial_states = self.randomness.choice(
             pop_data.index, state_ids, state_weights.to_numpy(), "initialization"
         ).rename(self.state_column)
-        self.population_view.update(initial_states)
+        self.population_view.initialize(initial_states)
 
     def on_time_step(self, event: Event) -> None:
         self.transition(event.index, event.time)
