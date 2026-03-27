@@ -47,4 +47,4 @@ class Population(Component):
             },
             index=pop_data.index,
         )
-        self.population_view.update(new_population)
+        self.population_view.initialize(new_population)

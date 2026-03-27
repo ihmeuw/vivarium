@@ -163,7 +163,7 @@ class LookupTable(Resource, Generic[T]):
                 for col in list(self.key_columns) + list(self.parameter_columns)
                 if col != "year"
             ]
-            pop = pd.DataFrame(self.population_view.get_attributes(index, requested_columns))
+            pop = pd.DataFrame(self.population_view.get(index, requested_columns))
             if "year" in self.parameter_columns:
                 current_time = self._manager.clock()
                 if isinstance(current_time, pd.Timestamp) or isinstance(

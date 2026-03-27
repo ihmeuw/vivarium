@@ -423,23 +423,25 @@ our new simulants. However, this table does not matter yet because the
 simulation's population system doesn't know anything about it. We must first
 inform the simulation by passing in the ``DataFrame`` to our
 :class:`population view's <vivarium.framework.population.population_view.PopulationView>`
-``update`` method. This method is the only way to modify the underlying
-population table.
+``initialize`` method.
 
 .. note::
     
    **Population Views**
 
    A :class:`~vivarium.framework.population.population_view.PopulationView` is a
-   read/write interface to the population state table. It provides a number of
-   convenience methods for getting and setting attributes, private columns,
-   and other bits of information about the population.
+   read/write interface to the population state table. It provides methods for
+   reading attributes, initializing private columns, and updating private column
+   data over the course of a simulation.
 
 .. warning::
 
-   The data generated and passed into the population view's ``update`` method
-   must have the same index that was passed in with the ``pop_data``.
-   You can potentially cause yourself a great deal of headache otherwise.
+   The data passed to the population view's ``initialize`` method must have an
+   index that is a subset of the ``pop_data.index``. During initial population
+   creation every simulant should be covered, but when simulants are added later
+   (e.g. via fertility) the initializer may legitimately receive only a subset of 
+   the new simulants. Passing an index that contains simulants *not* in ``pop_data.index`` 
+   will cause hard-to-debug errors.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
    :start-after: # docs-start: update_entrance_time_and_age
@@ -457,7 +459,7 @@ The ``initialize_sex`` method
 Thankfully, the ``initialize_sex`` method is much simpler than the previous
 initializer. Here, we simply call another randomness stream convenience method
 ``self.sex_randomness.choice`` to randomly assign a sex to each simulant. We then
-update the population via population view with these new values just like before.
+initialize the population via population view with these new values just like before.
 
 The ``on_time_step`` method
 +++++++++++++++++++++++++++
@@ -492,34 +494,34 @@ some information about what's happening in the event.
    It also supports some method for generating new events that we don't care
    about here.
 
-In order to age our simulants, we first acquire a copy of the current ages via
-the :meth:`vivarium.framework.population.population_view.PopulationView.get_private_columns`
-method. This method takes in an index and optional ``private_columns`` and/or ``query``
-arguments used request specific columns and to filter down the returned
-population, respectively. Here, we only need the simulant ages and we only want
-to increase the age of people still living. Note that the ``query`` argument needs
-to be consistent with the :meth:`pandas.DataFrame.query` method. What we get back
-is a ``pandas.Series`` of simulant ages containing the filtered rows corresponding 
-to the index we passed in.
+In order to age our simulants, we call the population view's
+:meth:`~vivarium.framework.population.population_view.PopulationView.update`
+method with the column name and a *modifier* function. The modifier receives
+the current values of the private column as a :class:`~pandas.Series` and
+returns the updated values. The ``update`` method handles reading the current
+data from the component's private columns and writing the result back to the
+state table.
 
 .. note::
 
    **Private Columns vs. Attributes**
 
-   Population views provide methods to get both attributes and private columns.
-   If you want attributes, you can use :meth:`vivarium.framework.population.population_view.PopulationView.get_attributes`
-   or :meth:`vivarium.framework.population.population_view.PopulationView.get_attribute_frame`.
-   If you want private columns, use :meth:`vivarium.framework.population.population_view.PopulationView.get_private_columns`.
+   The key distinction between attributes and private columns is that attributes are 
+   dynamically-calculated values while private columns are static values that act
+   as the source of attribute pipelines. Attributes are read-only and are modified 
+   by components registering modifiers to their corresponding attribute pipelines.
+   Private columns, on the other hand, are read and written by components directly - 
+   but only by the component that created them in the first place.
    
-   Knowing whether you need a private column or an attribute depends on context,
-   but when you need to update the state table as we're doing here, it's important 
-   to understand that what you are really updating are the appropriate private columns
-   that act as the source of the attributes you care about. Refer to the 
-   :ref:`population management documentation <population_concept>` for more details.
+   Refer to the :ref:`population management documentation <population_concept>` for more details.
 
-We next update the age of our simulants by adding on the width of the time step
-to their current age and passing the updated table to the ``update`` method
-of our population view as we did in our initializer methods.
+   The methods available to read attributes are:
+    - :meth:`~vivarium.framework.population.population_view.PopulationView.get`
+    - :meth:`~vivarium.framework.population.population_view.PopulationView.get_frame`
+
+    The methods available to update private columns are:
+    - :meth:`~vivarium.framework.population.population_view.PopulationView.initialize`
+    - :meth:`~vivarium.framework.population.population_view.PopulationView.update`
 
 Examining our work
 ++++++++++++++++++
@@ -702,7 +704,7 @@ The ``initialize_is_alive`` method
 
 This very simple initializer method simply creates an ``'is_alive'`` column in the state
 table and sets it to True for all simulants being initialized. Note again
-that we need to call the population view's ``update`` method to actually modify
+that we need to call the population view's ``initialize`` method to actually modify
 the state table.
 
 Notice also that when registering this method, we did not specify any required resources

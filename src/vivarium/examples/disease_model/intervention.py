@@ -51,5 +51,5 @@ class TreatmentIntervention(Component):
     ##################################
 
     def intervention_effect(self, index: pd.Index[int], value: pd.Series[float]) -> pd.Series[float]:
-        effect_size = self.population_view.get_attributes(index, self.effect_size_pipeline)
+        effect_size = self.population_view.get(index, self.effect_size_pipeline)
         return value * (1 - effect_size)

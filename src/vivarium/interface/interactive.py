@@ -212,16 +212,16 @@ class InteractiveContext(SimulationContext):
                 attributes = attributes[0]
         if isinstance(attributes, str):
             try:
-                return self._population_view.get_attributes(
+                return self._population_view.get(
                     index, attributes, query, include_untracked=include_untracked
                 )
             except ValueError as e:
-                if "call `get_attribute_frame()` instead" in str(e):
-                    return self._population_view.get_attribute_frame(
+                if "call `get_frame()` instead" in str(e):
+                    return self._population_view.get_frame(
                         index, attributes, query, include_untracked=include_untracked
                     )
                 raise
-        return self._population_view.get_attributes(
+        return self._population_view.get(
             index, attributes, include_untracked=include_untracked
         )
 

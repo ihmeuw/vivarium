@@ -1,4 +1,5 @@
 # docs-start: imports
+from datetime import timedelta
 from typing import Any
 
 import pandas as pd
@@ -107,7 +108,11 @@ class BasePopulation(Component):
         age_end = pop_data.user_data.get("age_end", self.config.population.age_end)
 
         if age_start == age_end:
-            age_window = pop_data.creation_window / pd.Timedelta(days=365)  # type: ignore[operator]
+            if not isinstance(pop_data.creation_window, (pd.Timedelta, timedelta)):
+                raise TypeError(
+                    f"Expected creation_window to be a Timedelta, got {type(pop_data.creation_window)}"
+                )
+            age_window = pop_data.creation_window / pd.Timedelta(days=365)
         else:
             age_window = age_end - age_start
 
@@ -130,13 +135,13 @@ class BasePopulation(Component):
         # docs-end: crn_registration
 
         # docs-start: update_entrance_time_and_age
-        self.population_view.update(population)
+        self.population_view.initialize(population)
         # docs-end: update_entrance_time_and_age
     # docs-end: initialize_entrance_time_and_age
 
     # docs-start: initialize_sex
     def initialize_sex(self, pop_data: SimulantData) -> None:
-        self.population_view.update(pd.Series(self.sex_randomness.choice(pop_data.index, ["Male", "Female"]), name="sex"))
+        self.population_view.initialize(pd.Series(self.sex_randomness.choice(pop_data.index, ["Male", "Female"]), name="sex"))
     # docs-end: initialize_sex
 
     # docs-start: on_time_step
@@ -150,7 +155,16 @@ class BasePopulation(Component):
             representing the simulants affected by the event and timing
             information.
         """
-        population = self.population_view.get_private_columns(event.index, "age", query="is_alive == True")
-        population += event.step_size / pd.Timedelta(days=365)  # type: ignore[operator]
-        self.population_view.update(population)
+        living_index = self.population_view.get_filtered_index(
+            event.index, query="is_alive == True"
+        )
+        if not isinstance(event.step_size, (pd.Timedelta, timedelta)):
+            raise TypeError(
+                f"Expected step_size to be a Timedelta, got {type(event.step_size)}"
+            )
+        delta = event.step_size / pd.Timedelta(days=365)
+        self.population_view.update(
+            "age",
+            lambda age: age.loc[living_index] + delta,
+        )
     # docs-end: on_time_step

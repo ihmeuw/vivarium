@@ -304,7 +304,7 @@ class PopulationManager(Manager):
         """
         view = self._get_view(component)
         self._add_constraint(
-            view.get_attributes,
+            view.get,
             restrict_during=[
                 lifecycle_states.INITIALIZATION,
                 lifecycle_states.SETUP,
@@ -685,7 +685,7 @@ class PopulationManager(Manager):
         """Get the population for a given index and requested attributes.
 
         While evaluating attribute pipelines, we increment ``pipeline_evaluation_depth``
-        so that nested calls to ``PopulationView.get_attributes`` (which may be
+        so that nested calls to ``PopulationView.get`` (which may be
         triggered by pipeline sources or mutators) do not automatically re-apply
         tracked queries. The index passed to each pipeline has already been filtered
         appropriately by the enclosing ``get_population`` call.

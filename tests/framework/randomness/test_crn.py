@@ -139,12 +139,12 @@ class EntranceTimePopulation(BasePopulation):
         if self.with_crn:
             self.register(population)
 
-        self.population_view.update(population)
+        self.population_view.initialize(population)
 
     def register_other_attribute(self, pop_data: SimulantData) -> None:
         attr1 = self.randomness_other.get_draw(pop_data.index, additional_key="attr1")
         attr1.name = "other_attr1"
-        self.population_view.update(attr1)
+        self.population_view.initialize(attr1)
 
 
 class SequentialPopulation(BasePopulation):
@@ -179,13 +179,13 @@ class SequentialPopulation(BasePopulation):
         if self.with_crn:
             self.register(population)
 
-        self.population_view.update(population)
+        self.population_view.initialize(population)
         self.count += new_people
 
     def register_other_attribute(self, pop_data: SimulantData) -> None:
         attr1 = self.randomness_other.get_draw(pop_data.index, additional_key="attr1")
         attr1.name = "other_attr1"
-        self.population_view.update(attr1)
+        self.population_view.initialize(attr1)
 
 
 @pytest.mark.parametrize(
@@ -314,12 +314,12 @@ class UnBrokenPopulation(BasePopulation):
         if self.with_crn:
             self.register(population)
 
-        self.population_view.update(population)
+        self.population_view.initialize(population)
 
     def register_other_attribute(self, pop_data: SimulantData) -> None:
         attr1 = self.randomness_other.get_draw(pop_data.index, additional_key="attr1")
         attr1.name = "other_attr1"
-        self.population_view.update(attr1)
+        self.population_view.initialize(attr1)
 
 
 @pytest.mark.parametrize(

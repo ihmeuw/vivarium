@@ -782,7 +782,7 @@ def test_source_callable(
 
         def initialize_attr1_attr2(self, pop_data: SimulantData) -> None:
             update = pd.DataFrame({"attr1": [10.0], "attr2": [20.0]}, index=pop_data.index)
-            self.population_view.update(update)
+            self.population_view.initialize(update)
 
     sim = InteractiveContext(components=[SomeComponent()])
     attribute = sim.get_population("some-attribute")

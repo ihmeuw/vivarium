@@ -67,15 +67,15 @@ class Risk(Component):
 
     def initialize_propensity(self, pop_data: SimulantData) -> None:
         draw = self.randomness.get_draw(pop_data.index)
-        self.population_view.update(pd.Series(draw, name=self.propensity_column))
+        self.population_view.initialize(pd.Series(draw, name=self.propensity_column))
 
     ##################################
     # Pipeline sources and modifiers #
     ##################################
 
     def _exposure(self, index: pd.Index[int]) -> pd.Series[bool]:
-        propensity = self.population_view.get_attributes(index, self.propensity_column)
-        exposure_threshold = self.population_view.get_attributes(index, self.exposure_threshold_pipeline)
+        propensity = self.population_view.get(index, self.propensity_column)
+        exposure_threshold = self.population_view.get(index, self.exposure_threshold_pipeline)
         return exposure_threshold > propensity
 
 
@@ -131,7 +131,7 @@ class RiskEffect(Component):
     ##################################
 
     def population_attributable_fraction(self, index: pd.Index[int]) -> pd.Series[float]:
-        pop = self.population_view.get_attributes(
+        pop = self.population_view.get(
             index, [self.base_exposure_pipeline, self.relative_risk_pipeline]
         )
         exposure = pop[self.base_exposure_pipeline]
@@ -139,7 +139,7 @@ class RiskEffect(Component):
         return exposure * (relative_risk - 1) / (exposure * (relative_risk - 1) + 1)
 
     def rate_adjustment(self, index: pd.Index[int], rates: pd.Series[float]) -> pd.Series[float]:
-        exposed = self.population_view.get_attributes(index, self.exposure_pipeline)
-        rr = self.population_view.get_attributes(index, self.relative_risk_pipeline)
+        exposed = self.population_view.get(index, self.exposure_pipeline)
+        rr = self.population_view.get(index, self.relative_risk_pipeline)
         rates[exposed] *= rr[exposed]
         return rates
