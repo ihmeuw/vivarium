@@ -146,7 +146,7 @@ class ColumnCreator(Component):
         )
 
     def initialize_test_columns(self, pop_data: SimulantData) -> None:
-        self.population_view.update(self.get_initial_state(pop_data.index))
+        self.population_view.initialize(self.get_initial_state(pop_data.index))
 
     def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:
         return pd.DataFrame(
@@ -262,23 +262,14 @@ class NestedAttributeCreator(Component):
 
     def initialize_inner(self, pop_data: SimulantData) -> None:
         inner = pd.Series([i % 3 for i in pop_data.index], index=pop_data.index, name="inner")
-        self.population_view.update(inner)
+        self.population_view.initialize(inner)
 
     def outer_source(self, idx: pd.Index[int]) -> pd.DataFrame:
         """Calls another pipeline to generate a dataframe"""
-        inner = self.population_view.get_attribute_frame(idx, "inner")
+        inner = self.population_view.get_frame(idx, "inner")
         outer = pd.DataFrame(inner)
         outer.rename(columns={"inner": "outer"}, inplace=True)
         return pd.concat([inner, outer], axis=1)
-
-
-class NestedPrivateColumnCaller(NestedAttributeCreator):
-    """Like NestedPipelineCreator but outer_source calls get_private_columns."""
-
-    def outer_source(self, idx: pd.Index[int]) -> pd.DataFrame:
-        """Call get_private_columns inside a nested pipeline evaluation."""
-        inner_private = self.population_view.get_private_columns(idx, "inner")
-        return pd.DataFrame({"doubled_inner": inner_private * 2})
 
 
 class NestedLookupCaller(NestedAttributeCreator):
@@ -382,7 +373,7 @@ class OrderedColumnsLookupCreator(Component):
             },
             index=pop_data.index,
         )
-        self.population_view.update(initialization_data)
+        self.population_view.initialize(initialization_data)
 
     def _get_ordered_columns_categorical(self) -> pd.DataFrame:
         df = self.ORDERED_COLUMNS.copy()
@@ -409,7 +400,7 @@ class ColumnCreatorAndRequirer(Component):
 
     def initialize_test_column_4(self, pop_data: SimulantData) -> None:
         initialization_data = pd.DataFrame({"test_column_4": 8}, index=pop_data.index)
-        self.population_view.update(initialization_data)
+        self.population_view.initialize(initialization_data)
 
 
 class NoPopulationView(Component):

@@ -184,9 +184,7 @@ class StepModifierWithRatePipeline(StepModifier):
         )
 
     def on_time_step(self, event: Event) -> None:
-        self.ts_pipeline_value = self.population_view.get_attributes(
-            event.index, self.rate_pipeline
-        )
+        self.ts_pipeline_value = self.population_view.get(event.index, self.rate_pipeline)
 
 
 class StepModifierWithMovement(StepModifierWithRatePipeline):

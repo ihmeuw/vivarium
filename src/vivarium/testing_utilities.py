@@ -9,7 +9,7 @@ Utility functions and classes to make testing ``vivarium`` components easier.
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from itertools import product
 from pathlib import Path
 from typing import Any
@@ -64,16 +64,19 @@ class NonCRNTestPopulation(Component):
             pop_data.creation_window,
             self.randomness,
         )
-        self.population_view.update(population)
+        self.population_view.initialize(population)
 
     def on_time_step(self, event: Event) -> None:
-        population = self.population_view.get_attributes(
-            event.index, ["is_alive", "age"], query="is_alive == True"
+        living_index = self.population_view.get_filtered_index(
+            event.index, query="is_alive == True"
         )
         # This component won't work if event.step_size is an int
         if not isinstance(event.step_size, int):
-            population["age"] += event.step_size / pd.Timedelta(days=365)
-        self.population_view.update(population)
+            delta = event.step_size / pd.Timedelta(days=365)
+            self.population_view.update(
+                "age",
+                lambda age: age.loc[living_index] + delta,
+            )
 
 
 class TestPopulation(NonCRNTestPopulation):
@@ -121,7 +124,7 @@ class TestPopulation(NonCRNTestPopulation):
                 pop_data.index, ["USA", "Canada", "Mexico"], additional_key="location_choice"
             )
         population = _build_population(core_population, location, self.randomness)
-        self.population_view.update(population)
+        self.population_view.initialize(population)
 
 
 def _build_population(

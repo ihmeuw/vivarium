@@ -76,7 +76,7 @@ class Mortality(Component):
             of the time step, and the age boundaries for the simulants to
             generate.
         """
-        self.population_view.update(pd.Series(True, index=pop_data.index, name="is_alive"))
+        self.population_view.initialize(pd.Series(True, index=pop_data.index, name="is_alive"))
 
     # docs-end: initialize_is_alive
 
@@ -91,11 +91,11 @@ class Mortality(Component):
             representing the simulants affected by the event and timing
             information.
         """
-        effective_rate = self.population_view.get_attributes(event.index, "mortality_rate")
+        effective_rate = self.population_view.get(event.index, "mortality_rate")
         effective_probability = 1 - np.exp(-effective_rate)
         draw = self.randomness.get_draw(event.index)
         affected_simulants = draw < effective_probability
         self.population_view.update(
-            pd.Series(False, index=event.index[affected_simulants], name="is_alive")
+            "is_alive", lambda _: pd.Series(False, index=event.index[affected_simulants])
         )
     # docs-end: on_time_step

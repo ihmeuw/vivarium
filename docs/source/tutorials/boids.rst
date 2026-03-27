@@ -290,11 +290,11 @@ to their velocity.
 To get population attributes such as ``acceleration`` inside on_time_step,
 we leverage a :class:`~vivarium.framework.population.population_view.PopulationView`
 which provides a handful of methods designed to get when you need. In this case, 
-we call :meth:`~vivarium.framework.population.population_view.PopulationView.get_attribute_frame` 
+we call :meth:`~vivarium.framework.population.population_view.PopulationView.get_frame` 
 to get the acceleration attribute. We pass in the ``event.index`` which is the set 
 of simulants affected by the event (in this case, all of them). Note that there is
-also available a :meth:`~vivarium.framework.population.population_view.PopulationView.get_attributes`
-method which is similar to ``get_attribute_frame`` but can request multiple attributes
+also available a :meth:`~vivarium.framework.population.population_view.PopulationView.get`
+method which is similar to ``get_frame`` but can request multiple attributes
 at once and does not necessarily return a dataframe.
 
 .. note::
@@ -306,24 +306,26 @@ at once and does not necessarily return a dataframe.
    convenience methods for getting and setting attributes, private columns,
    and other bits of information about the population.
 
-We also make a call to the population view's ``get_private_columns`` method to get
-all the private columns created by this component (``x``, ``y``, ``vx``, and ``vy``).
-A :term:`private column <Private Column>` is one that acts as a *source* of an
-attribute. 
+We call the population view's
+:meth:`~vivarium.framework.population.population_view.PopulationView.update`
+method, passing the names of the private columns we want to change and a *modifier*
+function that receives the current values and returns the updated ones. A
+:term:`private column <Private Column>` is one that acts as a *source* of an
+attribute.
 
 .. note::
 
    **Private Columns vs. Attributes**
-   
+
    Knowing whether you need a private column or an attribute depends on context,
-   but when you need to update the state table as we're doing here, it's important 
+   but when you need to update the state table as we're doing here, it's important
    to understand that what you are really updating are the appropriate private columns
    that act as the source of the attributes you care about. In this case, we want
    to update the source data for position (``x`` and ``y``) and velocity (``vx``
    and ``vy``) attributes which are this component's private columns (i.e. this
-   component registered the initializer that created those columns). It just so
-   happens that in order to update these columns we *also* need the acceleration
-   attributes and so we retrieve that as well.
+   component registered the initializer that created those columns). The modifier
+   receives a :class:`~pandas.DataFrame` of those four columns, and we also
+   retrieve the acceleration attributes inside it so that we can apply forces.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/movement.py
    :start-after: # docs-start: on_time_step

@@ -13,6 +13,7 @@ It has two primary responsibilities:
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Literal, overload
 
 import pandas as pd
@@ -86,7 +87,7 @@ class PopulationView:
     ###########
 
     @overload
-    def get_attributes(
+    def get(
         self,
         index: pd.Index[int],
         attributes: str,
@@ -97,7 +98,7 @@ class PopulationView:
         ...
 
     @overload
-    def get_attributes(
+    def get(
         self,
         index: pd.Index[int],
         attributes: list[str] | tuple[str, ...],
@@ -108,7 +109,7 @@ class PopulationView:
         ...
 
     @overload
-    def get_attributes(
+    def get(
         self,
         index: pd.Index[int],
         attributes: str | list[str] | tuple[str, ...],
@@ -118,7 +119,7 @@ class PopulationView:
     ) -> Any:
         ...
 
-    def get_attributes(
+    def get(
         self,
         index: pd.Index[int],
         attributes: str | list[str] | tuple[str, ...],
@@ -183,11 +184,11 @@ class PopulationView:
             raise ValueError(
                 "Expected a pandas Series to be returned when requesting a single "
                 "attribute, but got a DataFrame instead. If you expect this attribute "
-                "to be a DataFrame, you should call `get_attribute_frame()` instead."
+                "to be a DataFrame, you should call `get_frame()` instead."
             )
         return population
 
-    def get_attribute_frame(
+    def get_frame(
         self,
         index: pd.Index[int],
         attribute: str,
@@ -216,12 +217,12 @@ class PopulationView:
 
         Notes
         -----
-        The difference between this method and ``get_attributes`` is subtle. This
+        The difference between this method and ``get`` is subtle. This
         method always returns a dataframe even if the requested attribute contains
         a single column. Further, in the event the attribute has multi-level columns,
         it will be squeezed to only return the inner columns.
 
-        Calling ``get_attributes`` to request a list of a single attribute seems
+        Calling ``get`` to request a list of a single attribute seems
         identical to this, but in that case the underlying data would not be squeezed
         at all, i.e. a dataframe with multi-level columns would also return the
         outer columns.
@@ -239,90 +240,6 @@ class PopulationView:
                 query=self._build_query(query, include_untracked),
             )
         )
-
-    @overload
-    def get_private_columns(
-        self,
-        index: pd.Index[int],
-        private_columns: str = ...,
-        query: str = "",
-        include_untracked: bool | None = None,
-    ) -> pd.Series[Any]:
-        ...
-
-    @overload
-    def get_private_columns(
-        self,
-        index: pd.Index[int],
-        private_columns: list[str] | tuple[str, ...] = ...,
-        query: str = "",
-        include_untracked: bool | None = None,
-    ) -> pd.DataFrame:
-        ...
-
-    @overload
-    def get_private_columns(
-        self,
-        index: pd.Index[int],
-        private_columns: None = None,
-        query: str = "",
-        include_untracked: bool | None = None,
-    ) -> pd.Series[Any] | pd.DataFrame:
-        ...
-
-    def get_private_columns(
-        self,
-        index: pd.Index[int],
-        private_columns: str | list[str] | tuple[str, ...] | None = None,
-        query: str = "",
-        include_untracked: bool | None = None,
-    ) -> pd.Series[Any] | pd.DataFrame:
-        """Gets a specific subset of this ``PopulationView's`` private columns.
-
-        For the rows in ``index``, return the requested ``private_columns``. The
-        resulting rows may be further filtered by the call's ``query`` and whether
-        or not to include untracked simulants.
-
-        Parameters
-        ----------
-        index
-            Index of the population to get.
-        private_columns
-            The private columns to retrieve. If None, all columns created by the
-            component that created this view are included.
-        query
-            Additional conditions used to filter the index.
-        include_untracked
-            Whether to include untracked simulants. If None (default), untracked
-            simulants are excluded unless this pipeline was called during population
-            creation or inside another pipeline call. Untracked simulants are always
-            included if True and always excluded if False.
-
-        Returns
-        -------
-            The private column(s) requested subset to the ``index`` and filtered
-            using the various optional queries. Will return a Series if a single
-            column is requested or a Dataframe otherwise.
-
-        Raises
-        ------
-        PopulationError
-            If there is no component attached to this view (indicating that this
-            view is to be read-only and thus cannot access private columns).
-        """
-
-        if self._component is None:
-            raise PopulationError(
-                "This PopulationView is read-only, so it doesn't have access to get_private_columns()."
-            )
-
-        index = self.get_filtered_index(
-            index,
-            query=self._build_query(query, include_untracked),
-            include_untracked=True,
-        )
-
-        return self._manager.get_private_columns(self._component, index, private_columns)
 
     def get_filtered_index(
         self,
@@ -352,68 +269,153 @@ class PopulationView:
             The requested and filtered population index.
         """
 
-        return self.get_attributes(
+        return self.get(
             index,
             attributes=[],
             query=query,
             include_untracked=include_untracked,
         ).index
 
-    def update(self, update: pd.Series[Any] | pd.DataFrame) -> None:
-        """Updates private columns with the provided data.
+    def initialize(self, data: pd.Series[Any] | pd.DataFrame) -> None:
+        """Initialize private columns with the provided data.
+
+        Use this method during simulant initialization (both initial and when adding
+        new simulants) to set the initial values of private columns. Column names
+        are inferred from the data (Series name or DataFrame columns).
 
         Parameters
         ----------
-        update
-            The data which should be copied into the simulation's private columns.
-            If the ``update`` is a :class:`pandas.DataFrame`, it can contain a subset
-            of the view's columns but no extra columns. If it's a :class:`pandas.Series`
-            it must have a name that matches one of this view's columns unless the
-            view only has one column in which case the Series will be assumed to
-            refer to that regardless of its name.
+        data
+            The initial values for private columns. If a :class:`pandas.Series`,
+            its ``name`` identifies the column. If a :class:`pandas.DataFrame`,
+            its column names identify the columns.
 
         Raises
         ------
         PopulationError
-            - If there is no component attached to this view (indicating that this
-              view is to be read-only and thus cannot be updated).
-            - If the update has simulants that are not in the existing private data.
-            - If the update is missing simulants during initial population creation.
-            - If this view manages multiple private columns but the update is an
-              unnamed :class:`pandas.Series`.
-            - If the update contains columns not managed by this view.
-            - If the update is empty.
-            - If the update includes different dtypes than the existing data (unless
-              new simulants are being added).
+            - If this view is read-only.
+            - If called outside of simulant initialization.
+            - If the data contains columns not managed by this view.
+            - If the data has simulants not in the population.
+            - If the data is missing simulants during initial population creation.
         TypeError
-            If the update is not a :class:`pandas.Series` or a :class:`pandas.DataFrame`.
+            If the data is not a Series or DataFrame.
         """
+        if self._component is None:
+            raise PopulationError(
+                "This PopulationView is read-only, so it doesn't have access to initialize()."
+            )
+        if not self._manager.adding_simulants:
+            raise PopulationError(
+                "initialize() can only be called during simulant initialization. "
+                "Use update() to modify existing data."
+            )
 
+        data_df = self._coerce_init_data(data, self.private_columns)
+        existing = pd.DataFrame(self._manager.get_private_columns(self._component))
+
+        unknown_simulants = len(data_df.index.difference(existing.index))
+        if unknown_simulants:
+            raise PopulationError(
+                "Population updates must have an index that is a subset of the current "
+                f"private data. {unknown_simulants} simulants were provided "
+                "in an update with no matching index in the existing table."
+            )
+
+        if self._manager.creating_initial_population:
+            missing_pops = len(existing.index.difference(data_df.index))
+            if missing_pops:
+                raise PopulationError(
+                    "Components must initialize all simulants during population "
+                    f"initialization. Component '{self._component.name}' is missing "
+                    f"updates for {missing_pops} simulants."
+                )
+            new_columns = list(set(data_df.columns).difference(existing.columns))
+            self._manager.update(data_df[new_columns])
+        elif not data_df.empty:
+            update_columns = list(set(data_df.columns).intersection(existing.columns))
+            updated_cols_list = []
+            for column in update_columns:
+                column_update = self._update_column_and_ensure_dtype(
+                    data_df[column],
+                    existing[column],
+                    adding_simulants=True,
+                )
+                updated_cols_list.append(column_update)
+            self._manager.update(pd.concat(updated_cols_list, axis=1))
+
+    @overload
+    def update(
+        self,
+        columns: str,
+        modifier: Callable[[pd.Series[Any]], pd.Series[Any]],
+    ) -> None:
+        ...
+
+    @overload
+    def update(
+        self,
+        columns: list[str],
+        modifier: Callable[[pd.DataFrame], pd.DataFrame],
+    ) -> None:
+        ...
+
+    def update(
+        self,
+        columns: str | list[str],
+        modifier: Callable[..., pd.Series[Any] | pd.DataFrame],
+    ) -> None:
+        """Update private columns by applying a modifier to the current data.
+
+        Read the current values of the specified private columns, pass them to
+        ``modifier``, and write the result back. The modifier receives a
+        :class:`pandas.Series` when ``columns`` is a string or a
+        :class:`pandas.DataFrame` when ``columns`` is a list. It should return
+        data in the same form, optionally with a subset of the original index
+        (in which case only those rows are updated).
+
+        Parameters
+        ----------
+        columns
+            The private column(s) to update. A string for a single column
+            or a list of strings for multiple columns.
+        modifier
+            A callable that takes the current column data and returns the
+            updated values. May return a subset of the original index to
+            update only some rows.
+
+        Raises
+        ------
+        PopulationError
+            - If this view is read-only.
+            - If the modifier returns data with unexpected columns or simulants.
+        TypeError
+            If the modifier does not return a Series, DataFrame, or scalar.
+        """
         if self._component is None:
             raise PopulationError(
                 "This PopulationView is read-only, so it doesn't have access to update()."
             )
 
-        existing = pd.DataFrame(self._manager.get_private_columns(self._component))
-        update_df: pd.DataFrame = self._format_update_and_check_preconditions(
-            self._component.name,
-            update,
-            existing,
-            self.private_columns,
-            self._manager.creating_initial_population,
-            self._manager.adding_simulants,
-        )
-        if self._manager.creating_initial_population:
-            new_columns = list(set(update_df.columns).difference(existing.columns))
-            self._manager.update(update_df[new_columns])
-        elif not update_df.empty:
-            update_columns = list(set(update_df.columns).intersection(existing.columns))
+        if isinstance(columns, str):
+            squeeze = True
+            column_list = [columns]
+        else:
+            squeeze = False
+            column_list = list(columns)
+
+        current_data = self._manager.get_private_columns(self._component, columns=columns)
+        result = modifier(current_data.copy())
+        result_df = self._coerce_update_result(result, column_list, current_data.index)
+
+        if not result_df.empty:
+            existing_full = pd.DataFrame(current_data) if squeeze else current_data
             updated_cols_list = []
-            for column in update_columns:
+            for column in result_df.columns:
                 column_update = self._update_column_and_ensure_dtype(
-                    update_df[column],
-                    existing[column],
-                    self._manager.adding_simulants,
+                    result_df[column],
+                    existing_full[column],
+                    adding_simulants=self._manager.adding_simulants,
                 )
                 updated_cols_list.append(column_update)
             self._manager.update(pd.concat(updated_cols_list, axis=1))
@@ -427,87 +429,82 @@ class PopulationView:
     # Helper methods #
     ##################
 
-    # FIXME: make this not a static method
     @staticmethod
-    def _format_update_and_check_preconditions(
-        component_name: str,
-        update: pd.Series[Any] | pd.DataFrame,
-        existing: pd.DataFrame,
-        private_columns: list[str],
-        creating_initial_population: bool,
-        adding_simulants: bool,
+    def _coerce_update_result(
+        result: Any,
+        columns: list[str],
+        existing_index: pd.Index[int],
     ) -> pd.DataFrame:
-        """Standardizes the population update format and checks preconditions.
-
-        Managing how values get written to the underlying population private data is critical
-        to rule out several categories of error in client simulation code. The private data
-        is modified at three different times. In the first, the initial population table
-        is being created and new columns are being added to the private data with their
-        initial values. In the second, the population manager has added new rows with
-        appropriate null values to the private data in response to population creation
-        dictated by client code, and population updates are being provided to fill in
-        initial values for those new rows. In the final case, private data values for
-        existing simulants are being overridden as part of a time step.
-
-        All of these modification scenarios require that certain preconditions are met.
-        For all scenarios, we require
-
-            1. The update is a DataFrame or a Series.
-            2. If it is a series, it is nameless and this view manages a single column
-               or it is named and its name matches a column in this PopulationView.
-            3. The update matches at least one column in this PopulationView.
-            4. The update columns are a subset of the columns managed by this
-               PopulationView.
-            5. The update index is a subset of the existing private data index.
-               PopulationViews don't make rows, they just fill them in.
-
-        Note that except during population initialization, we require that all columns
-        in the update to be present in the existing private data.
+        """Coerce the return value of a modifier callable to a DataFrame.
 
         Parameters
         ----------
-        component_name
-            The name of the component requesting the update.
-        update
-            The update to the private data owned by the component that created this view.
-        existing
-            The existing private data owned by the component that created this view.
-        private_columns
-            The private columns managed by this PopulationView.
-        creating_initial_population
-            Whether the initial population is being created.
-        adding_simulants
-            Whether new simulants are currently being initialized.
+        result
+            The return value of the modifier callable.
+        columns
+            The column names that were passed to the modifier.
+        existing_index
+            The index of all simulants in the private data.
 
         Returns
         -------
-            The input data formatted as a DataFrame.
+            The result coerced to a DataFrame.
 
+        Raises
+        ------
+        PopulationError
+            If the result contains unexpected columns or simulants.
+        TypeError
+            If the result is not a Series, DataFrame, or scalar.
         """
-        assert not creating_initial_population or adding_simulants
+        if result is None:
+            raise TypeError("The modifier returned None. Did you forget a return statement?")
 
-        update = PopulationView._coerce_to_dataframe(update, private_columns)
-
-        unknown_simulants = len(update.index.difference(existing.index))
-        if unknown_simulants:
-            raise PopulationError(
-                "Population updates must have an index that is a subset of the current "
-                f"private data. {unknown_simulants} simulants were provided "
-                "in an update with no matching index in the existing table."
-            )
-
-        if creating_initial_population:
-            missing_pops = len(existing.index.difference(update.index))
-            if missing_pops:
-                raise PopulationError(
-                    "Components must initialize all simulants during population initialization. "
-                    f"Component '{component_name}' is missing updates for {missing_pops} simulants."
+        if isinstance(result, pd.DataFrame):
+            coerced = result
+        elif isinstance(result, pd.Series):
+            if result.name is None:
+                if len(columns) == 1:
+                    result = result.rename(columns[0])
+                else:
+                    raise PopulationError(
+                        "The modifier returned an unnamed Series, but multiple columns "
+                        "were requested. The Series must be named to identify which "
+                        "column it corresponds to, or return a DataFrame instead."
+                    )
+            coerced = pd.DataFrame(result)
+        else:
+            try:
+                coerced = pd.DataFrame({col: result for col in columns}, index=existing_index)
+            except (ValueError, TypeError):
+                raise TypeError(
+                    "The modifier must return a pandas Series, DataFrame, or scalar. "
+                    f"Got {type(result)}."
                 )
 
-        return update
+        extra_cols = set(coerced.columns).difference(columns)
+        if extra_cols:
+            raise PopulationError(
+                f"The modifier returned data with unexpected columns: {extra_cols}."
+            )
+
+        missing_cols = set(columns).difference(coerced.columns)
+        if missing_cols:
+            raise PopulationError(
+                f"The modifier did not return data for all requested columns. "
+                f"Missing: {missing_cols}."
+            )
+
+        unknown = coerced.index.difference(existing_index)
+        if len(unknown):
+            raise PopulationError(
+                f"The modifier returned {len(unknown)} simulants not in the population."
+            )
+
+        return coerced
 
     @staticmethod
-    def _coerce_to_dataframe(
+    def _coerce_init_data(
         update: pd.Series[Any] | pd.DataFrame,
         private_columns: list[str],
     ) -> pd.DataFrame:

@@ -289,7 +289,12 @@ class State(Component):
         population_view
             A view of the internal state of the simulation.
         """
-        population_view.update(pd.Series(self.state_id, index=index, name=self.model))
+        if self.model is None:
+            raise ValueError(
+                f"State '{self.state_id}' has no model set. "
+                "Call set_model() before transitioning."
+            )
+        population_view.update(self.model, lambda _: pd.Series(self.state_id, index=index))
         self.transition_side_effect(index, event_time)
 
     def cleanup_effect(self, index: pd.Index[int], event_time: ClockTime) -> None:
@@ -597,14 +602,14 @@ class Machine(Component):
 
     def initialize_state(self, pop_data: SimulantData) -> None:
         state_ids = [s.state_id for s in self.states]
-        state_weights = self.population_view.get_attributes(
+        state_weights = self.population_view.get(
             pop_data.index, self.initialization_weights_pipelines
         )
 
         initial_states = self.randomness.choice(
             pop_data.index, state_ids, state_weights.to_numpy(), "initialization"
         ).rename(self.state_column)
-        self.population_view.update(initial_states)
+        self.population_view.initialize(initial_states)
 
     def on_time_step(self, event: Event) -> None:
         self.transition(event.index, event.time)
@@ -648,7 +653,7 @@ class Machine(Component):
                 state.cleanup_effect(affected.index, event_time)
 
     def _get_state_pops(self, index: pd.Index[int]) -> list[tuple[State, pd.Series[Any]]]:
-        population = self.population_view.get_attributes(index, self.state_column)
+        population = self.population_view.get(index, self.state_column)
         if not isinstance(population, pd.Series):
             raise TypeError(
                 "Expected population view to return a pandas Series for"

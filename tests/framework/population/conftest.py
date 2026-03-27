@@ -37,7 +37,7 @@ class PieComponent(Component):
         )
 
     def make_pie(self, pop_data: SimulantData) -> None:
-        self.population_view.update(self.get_initial_state(pop_data.index))
+        self.population_view.initialize(self.get_initial_state(pop_data.index))
 
     def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:
         return PIE_DF
@@ -50,7 +50,7 @@ class CubeComponent(Component):
         )
 
     def cubify(self, pop_data: SimulantData) -> None:
-        self.population_view.update(self.get_initial_state(pop_data.index))
+        self.population_view.initialize(self.get_initial_state(pop_data.index))
 
     def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:
         return CUBE_DF

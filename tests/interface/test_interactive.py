@@ -18,7 +18,6 @@ from tests.helpers import (
     MultiLevelSingleColumnCreator,
     NestedAttributeCreator,
     NestedLookupCaller,
-    NestedPrivateColumnCaller,
     SingleColumnCreator,
 )
 from vivarium import InteractiveContext
@@ -202,8 +201,8 @@ class TestGetPopulationNestedAttributes:
         """
 
         def outer_source(self_: NestedAttributeCreator, idx: pd.Index[int]) -> pd.DataFrame:
-            ones = self_.population_view.get_attributes(idx, "inner", query="inner == 1")
-            not_ones = self_.population_view.get_attributes(idx, "inner", query="inner != 1")
+            ones = self_.population_view.get(idx, "inner", query="inner == 1")
+            not_ones = self_.population_view.get(idx, "inner", query="inner != 1")
             combined = pd.concat([ones, not_ones]).sort_index()
             return pd.DataFrame({"doubled_inner": combined * 2})
 
@@ -230,13 +229,9 @@ class TestGetPopulationNestedAttributes:
 
         def outer_source(self_: NestedAttributeCreator, idx: pd.Index[int]) -> pd.DataFrame:
             # include_untracked=False at depth > 0: tracked query IS applied
-            tracked = self_.population_view.get_attributes(
-                idx, "inner", include_untracked=False
-            )
+            tracked = self_.population_view.get(idx, "inner", include_untracked=False)
             # include_untracked=True at depth > 0: tracked query NOT applied
-            all_inner = self_.population_view.get_attributes(
-                idx, "inner", include_untracked=True
-            )
+            all_inner = self_.population_view.get(idx, "inner", include_untracked=True)
             return pd.DataFrame(
                 {"tracked_count": len(tracked), "all_count": len(all_inner)}, index=idx
             )
@@ -263,28 +258,6 @@ class TestGetPopulationNestedAttributes:
         self._assert_depth(sim, max_depth, 2)
 
     @pytest.mark.parametrize("include_untracked", [None, True, False])
-    def test_get_private_columns_nested_path(
-        self,
-        include_untracked: bool | None,
-        mocker: MockerFixture,
-    ) -> None:
-        """Test get_private_columns inside a nested pipeline call suppresses tracked queries."""
-        sim = self._create_sim(
-            NestedPrivateColumnCaller,
-            tracked_query="inner == 1",
-            mocker=mocker,
-        )
-        self._assert_nested_query_suppression(
-            sim,
-            include_untracked,
-            mocker,
-            expected_filtered_inner={1},
-            outer_column=("outer", "doubled_inner"),
-            expected_baseline_outer={0, 2, 4},
-            expected_filtered_outer={2},
-        )
-
-    @pytest.mark.parametrize("include_untracked", [None, True, False])
     def test_lookup_table_nested_path(
         self,
         include_untracked: bool | None,
@@ -293,7 +266,7 @@ class TestGetPopulationNestedAttributes:
         """Lookup table inside a nested pipeline call suppresses tracked queries.
 
         Uses NestedLookupCaller whose outer_source calls a lookup table keyed
-        on 'inner'. The table internally calls get_attributes(index, ["inner"])
+        on 'inner'. The table internally calls get(index, ["inner"])
         with the default include_untracked=None, exercising the lookup path.
         """
         sim = self._create_sim(

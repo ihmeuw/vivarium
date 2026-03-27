@@ -207,13 +207,15 @@ for this decision point of whether to move left or not. Here's how we'd do it:
 
         def initialize_location(self, pop_data):
             # all simulants start at position 10
-            self.population_view.update(pd.Series(10, index=pop_data.index, name='location'))
+            self.population_view.initialize(pd.Series(10, index=pop_data.index, name='location'))
 
         def on_time_step(self, event):
             # with probability 0.5 simulants move to the left 1 position
             to_move_index = self.randomness.filter_for_probability(event.index, pd.Series(0.5, index=event.index))
-            moved_locations = self.population_view.get_attributes(to_move_index, "location") - 1
-            self.population_view.update(moved_locations)
+            self.population_view.update(
+                "location",
+                lambda location: location.loc[to_move_index] - 1,
+            )
 
 
 .. todo::

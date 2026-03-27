@@ -217,11 +217,10 @@ def test_side_effects() -> None:
             )
 
         def initialize_count(self, pop_data: SimulantData) -> None:
-            self.population_view.update(pd.Series(0, index=pop_data.index, name="count"))
+            self.population_view.initialize(pd.Series(0, index=pop_data.index, name="count"))
 
         def transition_side_effect(self, index: pd.Index[int], _: ClockTime) -> None:
-            pop = self.population_view.get_attributes(index, "count")
-            self.population_view.update(pop + 1)
+            self.population_view.update("count", lambda count: count + 1)
 
     counting_state = CountingState("counting", allow_self_transition=False)
     start_state = State("start", allow_self_transition=False)
