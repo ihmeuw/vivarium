@@ -279,7 +279,7 @@ class PopulationView:
     def initialize(self, data: pd.Series[Any] | pd.DataFrame) -> None:
         """Initialize private columns with the provided data.
 
-        Use this method during population creation (both initial and when adding
+        Use this method during simulant initialization (both initial and when adding
         new simulants) to set the initial values of private columns. Column names
         are inferred from the data (Series name or DataFrame columns).
 
@@ -288,13 +288,13 @@ class PopulationView:
         data
             The initial values for private columns. If a :class:`pandas.Series`,
             its ``name`` identifies the column. If a :class:`pandas.DataFrame`,
-            its columns identify the columns.
+            its column names identify the columns.
 
         Raises
         ------
         PopulationError
             - If this view is read-only.
-            - If called outside of population creation.
+            - If called outside of simulant initialization.
             - If the data contains columns not managed by this view.
             - If the data has simulants not in the population.
             - If the data is missing simulants during initial population creation.
@@ -307,7 +307,7 @@ class PopulationView:
             )
         if not self._manager.adding_simulants:
             raise PopulationError(
-                "initialize() can only be called during population creation. "
+                "initialize() can only be called during simulant initialization. "
                 "Use update() to modify existing data."
             )
 

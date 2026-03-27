@@ -511,7 +511,7 @@ state table.
    as the source of attribute pipelines. Attributes are read-only and are modified 
    by components registering modifiers to their corresponding attribute pipelines.
    Private columns, on the other hand, are read and written by components directly - 
-   but only the component that created them in the first place.
+   but only by the component that created them in the first place.
    
    Refer to the :ref:`population management documentation <population_concept>` for more details.
 
