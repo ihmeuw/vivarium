@@ -219,17 +219,17 @@ def test_multi_sim_basic_reproducibility_with_same_pop_growth(
         components=[pop_class(with_crn=with_crn, sims_to_add=sims_to_add)],
         configuration=configuration,
     )
-
-    pop1 = sim1.get_population().set_index(["crn_attr1", "crn_attr2"])
-    pop2 = sim2.get_population().set_index(["crn_attr1", "crn_attr2"])
+    attribute_names = ["crn_attr1", "crn_attr2", "other_attr1"]
+    pop1 = sim1.get_population(attribute_names).set_index(["crn_attr1", "crn_attr2"])
+    pop2 = sim2.get_population(attribute_names).set_index(["crn_attr1", "crn_attr2"])
     assert_frame_equal(pop1, pop2)
 
     for i in range(2):
         sim1.step()
         sim2.step()
 
-    pop1 = sim1.get_population().set_index(["crn_attr1", "crn_attr2"])
-    pop2 = sim2.get_population().set_index(["crn_attr1", "crn_attr2"])
+    pop1 = sim1.get_population(attribute_names).set_index(["crn_attr1", "crn_attr2"])
+    pop2 = sim2.get_population(attribute_names).set_index(["crn_attr1", "crn_attr2"])
     assert_frame_equal(pop1, pop2)
 
 
@@ -260,8 +260,9 @@ def test_multi_sim_reproducibility_with_different_pop_growth(
         configuration=configuration,
     )
 
-    pop1 = sim1.get_population().set_index(["crn_attr1", "crn_attr2"])
-    pop2 = sim2.get_population().set_index(["crn_attr1", "crn_attr2"])
+    attribute_names = ["crn_attr1", "crn_attr2", "other_attr1"]
+    pop1 = sim1.get_population(attribute_names).set_index(["crn_attr1", "crn_attr2"])
+    pop2 = sim2.get_population(attribute_names).set_index(["crn_attr1", "crn_attr2"])
     initial_pop_size = len(pop1)
     assert_frame_equal(pop1, pop2)
 
@@ -270,8 +271,8 @@ def test_multi_sim_reproducibility_with_different_pop_growth(
         sim1.step()
         sim2.step()
 
-    pop1 = sim1.get_population().set_index(["crn_attr1", "crn_attr2"])
-    pop2 = sim2.get_population().set_index(["crn_attr1", "crn_attr2"])
+    pop1 = sim1.get_population(attribute_names).set_index(["crn_attr1", "crn_attr2"])
+    pop2 = sim2.get_population(attribute_names).set_index(["crn_attr1", "crn_attr2"])
 
     if with_crn:
         overlap = pop1.index.intersection(pop2.index)

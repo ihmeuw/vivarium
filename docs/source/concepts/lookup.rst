@@ -282,8 +282,8 @@ and for ease of debugging. If you don't provide value column names, it will defa
 
       # value_columns implicitly set to remaining columns
     > bmi = sim.builder.lookup.build_table(data, name="bmi")
-    > population = sim.get_population()
-    > bmi(population.index).head()  # returns BMI values for the population
+    > pop_index = sim.get_population_index()
+    > bmi(pop_index).head()  # returns BMI values for the population
 
       0     20.0
       1     20.0
