@@ -295,7 +295,15 @@ your starting population.
 
 .. code-block:: python
 
-    pop = sim.get_population()
+    pop = sim.get_population(
+        [
+            "age",
+            "is_alive",
+            "entrance_time",
+            "lower_respiratory_infections",
+            "child_wasting_propensity",
+        ]
+    )
     print(pop.head())
 
 ::
@@ -314,7 +322,16 @@ the population as a whole.
 .. testcode::
     :hide:
 
-    pop = sim.get_population()
+    pop = sim.get_population(
+        [
+            "age",
+            "sex",
+            "is_alive",
+            "entrance_time",
+            "lower_respiratory_infections",
+            "child_wasting_propensity",
+        ]
+    )
     pop = pop.reindex(sorted(pop.columns), axis=1)
     print(pop.age.describe())
     print(pop.is_alive.value_counts())

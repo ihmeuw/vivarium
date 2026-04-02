@@ -168,7 +168,7 @@ class InteractiveContext(SimulationContext):
     @overload
     def get_population(
         self,
-        attributes: str | None = None,
+        attributes: str,
         query: str = "",
         include_untracked: bool = False,
     ) -> pd.Series[Any] | pd.DataFrame:
@@ -177,7 +177,7 @@ class InteractiveContext(SimulationContext):
     @overload
     def get_population(
         self,
-        attributes: list[str] | tuple[str, ...] = ...,
+        attributes: list[str] | tuple[str, ...],
         query: str = "",
         include_untracked: bool = False,
     ) -> pd.DataFrame:
@@ -185,7 +185,7 @@ class InteractiveContext(SimulationContext):
 
     def get_population(
         self,
-        attributes: str | list[str] | tuple[str, ...] | None = None,
+        attributes: str | list[str] | tuple[str, ...],
         query: str = "",
         include_untracked: bool = False,
     ) -> pd.Series[Any] | pd.DataFrame:
@@ -194,8 +194,7 @@ class InteractiveContext(SimulationContext):
         Parameters
         ----------
         attributes
-            The attribute pipelines to include in the returned table. If None, all
-            attributes are included.
+            The attribute pipelines to include in the returned table.
         query
             Additional conditions used to filter the index.
         include_untracked
@@ -206,10 +205,6 @@ class InteractiveContext(SimulationContext):
             The current state of requested population attributes.
         """
         index = self.get_population_index()
-        if attributes is None:
-            attributes = self.get_attribute_names()
-            if len(attributes) == 1:
-                attributes = attributes[0]
         if isinstance(attributes, str):
             try:
                 return self._population_view.get(

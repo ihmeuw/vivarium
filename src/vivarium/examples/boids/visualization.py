@@ -8,7 +8,7 @@ from vivarium import InteractiveContext
 def plot_boids(simulation: InteractiveContext, plot_velocity: bool=False) -> None:
     width = simulation.configuration.field.width
     height = simulation.configuration.field.height
-    pop = simulation.get_population()
+    pop = simulation.get_population(["x", "y", "color", "vx", "vy"])
 
     plt.figure(figsize=(12, 12))
     plt.scatter(pop.x, pop.y, color=pop.color)
@@ -24,7 +24,7 @@ def plot_boids(simulation: InteractiveContext, plot_velocity: bool=False) -> Non
 def plot_boids_animated(simulation: InteractiveContext) -> FuncAnimation:
     width = simulation.configuration.field.width
     height = simulation.configuration.field.height
-    pop = simulation.get_population()
+    pop = simulation.get_population(["x", "y", "color"])
 
     fig = plt.figure(figsize=(12, 12))
     ax = fig.add_subplot(111)

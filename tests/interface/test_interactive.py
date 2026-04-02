@@ -51,21 +51,20 @@ def test_get_attribute_names() -> None:
     sim = InteractiveContext(
         components=[MultiLevelMultiColumnCreator(), AttributePipelineCreator()]
     )
-    assert set(sim.get_attribute_names()) == set(
-        [
-            # MultiLevelMultiColumnCreator attributes
-            "some_attribute",
-            "some_other_attribute",
-            # AttributePipelineCreator attributes
-            "attribute_generating_columns_4_5",
-            "attribute_generating_column_8",
-            "test_attribute",
-            "attribute_generating_columns_6_7",
-        ]
-    )
+    expected_attributes = [
+        # MultiLevelMultiColumnCreator attributes
+        "some_attribute",
+        "some_other_attribute",
+        # AttributePipelineCreator attributes
+        "attribute_generating_columns_4_5",
+        "attribute_generating_column_8",
+        "test_attribute",
+        "attribute_generating_columns_6_7",
+    ]
+    assert set(sim.get_attribute_names()) == set(expected_attributes)
     # Make sure there's nothing unexpected compared to the actual population df
     assert set(sim.get_attribute_names()) == set(
-        sim.get_population().columns.get_level_values(0)
+        sim.get_population(expected_attributes).columns.get_level_values(0)
     )
 
 
@@ -101,10 +100,6 @@ def test_get_population_squeezing() -> None:
     unsqueezed = sim.get_population(["test_column_1"])
     squeezed = sim.get_population("test_column_1")
     assert_squeezing_single_level_single_col(unsqueezed, squeezed, "test_column_1")
-    default = sim.get_population()
-    assert isinstance(default, pd.Series)
-    assert isinstance(squeezed, pd.Series)
-    assert default.equals(squeezed)
 
     # Single-level, multiple-column -> dataframe
     component = ColumnCreator()
@@ -113,8 +108,6 @@ def test_get_population_squeezing() -> None:
     df = sim.get_population(["test_column_1", "test_column_2", "test_column_3"])
     assert isinstance(df, pd.DataFrame)
     assert not isinstance(df.columns, pd.MultiIndex)
-    default = sim.get_population()
-    assert default.equals(df)  # type: ignore[arg-type]
 
     # Multi-level, single outer, single inner -> series
     sim = InteractiveContext(components=[MultiLevelSingleColumnCreator()], setup=True)
@@ -123,10 +116,6 @@ def test_get_population_squeezing() -> None:
     assert_squeezing_multi_level_single_outer_single_inner(
         unsqueezed, squeezed, ("some_attribute", "some_column")
     )
-    default = sim.get_population()
-    assert isinstance(default, pd.Series)
-    assert isinstance(squeezed, pd.Series)
-    assert default.equals(squeezed)
 
     # Multi-level, single outer, multiple inner -> inner dataframe
     sim = InteractiveContext(components=[MultiLevelMultiColumnCreator()], setup=True)
@@ -134,9 +123,6 @@ def test_get_population_squeezing() -> None:
     unsqueezed = sim.get_population(["some_attribute"])
     squeezed = sim.get_population("some_attribute")
     assert_squeezing_multi_level_single_outer_multi_inner(unsqueezed, squeezed)
-    default = sim.get_population()
-    assert isinstance(default, pd.DataFrame)
-    assert default.equals(squeezed)
 
     # Multi-level, multiple outer -> full unsqueezed multi-level dataframe
     sim = InteractiveContext(components=[MultiLevelMultiColumnCreator()], setup=True)
@@ -144,8 +130,6 @@ def test_get_population_squeezing() -> None:
     df = sim.get_population(["some_attribute", "some_other_attribute"])
     assert isinstance(df, pd.DataFrame)
     assert isinstance(df.columns, pd.MultiIndex)
-    default = sim.get_population()
-    assert default.equals(df)  # type: ignore[arg-type]
 
 
 class TestGetPopulationNestedAttributes:
@@ -245,7 +229,7 @@ class TestGetPopulationNestedAttributes:
         max_depth = self._patch_depth_tracking(sim, mocker)
 
         # Use include_untracked=True at top level so we see all simulants
-        pop = sim.get_population(include_untracked=True)
+        pop = sim.get_population(["outer", "inner"], include_untracked=True)
         total = len(pop)
         tracked_count = pop[("outer", "tracked_count")].iloc[0]
         all_count = pop[("outer", "all_count")].iloc[0]
@@ -311,7 +295,7 @@ class TestGetPopulationNestedAttributes:
             kwargs["include_untracked"] = include_untracked
 
         max_depth = self._patch_depth_tracking(sim, mocker)
-        pop = sim.get_population(**kwargs)  # type: ignore[call-overload]
+        pop = sim.get_population(sim.get_attribute_names(), **kwargs)  # type: ignore[call-overload]
         if include_untracked is True:
             assert set(pop["inner"]) == {0, 1, 2}
             if outer_column is not None:
