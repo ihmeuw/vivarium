@@ -842,6 +842,52 @@ def test_attribute_pipeline_with_post_processor(
     assert all(result["value"] == (20.0 if not skip_post_processor else 10.0))
 
 
+@pytest.mark.xfail(reason="mode parameter not yet implemented", strict=True)
+@pytest.mark.parametrize(
+    "mode, expected_value",
+    [("default", 30.0), ("skip_post_processor", 15.0), ("source", 10.0)],
+)
+def test_attribute_pipeline_access_mode(
+    mode: str, expected_value: float, manager: ValuesManager
+) -> None:
+    """Test that AttributePipeline respects the mode parameter.
+
+    Source returns 10.0; modifier adds 5.0 -> 15.0; post-processor doubles -> 30.0.
+    mode='default' applies modifiers and post-processor (30.0).
+    mode='skip_post_processor' applies modifiers but skips post-processor (15.0).
+    mode='source' calls only the source, skipping modifiers and post-processor (10.0).
+    """
+
+    def attribute_source(index: pd.Index[int]) -> pd.DataFrame:
+        return pd.DataFrame({"value": [10.0] * len(index)}, index=index)
+
+    def add_five_modifier(index: pd.Index[int], value: pd.DataFrame) -> pd.DataFrame:
+        result = value.copy()
+        result["value"] = result["value"] + 5.0
+        return result
+
+    def double_post_processor(
+        index: pd.Index[int], value: pd.DataFrame, manager: ValuesManager
+    ) -> pd.DataFrame:
+        result = value.copy()
+        result["value"] = result["value"] * 2
+        return result
+
+    manager.register_attribute_producer(
+        "test_attribute",
+        source=attribute_source,
+        preferred_post_processor=double_post_processor,
+    )
+    manager.register_attribute_modifier("test_attribute", modifier=add_five_modifier)
+    pipeline = manager.get_attribute_pipelines()["test_attribute"]
+
+    result = pipeline(INDEX, mode=mode)
+
+    assert isinstance(result, pd.DataFrame)
+    assert result.index.equals(INDEX)
+    assert all(result["value"] == expected_value)
+
+
 def test_get_attribute(manager: ValuesManager) -> None:
     """Test that ValuesManager.get_attribute returns AttributePipeline."""
 

@@ -168,6 +168,20 @@ def test_get_skip_post_processor(
     mocked_pie_pipeline.assert_called_once_with(full_idx, skip_post_processor=True)  # type: ignore[attr-defined]
 
 
+@pytest.mark.xfail(reason="mode parameter not yet implemented", strict=True)
+@pytest.mark.parametrize("attribute", ["pie", ["pie"]])
+def test_get_mode_skip_post_processor(
+    attribute: str | list[str], pies_and_cubes_pop_mgr: PopulationManager
+) -> None:
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+
+    key = attribute if isinstance(attribute, str) else attribute[0]
+    mocked_pie_pipeline = pies_and_cubes_pop_mgr._attribute_pipelines[key]
+    pv.get(full_idx, attribute, mode="skip_post_processor")
+    mocked_pie_pipeline.assert_called_once_with(full_idx, mode="skip_post_processor")  # type: ignore[attr-defined]
+
+
 def test_get_skip_post_processor_raises(
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
@@ -179,6 +193,20 @@ def test_get_skip_post_processor_raises(
         match="When skip_post_processor is True, a single attribute must be requested.",
     ):
         pv.get(full_idx, ["pie", "pi"], skip_post_processor=True)
+
+
+@pytest.mark.xfail(reason="mode parameter not yet implemented", strict=True)
+def test_get_mode_skip_post_processor_raises(
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+
+    with pytest.raises(
+        ValueError,
+        match="a single attribute must be requested",
+    ):
+        pv.get(full_idx, ["pie", "pi"], mode="skip_post_processor")
 
 
 @pytest.mark.parametrize(
@@ -251,6 +279,78 @@ def test_get_skip_post_processor_returns_queried_attribute(
     # Request "pie" while also querying on "pie" -- the attribute should still be returned
     result = pv.get(full_idx, "pie", query="pie == 'apple'", skip_post_processor=True)
     pd.testing.assert_series_equal(result, PIE_DF.loc[PIE_DF["pie"] == "apple", "pie"])
+
+
+@pytest.mark.xfail(reason="mode parameter not yet implemented", strict=True)
+def test_get_mode_default() -> None:
+    """Test that mode='default' behaves the same as the current default."""
+    sim = InteractiveContext(
+        components=[PieComponent()],
+        configuration={"population": {"population_size": len(PIE_RECORDS)}},
+        setup=True,
+    )
+    pv = sim._population.get_view()
+    idx = sim._population.get_population_index()
+
+    pop = pv.get(idx, PIE_COL_NAMES, mode="default")
+    pop_expected = pv.get(idx, PIE_COL_NAMES)
+    pd.testing.assert_frame_equal(pop, pop_expected)
+
+
+@pytest.mark.xfail(reason="mode parameter not yet implemented", strict=True)
+def test_get_mode_default_with_query() -> None:
+    """Test that mode='default' works correctly with a query."""
+    sim = InteractiveContext(
+        components=[PieComponent()],
+        configuration={"population": {"population_size": len(PIE_RECORDS)}},
+        setup=True,
+    )
+    pv = sim._population.get_view()
+    idx = sim._population.get_population_index()
+
+    pop = pv.get(idx, PIE_COL_NAMES, query="pie == 'apple'", mode="default")
+    pop_expected = pv.get(idx, PIE_COL_NAMES, query="pie == 'apple'")
+    pd.testing.assert_frame_equal(pop, pop_expected)
+
+
+@pytest.mark.xfail(reason="mode parameter not yet implemented", strict=True)
+@pytest.mark.parametrize("attribute", ["pie", ["pie"]])
+def test_get_mode_source(
+    attribute: str | list[str], pies_and_cubes_pop_mgr: PopulationManager
+) -> None:
+    """Test that mode='source' calls only the source of the attribute pipeline."""
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+
+    key = attribute if isinstance(attribute, str) else attribute[0]
+    mocked_pie_pipeline = pies_and_cubes_pop_mgr._attribute_pipelines[key]
+    pv.get(full_idx, attribute, mode="source")
+    mocked_pie_pipeline.assert_called_once_with(full_idx, mode="source")  # type: ignore[attr-defined]
+
+
+@pytest.mark.xfail(reason="mode parameter not yet implemented", strict=True)
+def test_get_mode_source_raises_multiple_attributes(
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    """Test that mode='source' raises when multiple attributes are requested."""
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+
+    with pytest.raises(
+        ValueError,
+        match="a single attribute must be requested",
+    ):
+        pv.get(full_idx, ["pie", "pi"], mode="source")
+
+
+@pytest.mark.xfail(reason="mode parameter not yet implemented", strict=True)
+def test_get_mode_invalid_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+    """Test that an invalid mode raises a ValueError."""
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+
+    with pytest.raises(ValueError, match="Invalid mode"):
+        pv.get(full_idx, "pie", mode="invalid_mode")
 
 
 @pytest.mark.parametrize("register_tracked_query", [True, False])
