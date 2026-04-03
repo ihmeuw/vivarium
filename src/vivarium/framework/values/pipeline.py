@@ -358,7 +358,9 @@ class AttributePipeline(Pipeline):
         # NOTE: must pass index in as arg (NOT kwarg!) to match signature of parent Pipeline._call()
         # Always skip post-processor at _call level; AttributePipeline handles it here.
         # Pass "source" mode through so _call also skips mutators when needed.
-        _call_mode = "source" if mode == "source" else "skip_post_processor"
+        _call_mode: Literal["source", "skip_post_processor"] = (
+            "source" if mode == "source" else "skip_post_processor"
+        )
         attribute = self._call(index, mode=_call_mode)
         if mode == "default":
             for processor in self.post_processor:

@@ -343,7 +343,7 @@ def test_get_mode_invalid_raises(pies_and_cubes_pop_mgr: PopulationManager) -> N
     full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
 
     with pytest.raises(ValueError, match="Invalid mode"):
-        pv.get(full_idx, "pie", mode="invalid_mode")
+        pv.get(full_idx, "pie", mode="invalid_mode")  # type: ignore[call-overload]
 
 
 @pytest.mark.parametrize("register_tracked_query", [True, False])

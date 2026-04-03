@@ -94,8 +94,8 @@ class PopulationView:
         attributes: str,
         query: str = "",
         include_untracked: bool | None = None,
-        skip_post_processor: bool = False,
-        mode: Literal["default", "source", "skip_post_processor"] = "default",
+        skip_post_processor: Literal[False] = False,
+        mode: Literal["default"] = "default",
     ) -> pd.Series[Any]:
         ...
 
@@ -106,8 +106,8 @@ class PopulationView:
         attributes: list[str] | tuple[str, ...],
         query: str = "",
         include_untracked: bool | None = None,
-        skip_post_processor: bool = False,
-        mode: Literal["default", "source", "skip_post_processor"] = "default",
+        skip_post_processor: Literal[False] = False,
+        mode: Literal["default"] = "default",
     ) -> pd.DataFrame:
         ...
 
@@ -118,8 +118,20 @@ class PopulationView:
         attributes: str | list[str] | tuple[str, ...],
         query: str = "",
         include_untracked: bool | None = None,
-        skip_post_processor: bool = True,
+        skip_post_processor: Literal[True] = ...,
         mode: Literal["default", "source", "skip_post_processor"] = "default",
+    ) -> Any:
+        ...
+
+    @overload
+    def get(
+        self,
+        index: pd.Index[int],
+        attributes: str | list[str] | tuple[str, ...],
+        query: str = "",
+        include_untracked: bool | None = None,
+        skip_post_processor: Literal[False] = False,
+        mode: Literal["source", "skip_post_processor"] = ...,
     ) -> Any:
         ...
 

@@ -615,7 +615,7 @@ class PopulationManager(Manager):
         if _use_single_attr_path:
             # NOTE: This correctly returns the requested attribute even when it
             # overlaps with query columns because we pass `requested_attributes`
-            # (not `columns_to_get`) above when `skip_post_processor` is True.
+            # (not `columns_to_get`) above when `mode` is "source" or "skip_post_processor".
             return data
 
         # Add on any query columns that are actually requested to be returned

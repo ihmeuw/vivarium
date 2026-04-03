@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -814,7 +814,9 @@ def test_attribute_pipeline_return_types(manager: ValuesManager) -> None:
     [("default", 30.0), ("skip_post_processor", 15.0), ("source", 10.0)],
 )
 def test_attribute_pipeline_access_mode(
-    mode: str, expected_value: float, manager: ValuesManager
+    mode: Literal["default", "source", "skip_post_processor"],
+    expected_value: float,
+    manager: ValuesManager,
 ) -> None:
     """Test that AttributePipeline respects the mode parameter.
 
