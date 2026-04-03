@@ -476,7 +476,7 @@ class PopulationManager(Manager):
         index: pd.Index[int] | None = None,
         query: str = "",
         squeeze: Literal[True] = True,
-        skip_post_processor: Literal[False] = False,
+        mode: Literal["default"] = "default",
     ) -> pd.Series[Any] | pd.DataFrame:
         ...
 
@@ -487,7 +487,7 @@ class PopulationManager(Manager):
         index: pd.Index[int] | None = None,
         query: str = "",
         squeeze: Literal[False] = ...,
-        skip_post_processor: Literal[False] = False,
+        mode: Literal["default"] = "default",
     ) -> pd.DataFrame:
         ...
 
@@ -498,7 +498,7 @@ class PopulationManager(Manager):
         index: pd.Index[int] | None = None,
         query: str = "",
         squeeze: Literal[True, False] = True,
-        skip_post_processor: Literal[True] = ...,
+        mode: Literal["source", "skip_post_processor"] = ...,
     ) -> Any:
         ...
 
@@ -508,7 +508,7 @@ class PopulationManager(Manager):
         index: pd.Index[int] | None = None,
         query: str = "",
         squeeze: Literal[True, False] = True,
-        skip_post_processor: Literal[True, False] = False,
+        mode: Literal["default", "source", "skip_post_processor"] = "default",
     ) -> Any:
         """Provides a copy of the population state table.
 
@@ -524,15 +524,13 @@ class PopulationManager(Manager):
         squeeze
             Whether or not to attempt to squeeze a multi-level column into a single-level
             column and/or a single-column dataframe into a series.
-        skip_post_processor
-            Whether we should invoke the post-processor on the combined
-            source and mutator output or return without post-processing.
-            This is useful when the post-processor acts as some sort of final
-            unit conversion (e.g. the rescale post processor).
+        mode
+            The mode for pipeline evaluation. One of "default", "source",
+            or "skip_post_processor".
 
         Notes
         -----
-        If ``skip_post_processor`` is True, the returned data will not be squeezed
+        If ``mode`` is not "default", the returned data will not be squeezed
         regardless of the ``squeeze`` argument passed.
 
         Returns
@@ -548,7 +546,7 @@ class PopulationManager(Manager):
             - If a required column for querying is missing from the state table.
             - If the population has not yet been initialized.
         ValueError
-            If multiple attributes are requested when ``skip_post_processor`` is True.
+            If multiple attributes are requested when ``mode`` is not "default".
         """
 
         if self._private_columns is None:
@@ -608,12 +606,13 @@ class PopulationManager(Manager):
             query_df = query_df.query(query)
             idx = query_df.index
 
+        _use_single_attr_path = mode in ("source", "skip_post_processor")
         data = self._get_attributes(
             idx,
-            requested_attributes if skip_post_processor else list(columns_to_get),
-            skip_post_processor,
+            requested_attributes if _use_single_attr_path else list(columns_to_get),
+            mode=mode,
         )
-        if skip_post_processor:
+        if _use_single_attr_path:
             # NOTE: This correctly returns the requested attribute even when it
             # overlaps with query columns because we pass `requested_attributes`
             # (not `columns_to_get`) above when `skip_post_processor` is True.
@@ -663,7 +662,7 @@ class PopulationManager(Manager):
         self,
         idx: pd.Index[int],
         requested_attributes: Sequence[str],
-        skip_post_processor: Literal[False] = ...,
+        mode: Literal["default"] = "default",
     ) -> pd.DataFrame:
         ...
 
@@ -672,7 +671,7 @@ class PopulationManager(Manager):
         self,
         idx: pd.Index[int],
         requested_attributes: Sequence[str],
-        skip_post_processor: Literal[True] = ...,
+        mode: Literal["source", "skip_post_processor"] = ...,
     ) -> Any:
         ...
 
@@ -680,7 +679,7 @@ class PopulationManager(Manager):
         self,
         idx: pd.Index[int],
         requested_attributes: Sequence[str],
-        skip_post_processor: Literal[True, False] = False,
+        mode: Literal["default", "source", "skip_post_processor"] = "default",
     ) -> Any:
         """Get the population for a given index and requested attributes.
 
@@ -696,26 +695,44 @@ class PopulationManager(Manager):
 
         self.pipeline_evaluation_depth += 1
         try:
-            return self.__get_attributes(idx, requested_attributes, skip_post_processor)
+            return self.__get_attributes(idx, requested_attributes, mode=mode)
         finally:
             self.pipeline_evaluation_depth -= 1
+
+    @overload
+    def __get_attributes(
+        self,
+        idx: pd.Index[int],
+        requested_attributes: Sequence[str],
+        mode: Literal["default"] = "default",
+    ) -> pd.DataFrame:
+        ...
+
+    @overload
+    def __get_attributes(
+        self,
+        idx: pd.Index[int],
+        requested_attributes: Sequence[str],
+        mode: Literal["source", "skip_post_processor"] = ...,
+    ) -> Any:
+        ...
 
     def __get_attributes(
         self,
         idx: pd.Index[int],
         requested_attributes: Sequence[str],
-        skip_post_processor: Literal[True, False] = False,
+        mode: Literal["default", "source", "skip_post_processor"] = "default",
     ) -> Any:
         """Core implementation of ``_get_attributes``."""
 
-        if skip_post_processor:
+        if mode in ("source", "skip_post_processor"):
             if len(requested_attributes) != 1:
                 raise ValueError(
-                    "When skip_post_processor is True, a single attribute must "
+                    f"When mode is '{mode}', a single attribute must "
                     f"be requested. You requested {requested_attributes}."
                 )
             return self._attribute_pipelines[requested_attributes[0]](
-                idx, skip_post_processor=skip_post_processor
+                idx, mode=mode,
             )
 
         attributes_list: list[pd.Series[Any] | pd.DataFrame] = []

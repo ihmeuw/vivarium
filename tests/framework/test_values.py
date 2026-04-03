@@ -809,40 +809,6 @@ def test_attribute_pipeline_return_types(manager: ValuesManager) -> None:
         bad_pipeline(INDEX)
 
 
-@pytest.mark.parametrize("skip_post_processor", [True, False])
-def test_attribute_pipeline_with_post_processor(
-    skip_post_processor: bool, manager: ValuesManager
-) -> None:
-    """Test that AttributePipeline works with AttributePostProcessor."""
-
-    # Create a source that returns a DataFrame
-    def attribute_source(index: pd.Index[int]) -> pd.DataFrame:
-        return pd.DataFrame({"value": [10.0] * len(index)}, index=index)
-
-    # Create a post-processor that doubles values
-    def double_post_processor(
-        index: pd.Index[int], value: pd.DataFrame, manager: ValuesManager
-    ) -> pd.DataFrame:
-        result = value.copy()
-        result["value"] = result["value"] * 2
-        return result
-
-    manager.register_attribute_producer(
-        "test_attribute",
-        source=attribute_source,
-        preferred_post_processor=double_post_processor,
-    )
-    pipeline = manager.get_attribute_pipelines()["test_attribute"]
-
-    result = pipeline(INDEX, skip_post_processor=skip_post_processor)
-
-    # Verify post-processor was applied
-    assert isinstance(result, pd.DataFrame)
-    assert result.index.equals(INDEX)
-    assert all(result["value"] == (20.0 if not skip_post_processor else 10.0))
-
-
-@pytest.mark.xfail(reason="mode parameter not yet implemented", strict=True)
 @pytest.mark.parametrize(
     "mode, expected_value",
     [("default", 30.0), ("skip_post_processor", 15.0), ("source", 10.0)],

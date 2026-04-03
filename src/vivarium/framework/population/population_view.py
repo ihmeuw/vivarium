@@ -13,6 +13,7 @@ It has two primary responsibilities:
 """
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Literal, overload
 
@@ -94,6 +95,7 @@ class PopulationView:
         query: str = "",
         include_untracked: bool | None = None,
         skip_post_processor: bool = False,
+        mode: Literal["default", "source", "skip_post_processor"] = "default",
     ) -> pd.Series[Any]:
         ...
 
@@ -105,6 +107,7 @@ class PopulationView:
         query: str = "",
         include_untracked: bool | None = None,
         skip_post_processor: bool = False,
+        mode: Literal["default", "source", "skip_post_processor"] = "default",
     ) -> pd.DataFrame:
         ...
 
@@ -116,6 +119,7 @@ class PopulationView:
         query: str = "",
         include_untracked: bool | None = None,
         skip_post_processor: bool = True,
+        mode: Literal["default", "source", "skip_post_processor"] = "default",
     ) -> Any:
         ...
 
@@ -126,6 +130,7 @@ class PopulationView:
         query: str = "",
         include_untracked: bool | None = None,
         skip_post_processor: Literal[True, False] = False,
+        mode: Literal["default", "source", "skip_post_processor"] = "default",
     ) -> Any:
         """Gets a specific subset of the population state table.
 
@@ -153,6 +158,9 @@ class PopulationView:
             source and mutator output or return without post-processing.
             This is useful when the post-processor acts as some sort of final
             unit conversion (e.g. the rescale post processor).
+        mode
+            The mode for pipeline evaluation. One of "default", "source",
+            or "skip_post_processor".
 
         Notes
         -----
@@ -168,7 +176,23 @@ class PopulationView:
         ------
         ValueError
             If the result is expected to be a Series but is not.
+            If an invalid mode is provided.
         """
+        valid_modes = ("default", "source", "skip_post_processor")
+        if mode not in valid_modes:
+            raise ValueError(
+                f"Invalid mode '{mode}'. Must be one of {valid_modes}."
+            )
+
+        # Translate skip_post_processor into mode
+        if skip_post_processor:
+            warnings.warn(
+                "The 'skip_post_processor' parameter is deprecated. "
+                "Use mode='skip_post_processor' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            mode = "skip_post_processor"
 
         squeeze: Literal[True, False] = isinstance(attributes, str)
         attributes = [attributes] if isinstance(attributes, str) else list(attributes)
@@ -178,9 +202,9 @@ class PopulationView:
             index=index,
             query=self._build_query(query, include_untracked),
             squeeze=squeeze,
-            skip_post_processor=skip_post_processor,
+            mode=mode,
         )
-        if not skip_post_processor and squeeze and not isinstance(population, pd.Series):
+        if mode == "default" and squeeze and not isinstance(population, pd.Series):
             raise ValueError(
                 "Expected a pandas Series to be returned when requesting a single "
                 "attribute, but got a DataFrame instead. If you expect this attribute "
