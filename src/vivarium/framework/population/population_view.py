@@ -180,9 +180,7 @@ class PopulationView:
         """
         valid_modes = ("default", "source", "skip_post_processor")
         if mode not in valid_modes:
-            raise ValueError(
-                f"Invalid mode '{mode}'. Must be one of {valid_modes}."
-            )
+            raise ValueError(f"Invalid mode '{mode}'. Must be one of {valid_modes}.")
 
         # Translate skip_post_processor into mode
         if skip_post_processor:

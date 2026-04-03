@@ -731,9 +731,7 @@ class PopulationManager(Manager):
                     f"When mode is '{mode}', a single attribute must "
                     f"be requested. You requested {requested_attributes}."
                 )
-            return self._attribute_pipelines[requested_attributes[0]](
-                idx, mode=mode,
-            )
+            return self._attribute_pipelines[requested_attributes[0]](idx, mode=mode)
 
         attributes_list: list[pd.Series[Any] | pd.DataFrame] = []
 

@@ -70,8 +70,8 @@ class PrivateColumnValueSource(ValueSource):
         """A population view that can be used to access the private column source of this pipeline."""
 
     def _source(self, index: pd.Index[int]) -> pd.Series[Any]:
-        return self._population_view.get_private_columns(
-            private_columns=self.column_name, index=index
+        return self._population_view._manager.get_private_columns(
+            component=self._pipeline.component, index=index, columns=self.column_name
         )
 
 
@@ -88,7 +88,7 @@ class AttributesValueSource(ValueSource):
         """A population view that can be used to access the attribute source of this pipeline."""
 
     def _source(self, index: pd.Index[int]) -> pd.Series[Any] | pd.DataFrame:
-        return self._population_view.get_attributes(attributes=self.attributes, index=index)
+        return self._population_view.get(index=index, attributes=self.attributes)
 
 
 class ValueModifier(Resource):
