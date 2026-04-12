@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 import pandas as pd
 
@@ -70,8 +70,8 @@ class PrivateColumnValueSource(ValueSource):
         """A population view that can be used to access the private column source of this pipeline."""
 
     def _source(self, index: pd.Index[int]) -> pd.Series[Any]:
-        return self._population_view.get_private_columns(
-            private_columns=self.column_name, index=index
+        return self._population_view._manager.get_private_columns(
+            component=self._pipeline.component, index=index, columns=self.column_name
         )
 
 
@@ -88,7 +88,7 @@ class AttributesValueSource(ValueSource):
         """A population view that can be used to access the attribute source of this pipeline."""
 
     def _source(self, index: pd.Index[int]) -> pd.Series[Any] | pd.DataFrame:
-        return self._population_view.get_attributes(attributes=self.attributes, index=index)
+        return self._population_view.get(index=index, attributes=self.attributes)
 
 
 class ValueModifier(Resource):
@@ -181,16 +181,19 @@ class Pipeline(Resource):
         """A reference to the simulation values manager."""
         return self._get_property(self._manager, "manager")
 
-    def __call__(self, *args: Any, skip_post_processor: bool = False, **kwargs: Any) -> Any:
+    def __call__(
+        self,
+        *args: Any,
+        mode: Literal["default", "source", "no-post-processors"] = "default",
+        **kwargs: Any,
+    ) -> Any:
         """Generates the value represented by this pipeline.
 
         Arguments
         ---------
-        skip_post_processor
-            Whether we should invoke the post-processor on the combined
-            source and mutator output or return without post-processing.
-            This is useful when the post-processor acts as some sort of final
-            unit conversion (e.g. the rescale post processor).
+        mode
+            The mode for pipeline evaluation. One of "default", "source",
+            or "no-post-processors".
         args, kwargs
             Pipeline arguments. These should be the arguments to the
             callable source of the pipeline.
@@ -204,18 +207,24 @@ class Pipeline(Resource):
         DynamicValueError
             If the pipeline is invoked without a source set.
         """
-        return self._call(*args, skip_post_processor=skip_post_processor, **kwargs)
+        return self._call(*args, mode=mode, **kwargs)
 
-    def _call(self, *args: Any, skip_post_processor: bool = False, **kwargs: Any) -> Any:
+    def _call(
+        self,
+        *args: Any,
+        mode: Literal["default", "source", "no-post-processors"] = "default",
+        **kwargs: Any,
+    ) -> Any:
         if not self.source:
             raise DynamicValueError(
                 f"The dynamic value pipeline for {self.name} has no source. This likely means "
                 f"you are attempting to modify a value that hasn't been created."
             )
         value = self.source(*args, **kwargs)
-        for mutator in self.mutators:
-            value = self.combiner(value, mutator, *args, **kwargs)
-        if not skip_post_processor:
+        if mode != "source":
+            for mutator in self.mutators:
+                value = self.combiner(value, mutator, *args, **kwargs)
+        if mode == "default":
             for processor in self.post_processor:
                 value = processor(value, self.manager)
         if isinstance(value, pd.Series):
@@ -322,7 +331,9 @@ class AttributePipeline(Pipeline):
         the source and mutators."""
 
     def __call__(  # type: ignore[override]
-        self, index: pd.Index[int], skip_post_processor: bool = False
+        self,
+        index: pd.Index[int],
+        mode: Literal["default", "source", "no-post-processors"] = "default",
     ) -> pd.Series[Any] | pd.DataFrame:
         """Generates the attributes represented by this pipeline.
 
@@ -331,9 +342,9 @@ class AttributePipeline(Pipeline):
         index
             A pd.Index of integers representing the simulants for which we
             want to calculate the attribute.
-        skip_post_processor
-            Whether we should invoke the post-processor on the combined
-            source and mutator output or return without post-processing.
+        mode
+            The mode for pipeline evaluation. One of "default", "source",
+            or "no-post-processors".
 
         Returns
         -------
@@ -345,8 +356,13 @@ class AttributePipeline(Pipeline):
             If the pipeline is invoked without a source set.
         """
         # NOTE: must pass index in as arg (NOT kwarg!) to match signature of parent Pipeline._call()
-        attribute = self._call(index, skip_post_processor=True)
-        if not skip_post_processor:
+        # Always skip post-processor at _call level; AttributePipeline handles it here.
+        # Pass "source" mode through so _call also skips mutators when needed.
+        _call_mode: Literal["source", "no-post-processors"] = (
+            "source" if mode == "source" else "no-post-processors"
+        )
+        attribute = self._call(index, mode=_call_mode)
+        if mode == "default":
             for processor in self.post_processor:
                 attribute = processor(index, attribute, self.manager)
         if not isinstance(attribute, (pd.Series, pd.DataFrame)):
