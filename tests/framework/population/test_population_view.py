@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import random
 from typing import Any
 
@@ -142,6 +143,20 @@ def test_get_empty_idx(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     assert isinstance(pop, pd.DataFrame)
     assert set(pop.columns) == set(PIE_COL_NAMES)
     assert pop.empty
+
+
+def test_get_skip_post_processor_deprecation(
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    """Ensure skip_post_processor is removed by 2026-07-12."""
+    assert datetime.date.today() <= datetime.date(2026, 7, 12), (
+        "The deprecated 'skip_post_processor' parameter should have been removed by now. "
+        "Remove the parameter from PopulationView.get and delete this test."
+    )
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+    with pytest.warns(DeprecationWarning, match="skip_post_processor"):
+        pv.get(full_idx, "pie", skip_post_processor=True)
 
 
 def test_get_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
