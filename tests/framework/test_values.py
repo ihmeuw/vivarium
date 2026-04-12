@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -809,17 +809,31 @@ def test_attribute_pipeline_return_types(manager: ValuesManager) -> None:
         bad_pipeline(INDEX)
 
 
-@pytest.mark.parametrize("skip_post_processor", [True, False])
-def test_attribute_pipeline_with_post_processor(
-    skip_post_processor: bool, manager: ValuesManager
+@pytest.mark.parametrize(
+    "mode, expected_value",
+    [("default", 30.0), ("no-post-processors", 15.0), ("source", 10.0)],
+)
+def test_attribute_pipeline_access_mode(
+    mode: Literal["default", "source", "no-post-processors"],
+    expected_value: float,
+    manager: ValuesManager,
 ) -> None:
-    """Test that AttributePipeline works with AttributePostProcessor."""
+    """Test that AttributePipeline respects the mode parameter.
 
-    # Create a source that returns a DataFrame
+    Source returns 10.0; modifier adds 5.0 -> 15.0; post-processor doubles -> 30.0.
+    mode='default' applies modifiers and post-processor (30.0).
+    mode='no-post-processors' applies modifiers but skips post-processor (15.0).
+    mode='source' calls only the source, skipping modifiers and post-processor (10.0).
+    """
+
     def attribute_source(index: pd.Index[int]) -> pd.DataFrame:
         return pd.DataFrame({"value": [10.0] * len(index)}, index=index)
 
-    # Create a post-processor that doubles values
+    def add_five_modifier(index: pd.Index[int], value: pd.DataFrame) -> pd.DataFrame:
+        result = value.copy()
+        result["value"] = result["value"] + 5.0
+        return result
+
     def double_post_processor(
         index: pd.Index[int], value: pd.DataFrame, manager: ValuesManager
     ) -> pd.DataFrame:
@@ -832,14 +846,14 @@ def test_attribute_pipeline_with_post_processor(
         source=attribute_source,
         preferred_post_processor=double_post_processor,
     )
+    manager.register_attribute_modifier("test_attribute", modifier=add_five_modifier)
     pipeline = manager.get_attribute_pipelines()["test_attribute"]
 
-    result = pipeline(INDEX, skip_post_processor=skip_post_processor)
+    result = pipeline(INDEX, mode=mode)
 
-    # Verify post-processor was applied
     assert isinstance(result, pd.DataFrame)
     assert result.index.equals(INDEX)
-    assert all(result["value"] == (20.0 if not skip_post_processor else 10.0))
+    assert all(result["value"] == expected_value)
 
 
 def test_get_attribute(manager: ValuesManager) -> None:
