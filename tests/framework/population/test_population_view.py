@@ -207,6 +207,19 @@ def test_get_mode_skip_post_processor_raises(
         pv.get(full_idx, ["pie", "pi"], mode="no-post-processors")
 
 
+def test_get_skip_post_processor_with_mode_source_raises(
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+
+    with pytest.raises(
+        ValueError,
+        match="Cannot use skip_post_processor=True with mode='source'",
+    ):
+        pv.get(full_idx, "pie", skip_post_processor=True, mode="source")
+
+
 @pytest.mark.parametrize(
     "attribute, query", [("pie", "pie == 'apple'"), ("pie", "cube > 1000")]
 )

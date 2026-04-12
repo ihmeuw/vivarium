@@ -194,7 +194,6 @@ class PopulationView:
         if mode not in valid_modes:
             raise ValueError(f"Invalid mode '{mode}'. Must be one of {valid_modes}.")
 
-        # Translate skip_post_processor into mode
         if skip_post_processor:
             warnings.warn(
                 "The 'skip_post_processor' parameter is deprecated. "
@@ -202,6 +201,9 @@ class PopulationView:
                 DeprecationWarning,
                 stacklevel=2,
             )
+            if mode == "source":
+                raise ValueError("Cannot use skip_post_processor=True with mode='source'.")
+            
             mode = "no-post-processors"
 
         squeeze: Literal[True, False] = isinstance(attributes, str)
