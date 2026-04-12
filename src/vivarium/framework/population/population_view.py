@@ -203,7 +203,7 @@ class PopulationView:
             )
             if mode == "source":
                 raise ValueError("Cannot use skip_post_processor=True with mode='source'.")
-            
+
             mode = "no-post-processors"
 
         squeeze: Literal[True, False] = isinstance(attributes, str)
