@@ -6,6 +6,9 @@
 - Feature: Create a `raw_union_post_processor` that doesn't conform the returned value to the population index.
 - Feature: Add `multiplication_combiner` and `addition_combiner` to the values system.
 - Refactor: use a context manager to track which component is being set up during component setup.
+- Feature: Add `mode`` argument with values "default", "source", and "no-post-processors" to `PopulationView.get()`
+and `PopulationManager.get_population()`.
+- Deprecation: Deprecate the `skip_post_processor` argument to `PopulationView.get()`.
 
 **4.0.3 - 04/16/26**
 

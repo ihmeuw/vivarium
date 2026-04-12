@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import random
 from typing import Any
 
@@ -144,6 +145,20 @@ def test_get_empty_idx(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     assert pop.empty
 
 
+def test_get_skip_post_processor_deprecation(
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    """Ensure skip_post_processor is removed by 2026-07-12."""
+    assert datetime.date.today() <= datetime.date(2026, 7, 12), (
+        "The deprecated 'skip_post_processor' parameter should have been removed by now. "
+        "Remove the parameter from PopulationView.get and delete this test."
+    )
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+    with pytest.warns(DeprecationWarning, match="skip_post_processor"):
+        pv.get(full_idx, "pie", skip_post_processor=True)
+
+
 def test_get_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
     index = pd.Index([])
@@ -165,7 +180,20 @@ def test_get_skip_post_processor(
     key = attribute if isinstance(attribute, str) else attribute[0]
     mocked_pie_pipeline = pies_and_cubes_pop_mgr._attribute_pipelines[key]
     pv.get(full_idx, attribute, skip_post_processor=True)
-    mocked_pie_pipeline.assert_called_once_with(full_idx, skip_post_processor=True)  # type: ignore[attr-defined]
+    mocked_pie_pipeline.assert_called_once_with(full_idx, mode="no-post-processors")  # type: ignore[attr-defined]
+
+
+@pytest.mark.parametrize("attribute", ["pie", ["pie"]])
+def test_get_mode_skip_post_processor(
+    attribute: str | list[str], pies_and_cubes_pop_mgr: PopulationManager
+) -> None:
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+
+    key = attribute if isinstance(attribute, str) else attribute[0]
+    mocked_pie_pipeline = pies_and_cubes_pop_mgr._attribute_pipelines[key]
+    pv.get(full_idx, attribute, mode="no-post-processors")
+    mocked_pie_pipeline.assert_called_once_with(full_idx, mode="no-post-processors")  # type: ignore[attr-defined]
 
 
 def test_get_skip_post_processor_raises(
@@ -176,9 +204,35 @@ def test_get_skip_post_processor_raises(
 
     with pytest.raises(
         ValueError,
-        match="When skip_post_processor is True, a single attribute must be requested.",
+        match="a single attribute must be requested",
     ):
         pv.get(full_idx, ["pie", "pi"], skip_post_processor=True)
+
+
+def test_get_mode_skip_post_processor_raises(
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+
+    with pytest.raises(
+        ValueError,
+        match="a single attribute must be requested",
+    ):
+        pv.get(full_idx, ["pie", "pi"], mode="no-post-processors")
+
+
+def test_get_skip_post_processor_with_mode_source_raises(
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+
+    with pytest.raises(
+        ValueError,
+        match="Cannot use skip_post_processor=True with mode='source'",
+    ):
+        pv.get(full_idx, "pie", skip_post_processor=True, mode="source")
 
 
 @pytest.mark.parametrize(
@@ -195,12 +249,12 @@ def test_get_skip_post_processor_with_query(
 
     # Set up the mocked pipelines to return actual data from the private columns
     # so that the query can be executed
-    def mock_pie_pipeline(idx: pd.Index[int], skip_post_processor: bool) -> pd.Series[Any]:
+    def mock_pie_pipeline(idx: pd.Index[int], mode: str) -> pd.Series[Any]:
         private_col_df = pies_and_cubes_pop_mgr._private_columns
         assert isinstance(private_col_df, pd.DataFrame)
         return private_col_df.loc[idx, "pie"]
 
-    def mock_cube_pipeline(idx: pd.Index[int], skip_post_processor: bool) -> pd.Series[Any]:
+    def mock_cube_pipeline(idx: pd.Index[int], mode: str) -> pd.Series[Any]:
         private_col_df = pies_and_cubes_pop_mgr._private_columns
         assert isinstance(private_col_df, pd.DataFrame)
         return private_col_df.loc[idx, "cube"]
@@ -223,7 +277,7 @@ def test_get_skip_post_processor_with_query(
     pies_and_cubes_pop_mgr._attribute_pipelines[attribute].assert_called_once()  # type: ignore[attr-defined]
     call_args = pies_and_cubes_pop_mgr._attribute_pipelines[attribute].call_args  # type: ignore[attr-defined]
     assert call_args[0][0].equals(expected_index)
-    assert call_args[1] == {"skip_post_processor": True}
+    assert call_args[1] == {"mode": "no-post-processors"}
 
 
 def test_get_skip_post_processor_returns_queried_attribute(
@@ -233,7 +287,7 @@ def test_get_skip_post_processor_returns_queried_attribute(
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
     full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
 
-    def mock_pie_pipeline(idx: pd.Index[int], skip_post_processor: bool) -> pd.Series[Any]:
+    def mock_pie_pipeline(idx: pd.Index[int], mode: str) -> pd.Series[Any]:
         private_col_df = pies_and_cubes_pop_mgr._private_columns
         assert isinstance(private_col_df, pd.DataFrame)
         return private_col_df.loc[idx, "pie"]
@@ -251,6 +305,73 @@ def test_get_skip_post_processor_returns_queried_attribute(
     # Request "pie" while also querying on "pie" -- the attribute should still be returned
     result = pv.get(full_idx, "pie", query="pie == 'apple'", skip_post_processor=True)
     pd.testing.assert_series_equal(result, PIE_DF.loc[PIE_DF["pie"] == "apple", "pie"])
+
+
+def test_get_mode_default() -> None:
+    """Test that mode='default' behaves the same as the current default."""
+    sim = InteractiveContext(
+        components=[PieComponent()],
+        configuration={"population": {"population_size": len(PIE_RECORDS)}},
+        setup=True,
+    )
+    pv = sim._population.get_view()
+    idx = sim._population.get_population_index()
+
+    pop = pv.get(idx, PIE_COL_NAMES, mode="default")
+    pop_expected = pv.get(idx, PIE_COL_NAMES)
+    pd.testing.assert_frame_equal(pop, pop_expected)
+
+
+def test_get_mode_default_with_query() -> None:
+    """Test that mode='default' works correctly with a query."""
+    sim = InteractiveContext(
+        components=[PieComponent()],
+        configuration={"population": {"population_size": len(PIE_RECORDS)}},
+        setup=True,
+    )
+    pv = sim._population.get_view()
+    idx = sim._population.get_population_index()
+
+    pop = pv.get(idx, PIE_COL_NAMES, query="pie == 'apple'", mode="default")
+    pop_expected = pv.get(idx, PIE_COL_NAMES, query="pie == 'apple'")
+    pd.testing.assert_frame_equal(pop, pop_expected)
+
+
+@pytest.mark.parametrize("attribute", ["pie", ["pie"]])
+def test_get_mode_source(
+    attribute: str | list[str], pies_and_cubes_pop_mgr: PopulationManager
+) -> None:
+    """Test that mode='source' calls only the source of the attribute pipeline."""
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+
+    key = attribute if isinstance(attribute, str) else attribute[0]
+    mocked_pie_pipeline = pies_and_cubes_pop_mgr._attribute_pipelines[key]
+    pv.get(full_idx, attribute, mode="source")
+    mocked_pie_pipeline.assert_called_once_with(full_idx, mode="source")  # type: ignore[attr-defined]
+
+
+def test_get_mode_source_raises_multiple_attributes(
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    """Test that mode='source' raises when multiple attributes are requested."""
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+
+    with pytest.raises(
+        ValueError,
+        match="a single attribute must be requested",
+    ):
+        pv.get(full_idx, ["pie", "pi"], mode="source")
+
+
+def test_get_mode_invalid_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+    """Test that an invalid mode raises a ValueError."""
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+
+    with pytest.raises(ValueError, match="Invalid mode"):
+        pv.get(full_idx, "pie", mode="invalid_mode")  # type: ignore[call-overload]
 
 
 @pytest.mark.parametrize("register_tracked_query", [True, False])
