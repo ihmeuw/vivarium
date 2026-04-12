@@ -811,10 +811,10 @@ def test_attribute_pipeline_return_types(manager: ValuesManager) -> None:
 
 @pytest.mark.parametrize(
     "mode, expected_value",
-    [("default", 30.0), ("skip_post_processor", 15.0), ("source", 10.0)],
+    [("default", 30.0), ("no-post-processors", 15.0), ("source", 10.0)],
 )
 def test_attribute_pipeline_access_mode(
-    mode: Literal["default", "source", "skip_post_processor"],
+    mode: Literal["default", "source", "no-post-processors"],
     expected_value: float,
     manager: ValuesManager,
 ) -> None:
@@ -822,7 +822,7 @@ def test_attribute_pipeline_access_mode(
 
     Source returns 10.0; modifier adds 5.0 -> 15.0; post-processor doubles -> 30.0.
     mode='default' applies modifiers and post-processor (30.0).
-    mode='skip_post_processor' applies modifiers but skips post-processor (15.0).
+    mode='no-post-processors' applies modifiers but skips post-processor (15.0).
     mode='source' calls only the source, skipping modifiers and post-processor (10.0).
     """
 

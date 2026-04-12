@@ -119,7 +119,7 @@ class PopulationView:
         query: str = "",
         include_untracked: bool | None = None,
         skip_post_processor: Literal[True] = ...,
-        mode: Literal["default", "source", "skip_post_processor"] = "default",
+        mode: Literal["default", "source", "no-post-processors"] = "default",
     ) -> Any:
         ...
 
@@ -131,7 +131,7 @@ class PopulationView:
         query: str = "",
         include_untracked: bool | None = None,
         skip_post_processor: Literal[False] = False,
-        mode: Literal["source", "skip_post_processor"] = ...,
+        mode: Literal["source", "no-post-processors"] = ...,
     ) -> Any:
         ...
 
@@ -142,7 +142,7 @@ class PopulationView:
         query: str = "",
         include_untracked: bool | None = None,
         skip_post_processor: Literal[True, False] = False,
-        mode: Literal["default", "source", "skip_post_processor"] = "default",
+        mode: Literal["default", "source", "no-post-processors"] = "default",
     ) -> Any:
         """Gets a specific subset of the population state table.
 
@@ -172,7 +172,7 @@ class PopulationView:
             unit conversion (e.g. the rescale post processor).
         mode
             The mode for pipeline evaluation. One of "default", "source",
-            or "skip_post_processor".
+            or "no-post-processors".
 
         Notes
         -----
@@ -190,7 +190,7 @@ class PopulationView:
             If the result is expected to be a Series but is not.
             If an invalid mode is provided.
         """
-        valid_modes = ("default", "source", "skip_post_processor")
+        valid_modes = ("default", "source", "no-post-processors")
         if mode not in valid_modes:
             raise ValueError(f"Invalid mode '{mode}'. Must be one of {valid_modes}.")
 
@@ -198,11 +198,11 @@ class PopulationView:
         if skip_post_processor:
             warnings.warn(
                 "The 'skip_post_processor' parameter is deprecated. "
-                "Use mode='skip_post_processor' instead.",
+                "Use mode='no-post-processors' instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
-            mode = "skip_post_processor"
+            mode = "no-post-processors"
 
         squeeze: Literal[True, False] = isinstance(attributes, str)
         attributes = [attributes] if isinstance(attributes, str) else list(attributes)

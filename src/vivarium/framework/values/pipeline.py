@@ -184,7 +184,7 @@ class Pipeline(Resource):
     def __call__(
         self,
         *args: Any,
-        mode: Literal["default", "source", "skip_post_processor"] = "default",
+        mode: Literal["default", "source", "no-post-processors"] = "default",
         **kwargs: Any,
     ) -> Any:
         """Generates the value represented by this pipeline.
@@ -193,7 +193,7 @@ class Pipeline(Resource):
         ---------
         mode
             The mode for pipeline evaluation. One of "default", "source",
-            or "skip_post_processor".
+            or "no-post-processors".
         args, kwargs
             Pipeline arguments. These should be the arguments to the
             callable source of the pipeline.
@@ -212,7 +212,7 @@ class Pipeline(Resource):
     def _call(
         self,
         *args: Any,
-        mode: Literal["default", "source", "skip_post_processor"] = "default",
+        mode: Literal["default", "source", "no-post-processors"] = "default",
         **kwargs: Any,
     ) -> Any:
         if not self.source:
@@ -333,7 +333,7 @@ class AttributePipeline(Pipeline):
     def __call__(  # type: ignore[override]
         self,
         index: pd.Index[int],
-        mode: Literal["default", "source", "skip_post_processor"] = "default",
+        mode: Literal["default", "source", "no-post-processors"] = "default",
     ) -> pd.Series[Any] | pd.DataFrame:
         """Generates the attributes represented by this pipeline.
 
@@ -344,7 +344,7 @@ class AttributePipeline(Pipeline):
             want to calculate the attribute.
         mode
             The mode for pipeline evaluation. One of "default", "source",
-            or "skip_post_processor".
+            or "no-post-processors".
 
         Returns
         -------
@@ -358,8 +358,8 @@ class AttributePipeline(Pipeline):
         # NOTE: must pass index in as arg (NOT kwarg!) to match signature of parent Pipeline._call()
         # Always skip post-processor at _call level; AttributePipeline handles it here.
         # Pass "source" mode through so _call also skips mutators when needed.
-        _call_mode: Literal["source", "skip_post_processor"] = (
-            "source" if mode == "source" else "skip_post_processor"
+        _call_mode: Literal["source", "no-post-processors"] = (
+            "source" if mode == "source" else "no-post-processors"
         )
         attribute = self._call(index, mode=_call_mode)
         if mode == "default":

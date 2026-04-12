@@ -165,7 +165,7 @@ def test_get_skip_post_processor(
     key = attribute if isinstance(attribute, str) else attribute[0]
     mocked_pie_pipeline = pies_and_cubes_pop_mgr._attribute_pipelines[key]
     pv.get(full_idx, attribute, skip_post_processor=True)
-    mocked_pie_pipeline.assert_called_once_with(full_idx, mode="skip_post_processor")  # type: ignore[attr-defined]
+    mocked_pie_pipeline.assert_called_once_with(full_idx, mode="no-post-processors")  # type: ignore[attr-defined]
 
 
 @pytest.mark.parametrize("attribute", ["pie", ["pie"]])
@@ -177,8 +177,8 @@ def test_get_mode_skip_post_processor(
 
     key = attribute if isinstance(attribute, str) else attribute[0]
     mocked_pie_pipeline = pies_and_cubes_pop_mgr._attribute_pipelines[key]
-    pv.get(full_idx, attribute, mode="skip_post_processor")
-    mocked_pie_pipeline.assert_called_once_with(full_idx, mode="skip_post_processor")  # type: ignore[attr-defined]
+    pv.get(full_idx, attribute, mode="no-post-processors")
+    mocked_pie_pipeline.assert_called_once_with(full_idx, mode="no-post-processors")  # type: ignore[attr-defined]
 
 
 def test_get_skip_post_processor_raises(
@@ -204,7 +204,7 @@ def test_get_mode_skip_post_processor_raises(
         ValueError,
         match="a single attribute must be requested",
     ):
-        pv.get(full_idx, ["pie", "pi"], mode="skip_post_processor")
+        pv.get(full_idx, ["pie", "pi"], mode="no-post-processors")
 
 
 @pytest.mark.parametrize(
@@ -249,7 +249,7 @@ def test_get_skip_post_processor_with_query(
     pies_and_cubes_pop_mgr._attribute_pipelines[attribute].assert_called_once()  # type: ignore[attr-defined]
     call_args = pies_and_cubes_pop_mgr._attribute_pipelines[attribute].call_args  # type: ignore[attr-defined]
     assert call_args[0][0].equals(expected_index)
-    assert call_args[1] == {"mode": "skip_post_processor"}
+    assert call_args[1] == {"mode": "no-post-processors"}
 
 
 def test_get_skip_post_processor_returns_queried_attribute(

@@ -498,7 +498,7 @@ class PopulationManager(Manager):
         index: pd.Index[int] | None = None,
         query: str = "",
         squeeze: Literal[True, False] = True,
-        mode: Literal["source", "skip_post_processor"] = ...,
+        mode: Literal["source", "no-post-processors"] = ...,
     ) -> Any:
         ...
 
@@ -508,7 +508,7 @@ class PopulationManager(Manager):
         index: pd.Index[int] | None = None,
         query: str = "",
         squeeze: Literal[True, False] = True,
-        mode: Literal["default", "source", "skip_post_processor"] = "default",
+        mode: Literal["default", "source", "no-post-processors"] = "default",
     ) -> Any:
         """Provides a copy of the population state table.
 
@@ -526,7 +526,7 @@ class PopulationManager(Manager):
             column and/or a single-column dataframe into a series.
         mode
             The mode for pipeline evaluation. One of "default", "source",
-            or "skip_post_processor".
+            or "no-post-processors".
 
         Notes
         -----
@@ -606,7 +606,7 @@ class PopulationManager(Manager):
             query_df = query_df.query(query)
             idx = query_df.index
 
-        _use_single_attr_path = mode in ("source", "skip_post_processor")
+        _use_single_attr_path = mode in ("source", "no-post-processors")
         data = self._get_attributes(
             idx,
             requested_attributes if _use_single_attr_path else list(columns_to_get),
@@ -615,7 +615,7 @@ class PopulationManager(Manager):
         if _use_single_attr_path:
             # NOTE: This correctly returns the requested attribute even when it
             # overlaps with query columns because we pass `requested_attributes`
-            # (not `columns_to_get`) above when `mode` is "source" or "skip_post_processor".
+            # (not `columns_to_get`) above when `mode` is "source" or "no-post-processors".
             return data
 
         # Add on any query columns that are actually requested to be returned
@@ -671,7 +671,7 @@ class PopulationManager(Manager):
         self,
         idx: pd.Index[int],
         requested_attributes: Sequence[str],
-        mode: Literal["source", "skip_post_processor"] = ...,
+        mode: Literal["source", "no-post-processors"] = ...,
     ) -> Any:
         ...
 
@@ -679,7 +679,7 @@ class PopulationManager(Manager):
         self,
         idx: pd.Index[int],
         requested_attributes: Sequence[str],
-        mode: Literal["default", "source", "skip_post_processor"] = "default",
+        mode: Literal["default", "source", "no-post-processors"] = "default",
     ) -> Any:
         """Get the population for a given index and requested attributes.
 
@@ -713,7 +713,7 @@ class PopulationManager(Manager):
         self,
         idx: pd.Index[int],
         requested_attributes: Sequence[str],
-        mode: Literal["source", "skip_post_processor"] = ...,
+        mode: Literal["source", "no-post-processors"] = ...,
     ) -> Any:
         ...
 
@@ -721,11 +721,11 @@ class PopulationManager(Manager):
         self,
         idx: pd.Index[int],
         requested_attributes: Sequence[str],
-        mode: Literal["default", "source", "skip_post_processor"] = "default",
+        mode: Literal["default", "source", "no-post-processors"] = "default",
     ) -> Any:
         """Core implementation of ``_get_attributes``."""
 
-        if mode in ("source", "skip_post_processor"):
+        if mode in ("source", "no-post-processors"):
             if len(requested_attributes) != 1:
                 raise ValueError(
                     f"When mode is '{mode}', a single attribute must "
