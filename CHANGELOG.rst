@@ -1,3 +1,7 @@
+**4.0.2 - 04/14/26**
+
+- Update setup for VBU dependency
+
 **4.0.1 - 04/02/26**
 
 - Remove support for calling InteractiveContext.get_population() without an explicit attribute request
