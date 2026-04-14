@@ -1,6 +1,6 @@
 **4.0.2 - 04/14/26**
 
-- Update setup for VBU dependency
+- Update VBU pin
 
 **4.0.1 - 04/02/26**
 
