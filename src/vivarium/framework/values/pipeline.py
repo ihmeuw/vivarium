@@ -293,6 +293,12 @@ class Pipeline(Resource):
         manager
             The simulation values manager.
         """
+        if self.source:
+            raise DynamicValueError(
+                f"A second component is attempting to set the source for pipeline {self.name} "
+                f"with {source}, but it already has a source: {self.source}."
+            )
+
         self._component = component
         self.source = source
         self._combiner = combiner

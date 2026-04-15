@@ -889,7 +889,6 @@ def test_duplicate_names_raise(manager: ValuesManager) -> None:
         manager.register_value_producer(name, source=lambda: 1)
 
 
-@pytest.mark.xfail(reason="Duplicate pipeline prevention not yet implemented")
 def test_duplicate_value_pipeline_raises(manager: ValuesManager) -> None:
     """Test that registering the same value pipeline twice raises an error."""
     name = "duplicate_value"
@@ -906,7 +905,6 @@ def test_duplicate_value_pipeline_raises(manager: ValuesManager) -> None:
         manager.register_value_producer(name, source=source2)
 
 
-@pytest.mark.xfail(reason="Duplicate pipeline prevention not yet implemented")
 def test_duplicate_attribute_pipeline_raises(manager: ValuesManager) -> None:
     """Test that registering the same attribute pipeline twice raises an error."""
     name = "duplicate_attribute"
