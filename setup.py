@@ -41,7 +41,8 @@ if __name__ == "__main__":
         long_description = f.read()
 
     install_requirements = [
-        "vivarium_dependencies>=2.0.0,<3.0.0",
+        # "vivarium_dependencies>=2.0.0,<3.0.0", # FIXME
+        "vivarium_dependencies @ git+https://github.com/ihmeuw/vivarium_dependencies.git@sbachmei/release-v2-for-vbu-pin",
         "vivarium_dependencies[numpy_lt_2,pandas,pyyaml,scipy,click,tables,loguru,pyarrow,networkx,vivarium_build_utils]",
         "layered_config_tree",
         "dill",
