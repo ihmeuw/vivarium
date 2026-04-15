@@ -889,6 +889,61 @@ def test_duplicate_names_raise(manager: ValuesManager) -> None:
         manager.register_value_producer(name, source=lambda: 1)
 
 
+@pytest.mark.xfail(reason="Duplicate pipeline prevention not yet implemented")
+def test_duplicate_value_pipeline_raises(manager: ValuesManager) -> None:
+    """Test that registering the same value pipeline twice raises an error."""
+    name = "duplicate_value"
+    source1 = lambda: 1
+    source2 = lambda: 2
+
+    manager.register_value_producer(name, source=source1)
+    with pytest.raises(
+        DynamicValueError,
+        match=re.escape(
+            f"A second component is attempting to set the source for pipeline {name}"
+        ),
+    ):
+        manager.register_value_producer(name, source=source2)
+
+
+@pytest.mark.xfail(reason="Duplicate pipeline prevention not yet implemented")
+def test_duplicate_attribute_pipeline_raises(manager: ValuesManager) -> None:
+    """Test that registering the same attribute pipeline twice raises an error."""
+    name = "duplicate_attribute"
+    source1 = lambda idx: pd.Series(1, index=idx)
+    source2 = lambda idx: pd.Series(2, index=idx)
+
+    manager.register_attribute_producer(name, source=source1)
+    with pytest.raises(
+        DynamicValueError,
+        match=re.escape(
+            f"A second component is attempting to set the source for pipeline {name}"
+        ),
+    ):
+        manager.register_attribute_producer(name, source=source2)
+
+
+def test_modifier_before_source_then_source_succeeds(manager: ValuesManager) -> None:
+    """Test that registering a modifier before source, then the source, works correctly.
+
+    This validates that the duplicate prevention should allow replacing MissingValueSource.
+    """
+    name = "modifier_first"
+    modifier = lambda x: x * 2
+    source = lambda: 10
+
+    # Register modifier first (creates pipeline with MissingValueSource)
+    manager.register_value_modifier(name, modifier=modifier)
+
+    # Register source second (should succeed, replacing MissingValueSource)
+    manager.register_value_producer(name, source=source)
+
+    # Verify the pipeline works correctly
+    pipeline = manager.get_value(name)
+    result = pipeline()
+    assert result == 20  # source (10) * modifier (2)
+
+
 @pytest.mark.parametrize(
     "source, expected_return",
     [
