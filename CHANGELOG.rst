@@ -1,6 +1,6 @@
-**4.0.2 - 04/14/26**
+**4.0.2 - 04/15/26**
 
-- Update setup for VBU dependency
+- Update vivarium_build_utils pin
 
 **4.0.1 - 04/02/26**
 
