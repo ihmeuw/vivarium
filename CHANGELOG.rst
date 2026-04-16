@@ -1,14 +1,26 @@
-**4.1.0 - TBD TBD TBD**
+**4.1.1 - 04/17/26**
 
-  - Feature: Enable changing the data of a LookupTable during post-setup or the simulation loop.
-  - Feature: Enable Pipelines and AttributePipelines to register multiple post-processors.
-  - Feature: Enable calling Pipelines (though not AttributePipelines) during the post-setup lifecycle phase.
-  - Feature: Create a `raw_union_post_processor` that doesn't conform the returned value to the population index.
-  - Feature: Add `multiplication_combiner` and `addition_combiner` to the values system.
-  - Refactor: use a context manager to track which component is being set up during component setup.
-  - Feature: Add `mode`` argument with values "default", "source", and "no-post-processors" to `PopulationView.get()`
-    and `PopulationManager.get_population()`.
-  - Deprecation: Deprecate the `skip_post_processor` argument to `PopulationView.get()`.
+- Raise error if registering duplicate Pipelines
+
+**4.1.0 - 04/16/26**
+
+- Feature: Enable changing the data of a LookupTable during post-setup or the simulation loop.
+- Feature: Enable Pipelines and AttributePipelines to register multiple post-processors.
+- Feature: Enable calling Pipelines (though not AttributePipelines) during the post-setup lifecycle phase.
+- Feature: Create a `raw_union_post_processor` that doesn't conform the returned value to the population index.
+- Feature: Add `multiplication_combiner` and `addition_combiner` to the values system.
+- Refactor: use a context manager to track which component is being set up during component setup.
+- Feature: Add `mode`` argument with values "default", "source", and "no-post-processors" to `PopulationView.get()`
+and `PopulationManager.get_population()`.
+- Deprecation: Deprecate the `skip_post_processor` argument to `PopulationView.get()`.
+
+**4.0.3 - 04/16/26**
+
+- Tighten vivarium_build_utils pin
+
+**4.0.2 - 04/15/26**
+
+- Update vivarium_build_utils pin
 
 **4.0.1 - 04/02/26**
 
