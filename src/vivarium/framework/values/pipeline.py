@@ -292,7 +292,19 @@ class Pipeline(Resource):
             post-processor. A string represents a population attribute.
         manager
             The simulation values manager.
+
+        Raises
+        ------
+        DynamicValueError
+            If a second component attempts to set the source for a pipeline that
+            already has a source.
         """
+        if self.source:
+            raise DynamicValueError(
+                f"A second component is attempting to set the source for pipeline {self.name} "
+                f"with {source}, but it already has a source: {self.source}."
+            )
+
         self._component = component
         self.source = source
         self._combiner = combiner

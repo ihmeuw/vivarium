@@ -1,3 +1,7 @@
+**4.1.1 - 04/21/26**
+
+- Raise error if registering duplicate Pipelines
+
 **4.1.0 - 04/16/26**
 
 - Feature: Enable changing the data of a LookupTable during post-setup or the simulation loop.

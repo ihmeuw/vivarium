@@ -890,6 +890,61 @@ def test_duplicate_names_raise(manager: ValuesManager) -> None:
 
 
 @pytest.mark.parametrize(
+    "register_method,source1,source2,pipeline_type",
+    [
+        ("register_value_producer", lambda: 1, lambda: 2, "value"),
+        (
+            "register_attribute_producer",
+            lambda idx: pd.Series(1, index=idx),
+            lambda idx: pd.Series(2, index=idx),
+            "attribute",
+        ),
+    ],
+    ids=["value_pipeline", "attribute_pipeline"],
+)
+def test_duplicate_pipeline_raises(
+    manager: ValuesManager,
+    register_method: str,
+    source1: Callable[..., Any],
+    source2: Callable[..., Any],
+    pipeline_type: str,
+) -> None:
+    """Test that registering the same pipeline twice raises an error."""
+    name = f"duplicate_{pipeline_type}"
+    register_func = getattr(manager, register_method)
+
+    register_func(name, source=source1)
+    with pytest.raises(
+        DynamicValueError,
+        match=re.escape(
+            f"A second component is attempting to set the source for pipeline {name}"
+        ),
+    ):
+        register_func(name, source=source2)
+
+
+def test_modifier_before_source_then_source_succeeds(manager: ValuesManager) -> None:
+    """Test that registering a modifier before source, then the source, works correctly.
+
+    This validates that the duplicate prevention should allow replacing MissingValueSource.
+    """
+    name = "modifier_first"
+    modifier = lambda x: x * 2
+    source = lambda: 10
+
+    # Register modifier first (creates pipeline with MissingValueSource)
+    manager.register_value_modifier(name, modifier=modifier)
+
+    # Register source second (should succeed, replacing MissingValueSource)
+    manager.register_value_producer(name, source=source)
+
+    # Verify the pipeline works correctly
+    pipeline = manager.get_value(name)
+    result = pipeline()
+    assert result == 20  # source (10) * modifier (2)
+
+
+@pytest.mark.parametrize(
     "source, expected_return",
     [
         (lambda idx: pd.Series(1.0, index=idx), pd.Series(1.0, index=INDEX)),
