@@ -889,36 +889,38 @@ def test_duplicate_names_raise(manager: ValuesManager) -> None:
         manager.register_value_producer(name, source=lambda: 1)
 
 
-def test_duplicate_value_pipeline_raises(manager: ValuesManager) -> None:
-    """Test that registering the same value pipeline twice raises an error."""
-    name = "duplicate_value"
-    source1 = lambda: 1
-    source2 = lambda: 2
+@pytest.mark.parametrize(
+    "register_method,source1,source2,pipeline_type",
+    [
+        ("register_value_producer", lambda: 1, lambda: 2, "value"),
+        (
+            "register_attribute_producer",
+            lambda idx: pd.Series(1, index=idx),
+            lambda idx: pd.Series(2, index=idx),
+            "attribute",
+        ),
+    ],
+    ids=["value_pipeline", "attribute_pipeline"],
+)
+def test_duplicate_pipeline_raises(
+    manager: ValuesManager,
+    register_method: str,
+    source1: Callable[..., Any],
+    source2: Callable[..., Any],
+    pipeline_type: str,
+) -> None:
+    """Test that registering the same pipeline twice raises an error."""
+    name = f"duplicate_{pipeline_type}"
+    register_func = getattr(manager, register_method)
 
-    manager.register_value_producer(name, source=source1)
+    register_func(name, source=source1)
     with pytest.raises(
         DynamicValueError,
         match=re.escape(
             f"A second component is attempting to set the source for pipeline {name}"
         ),
     ):
-        manager.register_value_producer(name, source=source2)
-
-
-def test_duplicate_attribute_pipeline_raises(manager: ValuesManager) -> None:
-    """Test that registering the same attribute pipeline twice raises an error."""
-    name = "duplicate_attribute"
-    source1 = lambda idx: pd.Series(1, index=idx)
-    source2 = lambda idx: pd.Series(2, index=idx)
-
-    manager.register_attribute_producer(name, source=source1)
-    with pytest.raises(
-        DynamicValueError,
-        match=re.escape(
-            f"A second component is attempting to set the source for pipeline {name}"
-        ),
-    ):
-        manager.register_attribute_producer(name, source=source2)
+        register_func(name, source=source2)
 
 
 def test_modifier_before_source_then_source_succeeds(manager: ValuesManager) -> None:
