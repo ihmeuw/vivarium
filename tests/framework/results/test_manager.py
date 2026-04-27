@@ -879,3 +879,43 @@ def _assert_standard_index(df: pd.DataFrame) -> None:
     assert not isinstance(df.index, pd.MultiIndex)
     assert df.index.names == [None]
     assert df.index.dtype == "int64"
+
+
+def test_observation_priority_ordering() -> None:
+    """Test that observations with lower priority fire before those with higher priority."""
+    execution_order: list[str] = []
+
+    class PriorityOrderingObserver(Observer):
+        """Observer that registers two observations at different priorities."""
+
+        def register_observations(self, builder: Builder) -> None:
+            builder.results.register_adding_observation(
+                name="early_counter",
+                when="collect_metrics",
+                priority=2,
+                aggregator=lambda df: self._track("early", df),
+            )
+            builder.results.register_adding_observation(
+                name="default_counter",
+                when="collect_metrics",
+                aggregator=lambda df: self._track("default", df),
+            )
+
+        def _track(self, label: str, df: pd.DataFrame) -> float:
+            execution_order.append(label)
+            return float(len(df))
+
+    components = [
+        Hogwarts(),
+        HogwartsResultsStratifier(),
+        PriorityOrderingObserver(),
+    ]
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
+    sim.step()
+
+    # "early" (priority 2) should have fired before "default" (priority 5)
+    # "early" and "default" are called once per aggregator
+    assert "early" in execution_order and "default" in execution_order
+    last_early = max(i for i, x in enumerate(execution_order) if x == "early")
+    first_default = min(i for i, x in enumerate(execution_order) if x == "default")
+    assert last_early < first_default
