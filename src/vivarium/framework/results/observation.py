@@ -84,6 +84,8 @@ class Observation(ABC):
     """Method or function that determines whether to perform an observation on this Event."""
     stratifications: tuple[Stratification, ...] | None = None
     """Optional tuple of the Stratifications this observation should use."""
+    priority: int = 5
+    """The priority level of this observation. Observations with lower priority levels are observed first."""
 
     def observe(
         self,
