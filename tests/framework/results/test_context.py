@@ -645,6 +645,51 @@ def test_get_observations(
 
 
 @pytest.mark.parametrize(
+    ["event_priority", "expected_names"],
+    [
+        (DEFAULT_EVENT_PRIORITY, ["default_obs"]),
+        (2, ["early_obs"]),
+        (9, []),
+    ],
+    ids=["default_priority", "non_default_priority", "unused_priority"],
+)
+def test_get_observations_filters_by_priority(
+    event_priority: int, expected_names: list[str]
+) -> None:
+    ctx = ResultsContext()
+    base_kwargs = {
+        "observation_type": AddingObservation,
+        "population_filter": PopulationFilter(),
+        "requires_attributes": [],
+        "results_formatter": lambda: None,
+        "stratifications": (),
+        "aggregator_sources": None,
+        "aggregator": len,
+    }
+    ctx.register_observation(
+        name="default_obs",
+        when=lifecycle_states.COLLECT_METRICS,
+        **base_kwargs,  # type: ignore[arg-type]
+    )
+    ctx.register_observation(
+        name="early_obs",
+        when=lifecycle_states.COLLECT_METRICS,
+        priority=2,
+        **base_kwargs,  # type: ignore[arg-type]
+    )
+
+    event = Event(
+        name=lifecycle_states.COLLECT_METRICS,
+        index=pd.Index([0]),
+        user_data={},
+        time=0,
+        step_size=1,
+        priority=event_priority,
+    )
+    assert [obs.name for obs in ctx.get_observations(event)] == expected_names
+
+
+@pytest.mark.parametrize(
     "observation_names, stratification_names, expected_resources",
     [
         (["obs1", "obs2"], ["strat1", "strat2"], {"x", "y", "z", "v"}),

@@ -42,7 +42,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
-from vivarium.framework.results.interface import PopulationFilter
+from vivarium.framework.results.interface import PopulationFilter, ResultsInterface
 from vivarium.framework.results.manager import ResultsManager
 from vivarium.framework.results.observation import AddingObservation, Observation
 from vivarium.framework.results.observer import Observer
@@ -924,3 +924,60 @@ def test_observation_priority_ordering() -> None:
     last_early = max(i for i, x in enumerate(execution_order) if x == "early")
     first_default = min(i for i, x in enumerate(execution_order) if x == "default")
     assert last_early < first_default
+
+
+def test_observation_priority_ordering_reverse_registration() -> None:
+    """Ensure ordering is by priority even when registration order is reversed."""
+    execution_order: list[str] = []
+
+    class ReversePriorityObserver(Observer):
+        """Observer that registers the higher-priority observation first."""
+
+        def register_observations(self, builder: Builder) -> None:
+            builder.results.register_adding_observation(
+                name="late_counter",
+                when="collect_metrics",
+                priority=7,
+                aggregator=lambda df: self._track("late", df),
+            )
+            builder.results.register_adding_observation(
+                name="early_counter",
+                when="collect_metrics",
+                priority=2,
+                aggregator=lambda df: self._track("early", df),
+            )
+
+        def _track(self, label: str, df: pd.DataFrame) -> float:
+            execution_order.append(label)
+            return float(len(df))
+
+    components = [
+        Hogwarts(),
+        HogwartsResultsStratifier(),
+        ReversePriorityObserver(),
+    ]
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
+    sim.step()
+
+    assert "early" in execution_order and "late" in execution_order
+    last_early = max(i for i, x in enumerate(execution_order) if x == "early")
+    first_late = min(i for i, x in enumerate(execution_order) if x == "late")
+    assert last_early < first_late
+
+
+@pytest.mark.parametrize("priority", [-1, 10, 100], ids=["negative", "ten", "large"])
+def test_register_observation_invalid_priority_raises(
+    priority: int, mocker: pytest_mock.MockFixture
+) -> None:
+    """Verify that out-of-range priority values raise a ValueError."""
+    mgr = ResultsManager()
+    builder = mocker.MagicMock()
+    builder.configuration.stratification.default = []
+    mgr.setup(builder)
+    interface = ResultsInterface(mgr)
+    with pytest.raises(ValueError, match="Priority must be an integer in range"):
+        interface.register_adding_observation(
+            name="bad_priority",
+            when="collect_metrics",
+            priority=priority,
+        )

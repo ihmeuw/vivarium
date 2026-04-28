@@ -33,6 +33,9 @@ if TYPE_CHECKING:
     from vivarium.framework.population import PopulationView
     from vivarium.types import DataInput
 
+NUM_EVENT_PRIORITIES = 10
+"""The number of priority levels available for event listeners."""
+
 DEFAULT_EVENT_PRIORITY = 5
 """The default priority at which events will be triggered."""
 

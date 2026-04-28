@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Sequence
 
 import pandas as pd
 
-from vivarium.component import DEFAULT_EVENT_PRIORITY
+from vivarium.component import DEFAULT_EVENT_PRIORITY, NUM_EVENT_PRIORITIES
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results.context import ResultsContext
@@ -77,7 +77,9 @@ class ResultsManager(Manager):
 
         builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
 
-        for priority in range(10):
+        # Register at every priority level so that observations fire in the
+        # correct priority order relative to other components' listeners.
+        for priority in range(NUM_EVENT_PRIORITIES):
             builder.event.register_listener(
                 lifecycle_states.TIME_STEP_PREPARE,
                 self.on_time_step_prepare,
@@ -293,6 +295,12 @@ class ResultsManager(Manager):
             Additional keyword arguments to be passed to the observation's constructor.
         """
         self.logger.debug(f"Registering observation {name}")
+
+        if not (0 <= priority < NUM_EVENT_PRIORITIES):
+            raise ValueError(
+                f"Priority must be an integer in range [0, {NUM_EVENT_PRIORITIES}), "
+                f"but got {priority} when registering observation '{name}'."
+            )
 
         if any(not isinstance(attribute, str) for attribute in requires_attributes):
             raise TypeError(

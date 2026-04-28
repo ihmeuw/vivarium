@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from vivarium.component import NUM_EVENT_PRIORITIES
 from vivarium.framework.lifecycle import ConstraintError, lifecycle_states
 from vivarium.manager import Manager
 from vivarium.types import ClockStepSize, ClockTime
@@ -93,7 +94,9 @@ class EventChannel:
         self.event_name = event_name
         self.name = f"event_channel_{event_name}"
         self.manager = manager
-        self.listeners: list[list[Callable[[Event], None]]] = [[] for _ in range(10)]
+        self.listeners: list[list[Callable[[Event], None]]] = [
+            [] for _ in range(NUM_EVENT_PRIORITIES)
+        ]
 
     def emit(self, index: pd.Index[int], user_data: dict[str, Any] | None = None) -> None:
         """Notifies all listeners to this channel that an event has occurred.
