@@ -12,6 +12,7 @@ from pytest_mock import MockerFixture
 
 from tests.framework.results.helpers import BASE_POPULATION, FAMILIARS
 from tests.framework.results.helpers import HOUSE_CATEGORIES as HOUSES
+from vivarium.component import DEFAULT_EVENT_PRIORITY
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results import ResultsInterface, ResultsManager
@@ -434,6 +435,7 @@ def test_register_adding_observation_when_options(when: str, mocker: MockerFixtu
         user_data={},
         time=0,
         step_size=1,
+        priority=DEFAULT_EVENT_PRIORITY,
     )
     # Run on_post_setup to initialize the raw_results attribute with 0s and set stratifications
     mgr.on_post_setup(event)

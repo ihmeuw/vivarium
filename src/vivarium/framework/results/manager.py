@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Sequence
 
 import pandas as pd
 
+from vivarium.component import DEFAULT_EVENT_PRIORITY, NUM_EVENT_PRIORITIES
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results.context import ResultsContext
@@ -75,16 +76,26 @@ class ResultsManager(Manager):
         self.step_size = builder.time.step_size()
 
         builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
-        builder.event.register_listener(
-            lifecycle_states.TIME_STEP_PREPARE, self.on_time_step_prepare
-        )
-        builder.event.register_listener(lifecycle_states.TIME_STEP, self.on_time_step)
-        builder.event.register_listener(
-            lifecycle_states.TIME_STEP_CLEANUP, self.on_time_step_cleanup
-        )
-        builder.event.register_listener(
-            lifecycle_states.COLLECT_METRICS, self.on_collect_metrics
-        )
+
+        # Register at every priority level so that observations fire in the
+        # correct priority order relative to other components' listeners.
+        for priority in range(NUM_EVENT_PRIORITIES):
+            builder.event.register_listener(
+                lifecycle_states.TIME_STEP_PREPARE,
+                self.on_time_step_prepare,
+                priority=priority,
+            )
+            builder.event.register_listener(
+                lifecycle_states.TIME_STEP, self.on_time_step, priority=priority
+            )
+            builder.event.register_listener(
+                lifecycle_states.TIME_STEP_CLEANUP,
+                self.on_time_step_cleanup,
+                priority=priority,
+            )
+            builder.event.register_listener(
+                lifecycle_states.COLLECT_METRICS, self.on_collect_metrics, priority=priority
+            )
 
         self.set_default_stratifications(builder)
 
@@ -254,7 +265,8 @@ class ResultsManager(Manager):
         name: str,
         population_filter: PopulationFilter,
         when: str,
-        requires_attributes: list[str],
+        priority: int = DEFAULT_EVENT_PRIORITY,
+        requires_attributes: list[str] = [],
         **kwargs: Any,
     ) -> None:
         """Registers an observation to the results system.
@@ -274,12 +286,21 @@ class ResultsManager(Manager):
         when
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
+        priority
+            The priority level of this observation within its lifecycle phase.
+            Observations with lower priority values are observed first.
         requires_attributes
             The population attributes that are required to compute the observation.
         **kwargs
             Additional keyword arguments to be passed to the observation's constructor.
         """
         self.logger.debug(f"Registering observation {name}")
+
+        if not (0 <= priority < NUM_EVENT_PRIORITIES):
+            raise ValueError(
+                f"Priority must be an integer in range [0, {NUM_EVENT_PRIORITIES}), "
+                f"but got {priority} when registering observation '{name}'."
+            )
 
         if any(not isinstance(attribute, str) for attribute in requires_attributes):
             raise TypeError(
@@ -303,6 +324,7 @@ class ResultsManager(Manager):
             name=name,
             population_filter=population_filter,
             when=when,
+            priority=priority,
             requires_attributes=requires_attributes,
             stratifications=stratifications,
             **kwargs,

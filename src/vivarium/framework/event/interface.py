@@ -32,7 +32,7 @@ class EventInterface(Interface):
 
     def get_emitter(
         self, event_name: str
-    ) -> Callable[[pd.Index[int], dict[str, Any] | None], Event]:
+    ) -> Callable[[pd.Index[int], dict[str, Any] | None], None]:
         """Gets an emitter for a named ``Event``.
 
         Parameters

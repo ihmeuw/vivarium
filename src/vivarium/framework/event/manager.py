@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from vivarium.component import NUM_EVENT_PRIORITIES
 from vivarium.framework.lifecycle import ConstraintError, lifecycle_states
 from vivarium.manager import Manager
 from vivarium.types import ClockStepSize, ClockTime
@@ -56,6 +57,8 @@ class Event:
     size plus the current time step size."""
     step_size: ClockStepSize
     """The current step size at the time of the event."""
+    priority: int
+    """The priority level of this event. Events with lower priority levels are emitted first."""
 
     def split(self, new_index: pd.Index[int]) -> "Event":
         """Creates a copy of this event with a new index.
@@ -73,7 +76,9 @@ class Event:
         -------
             The new event.
         """
-        return Event(self.name, new_index, self.user_data, self.time, self.step_size)
+        return Event(
+            self.name, new_index, self.user_data, self.time, self.step_size, self.priority
+        )
 
     def __repr__(self) -> str:
         return f"Event(name={self.name}, user_data={self.user_data}, time={self.time}, step_size={self.step_size})"
@@ -89,9 +94,11 @@ class EventChannel:
         self.event_name = event_name
         self.name = f"event_channel_{event_name}"
         self.manager = manager
-        self.listeners: list[list[Callable[[Event], None]]] = [[] for _ in range(10)]
+        self.listeners: list[list[Callable[[Event], None]]] = [
+            [] for _ in range(NUM_EVENT_PRIORITIES)
+        ]
 
-    def emit(self, index: pd.Index[int], user_data: dict[str, Any] | None = None) -> Event:
+    def emit(self, index: pd.Index[int], user_data: dict[str, Any] | None = None) -> None:
         """Notifies all listeners to this channel that an event has occurred.
 
         Events are emitted to listeners in order of priority (with order 0 being
@@ -121,18 +128,19 @@ class EventChannel:
                 f"Clock ({type(clock)}) and step size ({type(step_size)}) are not compatible."
             )
 
-        e = Event(
-            self.event_name,
-            index,
-            user_data,
-            event_time,
-            step_size,
-        )
+        for priority, listeners in enumerate(self.listeners):
+            # Create an event for each priority in each lifecycle phase
+            e = Event(
+                self.event_name,
+                index,
+                user_data,
+                event_time,
+                step_size,
+                priority,
+            )
 
-        for priority_bucket in self.listeners:
-            for listener in priority_bucket:
+            for listener in listeners:
                 listener(e)
-        return e
 
     def __repr__(self) -> str:
         return f"EventChannel(listeners: {[listener for bucket in self.listeners for listener in bucket]})"
@@ -195,7 +203,7 @@ class EventManager(Manager):
 
     def get_emitter(
         self, event_name: str
-    ) -> Callable[[pd.Index[int], dict[str, Any] | None], Event]:
+    ) -> Callable[[pd.Index[int], dict[str, Any] | None], None]:
         """Gets an emitter function for the named event.
 
         Parameters
