@@ -15,6 +15,7 @@ class EventData(TypedDict):
     user_data: dict[str, str]
     time: pd.Timestamp
     step_size: int
+    priority: int
 
 
 _EVENT_INIT_TYPE = dict[str, EventData]

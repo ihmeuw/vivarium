@@ -200,7 +200,7 @@ class EventManager(Manager):
 
     def get_emitter(
         self, event_name: str
-    ) -> Callable[[pd.Index[int], dict[str, Any] | None], Event]:
+    ) -> Callable[[pd.Index[int], dict[str, Any] | None], None]:
         """Gets an emitter function for the named event.
 
         Parameters

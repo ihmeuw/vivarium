@@ -263,7 +263,7 @@ class InteractiveContext(SimulationContext):
 
     def get_emitter(
         self, event_name: str
-    ) -> Callable[[pd.Index[int], dict[str, Any] | None], Event]:
+    ) -> Callable[[pd.Index[int], dict[str, Any] | None], None]:
         """Get the callable that emits the given type of events.
 
         Available events can be found by calling
