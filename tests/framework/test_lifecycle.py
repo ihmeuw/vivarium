@@ -408,6 +408,7 @@ def test_lifecycle_manager_add_constraint() -> None:
         user_data={},
         time=0,
         step_size=1,
+        priority=5,
     )
 
     alice.buzz(useless_event)

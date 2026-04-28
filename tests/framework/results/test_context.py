@@ -23,6 +23,7 @@ from tests.framework.results.helpers import (
     sorting_hat_vectorized,
     verify_stratification_added,
 )
+from vivarium.component import DEFAULT_EVENT_PRIORITY
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results import VALUE_COLUMN
@@ -46,6 +47,7 @@ def event() -> Event:
         user_data={},
         time=0,
         step_size=1,
+        priority=DEFAULT_EVENT_PRIORITY,
     )
 
 
@@ -631,7 +633,12 @@ def test_get_observations(
     )
 
     event = Event(
-        name=lifecycle_state, index=pd.Index([0]), user_data={}, time=time, step_size=1
+        name=lifecycle_state,
+        index=pd.Index([0]),
+        user_data={},
+        time=time,
+        step_size=1,
+        priority=DEFAULT_EVENT_PRIORITY,
     )
 
     assert [obs.name for obs in ctx.get_observations(event)] == expected_observations

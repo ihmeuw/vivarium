@@ -36,6 +36,7 @@ from tests.framework.results.helpers import (
     sorting_hat_vectorized,
     verify_stratification_added,
 )
+from vivarium.component import DEFAULT_EVENT_PRIORITY
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
@@ -373,6 +374,7 @@ def test_gather_results_with_no_observations(mocker: pytest_mock.MockerFixture) 
         user_data={},
         time=0,
         step_size=1,
+        priority=DEFAULT_EVENT_PRIORITY,
     )
 
     mgr.gather_results(event)
@@ -395,6 +397,7 @@ def test_gather_results_with_empty_index(mocker: pytest_mock.MockerFixture) -> N
         user_data={},
         time=0,
         step_size=1,
+        priority=DEFAULT_EVENT_PRIORITY,
     )
 
     mgr.gather_results(event)
@@ -570,6 +573,7 @@ def test_prepare_population(
         },
         time=prepare_population_sim._clock.time + prepare_population_sim._clock.step_size,  # type: ignore [operator]
         step_size=prepare_population_sim._clock.step_size,
+        priority=DEFAULT_EVENT_PRIORITY,
     )
 
     population = mgr._prepare_population(event, observations, stratifications)
@@ -620,6 +624,7 @@ def test_prepare_population_all_untracked(
         user_data={},
         time=prepare_population_sim._clock.time + prepare_population_sim._clock.step_size,  # type: ignore [operator]
         step_size=prepare_population_sim._clock.step_size,
+        priority=DEFAULT_EVENT_PRIORITY,
     )
 
     # Add an untracking query
