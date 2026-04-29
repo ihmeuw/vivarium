@@ -1,4 +1,5 @@
 import re
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
@@ -886,83 +887,61 @@ def _assert_standard_index(df: pd.DataFrame) -> None:
     assert df.index.dtype == "int64"
 
 
-def test_observation_priority_ordering() -> None:
-    """Test that observations with lower priority fire before those with higher priority."""
-    execution_order: list[str] = []
+def test_observation_fires_on_correct_priority() -> None:
+    """Test that observations fire on the correct priority of a lifecycle phase.
 
-    class PriorityOrderingObserver(Observer):
-        """Observer that registers two observations at different priorities."""
+    Each observation should only be called when the event priority matches
+    the priority the observation was registered with.
+    """
+    fired_on_priorities: dict[str, list[int]] = {
+        "early": [],
+        "default": [],
+        "late": [],
+    }
+
+    def _make_to_observe(label: str) -> Callable[[Event], bool]:
+        """Create a to_observe callback that records the event priority."""
+
+        def to_observe(event: Event) -> bool:
+            fired_on_priorities[label].append(event.priority)
+            return True
+
+        return to_observe
+
+    class PriorityTrackingObserver(Observer):
+        """Observer that records the event priority at which each observation fires."""
 
         def register_observations(self, builder: Builder) -> None:
             builder.results.register_adding_observation(
                 name="early_counter",
                 when="collect_metrics",
                 priority=2,
-                aggregator=lambda df: self._track("early", df),
+                to_observe=_make_to_observe("early"),
             )
             builder.results.register_adding_observation(
                 name="default_counter",
                 when="collect_metrics",
-                aggregator=lambda df: self._track("default", df),
+                to_observe=_make_to_observe("default"),
             )
-
-        def _track(self, label: str, df: pd.DataFrame) -> float:
-            execution_order.append(label)
-            return float(len(df))
-
-    components = [
-        Hogwarts(),
-        HogwartsResultsStratifier(),
-        PriorityOrderingObserver(),
-    ]
-    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
-    sim.step()
-
-    # "early" (priority 2) should have fired before "default" (priority 5)
-    # "early" and "default" are called once per aggregator
-    assert "early" in execution_order and "default" in execution_order
-    last_early = max(i for i, x in enumerate(execution_order) if x == "early")
-    first_default = min(i for i, x in enumerate(execution_order) if x == "default")
-    assert last_early < first_default
-
-
-def test_observation_priority_ordering_reverse_registration() -> None:
-    """Ensure ordering is by priority even when registration order is reversed."""
-    execution_order: list[str] = []
-
-    class ReversePriorityObserver(Observer):
-        """Observer that registers the higher-priority observation first."""
-
-        def register_observations(self, builder: Builder) -> None:
             builder.results.register_adding_observation(
                 name="late_counter",
                 when="collect_metrics",
                 priority=7,
-                aggregator=lambda df: self._track("late", df),
+                to_observe=_make_to_observe("late"),
             )
-            builder.results.register_adding_observation(
-                name="early_counter",
-                when="collect_metrics",
-                priority=2,
-                aggregator=lambda df: self._track("early", df),
-            )
-
-        def _track(self, label: str, df: pd.DataFrame) -> float:
-            execution_order.append(label)
-            return float(len(df))
 
     components = [
         Hogwarts(),
         HogwartsResultsStratifier(),
-        ReversePriorityObserver(),
+        PriorityTrackingObserver(),
     ]
     sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
     sim.step()
 
-    assert "early" in execution_order and "late" in execution_order
-    last_early = max(i for i, x in enumerate(execution_order) if x == "early")
-    first_late = min(i for i, x in enumerate(execution_order) if x == "late")
-    assert last_early < first_late
+    # Each observation should have fired exactly once and on its specified priority
+    assert fired_on_priorities["early"] == [2]
+    assert fired_on_priorities["default"] == [DEFAULT_EVENT_PRIORITY]
+    assert fired_on_priorities["late"] == [7]
 
 
 @pytest.mark.parametrize("priority", [-1, 10, 100], ids=["negative", "ten", "large"])

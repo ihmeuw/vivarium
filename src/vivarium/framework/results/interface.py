@@ -222,8 +222,7 @@ class ResultsInterface(Interface):
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
         priority
-            The priority level of this observation within its lifecycle phase.
-            Observations with lower priority values are observed first.
+            The priority level of the lifecycle phase (see `when`) that this observation will record.
         requires_attributes
             The population attributes that are required by the `aggregator`.
         results_updater
