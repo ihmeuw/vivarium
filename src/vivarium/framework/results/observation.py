@@ -86,7 +86,8 @@ class Observation(ABC):
     stratifications: tuple[Stratification, ...] | None = None
     """Optional tuple of the Stratifications this observation should use."""
     priority: int = DEFAULT_EVENT_PRIORITY
-    """The priority level of this observation. Observations with lower priority levels are observed first."""
+    """The priority of the lifecycle phase this observation will record. Observations 
+        with lower priority levels are recorded first."""
 
     def observe(
         self,

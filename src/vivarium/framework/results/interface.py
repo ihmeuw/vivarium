@@ -293,8 +293,8 @@ class ResultsInterface(Interface):
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
         priority
-            The priority level of this observation within its lifecycle phase.
-            Observations with lower priority values are observed first.
+            The priority of the lifecycle phase this observation will record. Observations
+            with lower priority levels are recorded first.
         requires_attributes
             The population attributes that are required by the `results_gatherer`.
         results_gatherer
@@ -367,8 +367,8 @@ class ResultsInterface(Interface):
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
         priority
-            The priority level of this observation within its lifecycle phase.
-            Observations with lower priority values are observed first.
+            The priority of the lifecycle phase this observation will record. Observations
+            with lower priority levels are recorded first.
         requires_attributes
             The population attributes that are required by the `aggregator`.
         results_formatter
@@ -435,8 +435,8 @@ class ResultsInterface(Interface):
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
         priority
-            The priority level of this observation within its lifecycle phase.
-            Observations with lower priority values are observed first.
+            The priority of the lifecycle phase this observation will record. Observations
+            with lower priority levels are recorded first.
         requires_attributes
             The population attributes that are required by the `aggregator`.
         results_formatter

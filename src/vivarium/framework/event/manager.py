@@ -58,7 +58,7 @@ class Event:
     step_size: ClockStepSize
     """The current step size at the time of the event."""
     priority: int
-    """The priority level of this event. Events with lower priority levels are emitted first."""
+    """The priority of the lifecycle phase this Event is emitted in. Events with lower priority levels are emitted first."""
 
     def split(self, new_index: pd.Index[int]) -> "Event":
         """Creates a copy of this event with a new index.
