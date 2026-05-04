@@ -1,3 +1,8 @@
+**4.1.2 - 05/04/26**
+
+- Add support for observations to specify priority for lifecycle events
+- Added priority attribute to `Event`
+
 **4.1.1 - 04/21/26**
 
 - Raise error if registering duplicate Pipelines

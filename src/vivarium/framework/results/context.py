@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any
 import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy
 
+from vivarium.component import DEFAULT_EVENT_PRIORITY
 from vivarium.framework.event import Event
 from vivarium.framework.population import utilities as pop_utils
 from vivarium.framework.results.exceptions import ResultsConfigurationError
@@ -224,6 +225,7 @@ class ResultsContext:
         when: str,
         requires_attributes: list[str],
         stratifications: tuple[str, ...] | None,
+        priority: int = DEFAULT_EVENT_PRIORITY,
         **kwargs: Any,
     ) -> Observation:
         """Adds an observation to the results context.
@@ -265,6 +267,7 @@ class ResultsContext:
             population_filter=population_filter,
             when=when,
             requires_attributes=requires_attributes,
+            priority=priority,
             **kwargs,
         )
         self.observations[name] = observation
@@ -358,14 +361,15 @@ class ResultsContext:
         Returns
         -------
             A list of Observations for the given event. Only includes observations
-            whose `to_observe` method returns True.
+            whose ``priority`` matches the event priority and whose ``to_observe``
+            method returns True.
         """
         return [
             observation
             for stratification_observations in self.grouped_observations[event.name].values()
             for observations in stratification_observations.values()
             for observation in observations
-            if observation.to_observe(event)
+            if observation.priority == event.priority and observation.to_observe(event)
         ]
 
     def get_stratifications(self, observations: list[Observation]) -> list[Stratification]:
