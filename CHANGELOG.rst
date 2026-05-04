@@ -1,4 +1,4 @@
-**4.1.2 - 04/29/26**
+**4.1.2 - 05/04/26**
 
 - Add support for observations to specify priority for lifecycle events
 - Added priority attribute to `Event`

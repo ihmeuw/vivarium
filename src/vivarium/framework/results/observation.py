@@ -32,6 +32,7 @@ from pandas.core.groupby.generic import DataFrameGroupBy
 
 from vivarium.component import DEFAULT_EVENT_PRIORITY
 from vivarium.exceptions import VivariumError
+from vivarium.framework import lifecycle
 from vivarium.framework.event import Event
 from vivarium.framework.results.stratification import Stratification, get_original_col_name
 
@@ -86,8 +87,7 @@ class Observation(ABC):
     stratifications: tuple[Stratification, ...] | None = None
     """Optional tuple of the Stratifications this observation should use."""
     priority: int = DEFAULT_EVENT_PRIORITY
-    """The priority of the lifecycle phase this observation will record. Observations 
-        with lower priority levels are recorded first."""
+    """The priority level of the lifecycle phase (see `when`) that this observation will record."""
 
     def observe(
         self,
@@ -144,6 +144,8 @@ class UnstratifiedObservation(Observation):
         Method or function that formats the raw observation results.
     to_observe
         Method or function that determines whether to perform an observation on this Event.
+    priority
+        The priority level of the lifecycle phase (see `when`) that this observation will record.
 
     """
 
@@ -230,6 +232,8 @@ class StratifiedObservation(Observation):
         Method or function that computes the quantity for this observation.
     to_observe
         Method or function that determines whether to perform an observation on this Event.
+    priority
+        The priority level of the lifecycle phase (see `when`) that this observation will record.
 
     """
 
@@ -430,6 +434,8 @@ class AddingObservation(StratifiedObservation):
         Method or function that computes the quantity for this observation.
     to_observe
         Method or function that determines whether to perform an observation on this Event.
+    priority
+        The priority level of the lifecycle phase (see `when`) that this observation will record.
 
     """
 
@@ -517,6 +523,8 @@ class ConcatenatingObservation(UnstratifiedObservation):
         Method or function that formats the raw observation results.
     to_observe
         Method or function that determines whether to perform an observation on this Event.
+    priority
+        The priority level of the lifecycle phase (see `when`) that this observation will record.
 
     """
 
