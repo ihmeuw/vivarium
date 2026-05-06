@@ -353,7 +353,7 @@ def test_order_zero_1d_with_key_column() -> None:
         }
     )
 
-    expected_result = pd.DataFrame({"value_1": [10.0, 7.0], "value_2": [1200.0, 1350.0]})
+    expected_result = pd.DataFrame({"value_1": [10, 7], "value_2": [1200, 1350]})
 
     assert i(query).equals(expected_result)
 
@@ -431,9 +431,7 @@ def test_order_zero_3d_with_key_col() -> None:
     )
 
     result = interp(interpolants)
-    assert result.equals(
-        pd.DataFrame({"value": [3.0, 5.0, 2.0, 7.0, 3.0]}, index=[10, 4, 7, 0, 9])
-    )
+    assert result.equals(pd.DataFrame({"value": [3, 5, 2, 7, 3]}, index=[10, 4, 7, 0, 9]))
 
 
 def test_order_zero_diff_bin_sizes() -> None:
