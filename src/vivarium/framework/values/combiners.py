@@ -1,6 +1,8 @@
 from collections.abc import Callable
 from typing import Any, Protocol
 
+import pandas as pd
+
 from vivarium.types import NumberLike
 
 
@@ -74,6 +76,12 @@ def multiplication_combiner(
     This combiner is meant to be used when the pipeline's final value is
     the product of all intermediate values.
 
+    When ``value`` is a ``pd.Series`` and the pipeline is invoked with the
+    :class:`~vivarium.framework.values.pipeline.AttributePipeline` calling
+    convention (a single positional ``pd.Index`` and no kwargs), the mutator
+    is evaluated only on the non-zero entries of ``value``. Entries that are
+    already zero will multiply to zero regardless of the mutator's output.
+
     Parameters
     ----------
     value
@@ -90,6 +98,16 @@ def multiplication_combiner(
     -------
         A modified version of the input value.
     """
+    if (
+        isinstance(value, pd.Series)
+        and len(args) == 1
+        and isinstance(args[0], pd.Index)
+        and not kwargs
+    ):
+        non_zero_index = value[value != 0].index
+        if len(non_zero_index) > 0:
+            value.loc[non_zero_index] = value.loc[non_zero_index] * mutator(non_zero_index)  # type: ignore[assignment]
+        return value
     return value * mutator(*args, **kwargs)
 
 

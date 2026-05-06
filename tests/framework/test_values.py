@@ -176,23 +176,84 @@ def test_replace_combiner(manager: ValuesManager, mocker: MockFixture) -> None:
     assert value() == 84
 
 
-def test_multiplication_combiner(manager: ValuesManager) -> None:
+@pytest.mark.parametrize(
+    "source, modifiers, expected_value, expected_modifier_indices",
+    [
+        pytest.param(
+            lambda idx: pd.Series(2.0, index=idx),
+            [
+                lambda idx: pd.Series(3.0, index=idx),
+                lambda idx: pd.Series(0.5, index=idx),
+            ],
+            pd.Series(3.0, index=INDEX),
+            [INDEX, INDEX],
+            id="series_no_zeros",
+        ),
+        pytest.param(
+            lambda idx: pd.Series([2.0, 0.0, 2.0, 0.0, 2.0, 0.0], index=idx),
+            [lambda idx: pd.Series(3.0, index=idx)],
+            pd.Series([6.0, 0.0, 6.0, 0.0, 6.0, 0.0], index=INDEX),
+            [INDEX[[0, 2, 4]]],
+            id="series_mixed_zeros",
+        ),
+        pytest.param(
+            lambda idx: pd.Series(0.0, index=idx),
+            [lambda idx: pd.Series(3.0, index=idx)],
+            pd.Series(0.0, index=INDEX),
+            [],
+            id="series_all_zeros",
+        ),
+    ],
+)
+def test_multiplication_combiner(
+    manager: ValuesManager,
+    source: Callable[[pd.Index[int]], pd.Series[float]],
+    modifiers: list[Callable[[pd.Index[int]], pd.Series[float]]],
+    expected_value: pd.Series[float],
+    expected_modifier_indices: list[pd.Index[int]],
+) -> None:
+    """When the value is a Series and the call shape matches the AttributePipeline
+    convention, modifiers are evaluated only on the non-zero entries of the value."""
+    modifier_calls: list[pd.Index[int]] = []
+
+    def spy(
+        modifier: Callable[[pd.Index[int]], pd.Series[float]],
+    ) -> Callable[[pd.Index[int]], pd.Series[float]]:
+        def wrapped(idx: pd.Index[int]) -> pd.Series[float]:
+            modifier_calls.append(idx)
+            return modifier(idx)
+
+        return wrapped
+
     value = manager.register_value_producer(
         "test",
-        source=lambda idx: pd.Series(2.0, index=idx),
+        source=source,
         preferred_combiner=multiplication_combiner,
     )
+    for modifier in modifiers:
+        manager.register_value_modifier("test", modifier=spy(modifier))
 
-    # Source only: should return the source value
-    assert np.all(value(INDEX) == 2.0)
+    pd.testing.assert_series_equal(value(INDEX), expected_value, check_names=False)
 
-    # One modifier: source * modifier = 2.0 * 3.0 = 6.0
-    manager.register_value_modifier("test", modifier=lambda idx: pd.Series(3.0, index=idx))
-    assert np.all(value(INDEX) == 6.0)
+    assert len(modifier_calls) == len(expected_modifier_indices)
+    for actual, expected in zip(modifier_calls, expected_modifier_indices):
+        pd.testing.assert_index_equal(actual, expected)
 
-    # Two modifiers: source * modifier1 * modifier2 = 2.0 * 3.0 * 0.5 = 3.0
-    manager.register_value_modifier("test", modifier=lambda idx: pd.Series(0.5, index=idx))
-    assert np.all(value(INDEX) == 3.0)
+
+def test_multiplication_combiner_scalar(manager: ValuesManager) -> None:
+    """Non-Series values fall back to plain multiplication."""
+    value = manager.register_value_producer(
+        "test",
+        source=lambda: 2.0,
+        preferred_combiner=multiplication_combiner,
+    )
+    assert value() == 2.0
+
+    manager.register_value_modifier("test", modifier=lambda: 3.0)
+    assert value() == 6.0
+
+    manager.register_value_modifier("test", modifier=lambda: 0.5)
+    assert value() == 3.0
 
 
 def test_addition_combiner(manager: ValuesManager) -> None:
