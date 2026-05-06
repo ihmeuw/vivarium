@@ -1,3 +1,7 @@
+**4.1.3 - 05/06/26**
+
+- Refactor: Make Interpolation __call__ method more performant.
+
 **4.1.2 - 05/06/26**
 
 - Make 'vivarium' and extend_path namespace package for monorepo migration
