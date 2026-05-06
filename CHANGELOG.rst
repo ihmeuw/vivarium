@@ -1,3 +1,7 @@
+**4.1.2 - 05/06/26**
+
+- Make 'vivarium' and extend_path namespace package for monorepo migration
+
 **4.1.1 - 04/21/26**
 
 - Raise error if registering duplicate Pipelines
