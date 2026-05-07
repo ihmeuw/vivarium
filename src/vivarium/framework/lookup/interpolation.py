@@ -116,19 +116,21 @@ class Interpolation:
             )
         else:
             sub_tables = [(None, interpolants)]
-        # specify some numeric type for columns, so they won't be objects but
-        # will be updated with whatever column type it actually is
-        result = pd.DataFrame(
-            index=interpolants.index, columns=self.value_columns, dtype=np.float64
-        )
-
+        parts = []
         for key, sub_table in sub_tables:
             if sub_table.empty:
                 continue
-            df = self.interpolations[key](sub_table)
-            result.loc[sub_table.index, list(self.value_columns)] = df.loc[
-                sub_table.index, list(self.value_columns)
-            ]
+            parts.append(self.interpolations[key](sub_table))
+
+        if parts:
+            result = pd.concat(parts)
+            result = result.reindex(interpolants.index)[self.value_columns]
+        else:
+            # specify some numeric type for columns, so they won't be objects but
+            # will be updated with whatever column type it actually is
+            result = pd.DataFrame(
+                index=interpolants.index, columns=self.value_columns, dtype=np.float64
+            )
 
         return result
 
