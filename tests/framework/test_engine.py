@@ -402,14 +402,17 @@ def test_SimulationContext_report_write(
         ]
     )
 
-    # Check that written results match get_results method
+    # Check that written results match get_results method (dtypes may differ
+    # because _write_results converts object columns to categorical)
     for measure in ["house_points", "quidditch_wins", "no_stratifications_quidditch_wins"]:
         results = sim.get_results()[measure]
         written_results = pd.read_parquet(results_root / f"{measure}.parquet")
+        written_results = written_results.astype(
+            {c: results[c].dtype for c in results.columns}
+        )
         assert results.equals(written_results)
 
 
-@pytest.mark.xfail(reason="Categorical parquet writing not yet implemented", strict=True)
 def test_written_parquet_has_categorical_columns(
     SimulationContext: type[SimulationContext_],
     base_config: LayeredConfigTree,

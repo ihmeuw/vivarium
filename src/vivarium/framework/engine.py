@@ -336,6 +336,9 @@ class SimulationContext:
             results_dir = self.configuration.output_data.results_directory
             for measure, df in results.items():
                 output_file = Path(results_dir) / f"{measure}.parquet"
+                df = df.copy()
+                object_cols = df.select_dtypes(include=["object"]).columns
+                df[object_cols] = df[object_cols].astype("category")
                 df.to_parquet(output_file, index=False)
         except ConfigurationKeyError:
             self._logger.info("No results directory set; results are not written to disk.")
