@@ -176,23 +176,106 @@ def test_replace_combiner(manager: ValuesManager, mocker: MockFixture) -> None:
     assert value() == 84
 
 
-def test_multiplication_combiner(manager: ValuesManager) -> None:
-    value = manager.register_value_producer(
-        "test",
-        source=lambda idx: pd.Series(2.0, index=idx),
-        preferred_combiner=multiplication_combiner,
-    )
+class TestMultiplicationCombiner:
+    """Tests for ``multiplication_combiner``.
 
-    # Source only: should return the source value
-    assert np.all(value(INDEX) == 2.0)
+    The combiner branches on whether ``value`` is a ``pd.Series`` invoked with
+    the ``AttributePipeline`` convention (single positional ``pd.Index``, no
+    kwargs). In that branch, modifiers are evaluated only on the non-zero
+    entries of ``value``.
+    """
 
-    # One modifier: source * modifier = 2.0 * 3.0 = 6.0
-    manager.register_value_modifier("test", modifier=lambda idx: pd.Series(3.0, index=idx))
-    assert np.all(value(INDEX) == 6.0)
+    @staticmethod
+    def _spy(
+        modifier: Callable[[pd.Index[int]], pd.Series[float]],
+        calls: list[pd.Index[int]],
+    ) -> Callable[[pd.Index[int]], pd.Series[float]]:
+        def wrapped(idx: pd.Index[int]) -> pd.Series[float]:
+            calls.append(idx)
+            return modifier(idx)
 
-    # Two modifiers: source * modifier1 * modifier2 = 2.0 * 3.0 * 0.5 = 3.0
-    manager.register_value_modifier("test", modifier=lambda idx: pd.Series(0.5, index=idx))
-    assert np.all(value(INDEX) == 3.0)
+        return wrapped
+
+    def test_scalar(self, manager: ValuesManager) -> None:
+        """Non-Series values fall back to plain multiplication."""
+        value = manager.register_value_producer(
+            "test",
+            source=lambda: 2.0,
+            preferred_combiner=multiplication_combiner,
+        )
+        assert value() == 2.0
+
+        manager.register_value_modifier("test", modifier=lambda: 3.0)
+        assert value() == 6.0
+
+        manager.register_value_modifier("test", modifier=lambda: 0.5)
+        assert value() == 3.0
+
+    def test_series_no_zeros(self, manager: ValuesManager) -> None:
+        """When no entries are zero, modifiers receive the full index."""
+        modifier_calls: list[pd.Index[int]] = []
+
+        value = manager.register_value_producer(
+            "test",
+            source=lambda idx: pd.Series(2.0, index=idx),
+            preferred_combiner=multiplication_combiner,
+        )
+        manager.register_value_modifier(
+            "test",
+            modifier=self._spy(lambda idx: pd.Series(3.0, index=idx), modifier_calls),
+        )
+        manager.register_value_modifier(
+            "test",
+            modifier=self._spy(lambda idx: pd.Series(0.5, index=idx), modifier_calls),
+        )
+
+        pd.testing.assert_series_equal(
+            value(INDEX), pd.Series(3.0, index=INDEX), check_names=False
+        )
+        assert len(modifier_calls) == 2
+        pd.testing.assert_index_equal(modifier_calls[0], INDEX)
+        pd.testing.assert_index_equal(modifier_calls[1], INDEX)
+
+    def test_series_mixed_zeros(self, manager: ValuesManager) -> None:
+        """Modifiers see only the non-zero subset of the index."""
+        modifier_calls: list[pd.Index[int]] = []
+
+        value = manager.register_value_producer(
+            "test",
+            source=lambda idx: pd.Series([2.0, 0.0, 2.0, 0.0, 2.0, 0.0], index=idx),
+            preferred_combiner=multiplication_combiner,
+        )
+        manager.register_value_modifier(
+            "test",
+            modifier=self._spy(lambda idx: pd.Series(3.0, index=idx), modifier_calls),
+        )
+
+        pd.testing.assert_series_equal(
+            value(INDEX),
+            pd.Series([6.0, 0.0, 6.0, 0.0, 6.0, 0.0], index=INDEX),
+            check_names=False,
+        )
+        assert len(modifier_calls) == 1
+        pd.testing.assert_index_equal(modifier_calls[0], INDEX[[0, 2, 4]])
+
+    def test_series_all_zeros(self, manager: ValuesManager) -> None:
+        """Modifiers are never invoked when no entries are non-zero."""
+        modifier_calls: list[pd.Index[int]] = []
+
+        value = manager.register_value_producer(
+            "test",
+            source=lambda idx: pd.Series(0.0, index=idx),
+            preferred_combiner=multiplication_combiner,
+        )
+        manager.register_value_modifier(
+            "test",
+            modifier=self._spy(lambda idx: pd.Series(3.0, index=idx), modifier_calls),
+        )
+
+        pd.testing.assert_series_equal(
+            value(INDEX), pd.Series(0.0, index=INDEX), check_names=False
+        )
+        assert modifier_calls == []
 
 
 def test_addition_combiner(manager: ValuesManager) -> None:
