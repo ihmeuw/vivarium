@@ -18,7 +18,6 @@ from tests.framework.results.helpers import (
     HARRY_POTTER_CONFIG,
     POWER_LEVEL_GROUP_LABELS,
     STUDENT_HOUSES,
-    ExamScoreObserver,
     Hogwarts,
     HogwartsResultsStratifier,
     HousePointsObserver,
@@ -402,64 +401,11 @@ def test_SimulationContext_report_write(
         ]
     )
 
-    # Check that written results match get_results method (dtypes may differ
-    # because _write_results converts object columns to categorical)
+    # Check that written results match get_results method
     for measure in ["house_points", "quidditch_wins", "no_stratifications_quidditch_wins"]:
         results = sim.get_results()[measure]
         written_results = pd.read_parquet(results_root / f"{measure}.parquet")
-        written_results = written_results.astype(
-            {c: results[c].dtype for c in results.columns}
-        )
         assert results.equals(written_results)
-
-
-def test_written_parquet_has_categorical_columns(
-    SimulationContext: type[SimulationContext_],
-    base_config: LayeredConfigTree,
-    tmp_path: Path,
-) -> None:
-    """Test that written parquet files have categorical string columns and preserve other dtypes."""
-    results_root = tmp_path
-    configuration: dict[str, object] = {
-        "output_data": {"results_directory": str(results_root)}
-    }
-    configuration.update(HARRY_POTTER_CONFIG)
-    components = [
-        Hogwarts(),
-        HousePointsObserver(),
-        QuidditchWinsObserver(),
-        NoStratificationsQuidditchWinsObserver(),
-        ExamScoreObserver(),
-        HogwartsResultsStratifier(),
-    ]
-    sim = SimulationContext(base_config, components, configuration)
-    sim.run_simulation()
-
-    # Stratified: house_points has student_house, power_level_group, measure (string cols)
-    hp = pd.read_parquet(results_root / "house_points.parquet")
-    assert isinstance(hp["student_house"].dtype, pd.CategoricalDtype)
-    assert isinstance(hp["power_level_group"].dtype, pd.CategoricalDtype)
-    assert isinstance(hp["measure"].dtype, pd.CategoricalDtype)
-    assert hp["value"].dtype == float
-
-    # Stratified: quidditch_wins has familiar, measure (string cols)
-    qw = pd.read_parquet(results_root / "quidditch_wins.parquet")
-    assert isinstance(qw["familiar"].dtype, pd.CategoricalDtype)
-    assert isinstance(qw["measure"].dtype, pd.CategoricalDtype)
-    assert qw["value"].dtype == float
-
-    # No stratifications: has stratification="all" and measure (string cols)
-    ns = pd.read_parquet(results_root / "no_stratifications_quidditch_wins.parquet")
-    assert isinstance(ns["stratification"].dtype, pd.CategoricalDtype)
-    assert isinstance(ns["measure"].dtype, pd.CategoricalDtype)
-    assert ns["value"].dtype == float
-
-    # Concatenating: string cols become categorical, numeric and datetime do not
-    es = pd.read_parquet(results_root / "exam_score.parquet")
-    assert isinstance(es["student_house"].dtype, pd.CategoricalDtype)
-    assert not isinstance(es["student_id"].dtype, pd.CategoricalDtype)
-    assert not isinstance(es["exam_score"].dtype, pd.CategoricalDtype)
-    assert not isinstance(es["event_time"].dtype, pd.CategoricalDtype)
 
 
 def test_SimulationContext_write_backup(

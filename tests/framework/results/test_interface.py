@@ -15,7 +15,10 @@ from tests.framework.results.helpers import HOUSE_CATEGORIES as HOUSES
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results import ResultsInterface, ResultsManager
-from vivarium.framework.results.interface import PopulationFilter
+from vivarium.framework.results.interface import (
+    PopulationFilter,
+    _default_stratified_observation_formatter,
+)
 from vivarium.framework.results.observation import (
     ConcatenatingObservation,
     StratifiedObservation,
@@ -485,3 +488,38 @@ def test_register_concatenating_observation(mocker: MockerFixture) -> None:
     assert obs.results_gatherer is not None
     assert obs.results_updater is not None
     assert obs.results_formatter is not None
+
+
+def test_default_stratified_formatter_converts_object_to_categorical() -> None:
+    """Test that the default stratified formatter converts object columns to categorical."""
+    results = pd.DataFrame(
+        {
+            "value": [1.0, 2.0, 3.0, 4.0],
+            "measure": ["house_points"] * 4,
+            "count": [10, 20, 30, 40],
+        },
+        index=pd.MultiIndex.from_arrays(
+            [
+                ["gryffindor", "gryffindor", "slytherin", "slytherin"],
+                ["low", "high", "low", "high"],
+            ],
+            names=["student_house", "power_level"],
+        ),
+    )
+
+    # Before formatting: index levels are object, measure is object
+    assert results.index.get_level_values("student_house").dtype == "object"
+    assert results.index.get_level_values("power_level").dtype == "object"
+    assert results["measure"].dtype == "object"
+    assert results["value"].dtype == float
+    assert results["count"].dtype == int
+
+    formatted = _default_stratified_observation_formatter("test_measure", results)
+
+    # Object columns should be converted to categorical
+    assert isinstance(formatted["student_house"].dtype, pd.CategoricalDtype)
+    assert isinstance(formatted["power_level"].dtype, pd.CategoricalDtype)
+    assert isinstance(formatted["measure"].dtype, pd.CategoricalDtype)
+    # Non-object columns should be unchanged
+    assert formatted["value"].dtype == float
+    assert formatted["count"].dtype == int
