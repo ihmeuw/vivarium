@@ -1,6 +1,10 @@
-**4.1.4 - 05/08/26**
+**4.1.5 - 05/08/26**
 
 - Feature: Write observer outputs as categorical dtype 
+
+**4.1.4 - 05/07/26**
+
+- Optimization: Subset to non-zero values before applying multiplication_combiner
 
 **4.1.3 - 05/07/26**
 
