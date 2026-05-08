@@ -1,6 +1,6 @@
 **4.1.5 - 05/08/26**
 
-- Feature: Write observer outputs as categorical dtype 
+- Feature: Convert stratified observer object columns to categorical
 
 **4.1.4 - 05/07/26**
 
