@@ -1,3 +1,7 @@
+**4.1.5 - 05/11/26**
+
+- Feature: Convert stratified observer object columns to categorical
+
 **4.1.4 - 05/07/26**
 
 - Optimization: Subset to non-zero values before applying multiplication_combiner
