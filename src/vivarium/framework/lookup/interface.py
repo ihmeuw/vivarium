@@ -16,7 +16,9 @@ import pandas as pd
 from vivarium.framework.lookup.manager import LookupTableManager
 from vivarium.framework.lookup.table import LookupTable
 from vivarium.manager import Interface
-from vivarium.types import LookupTableData
+from vivarium.types import DataFrameMapping, LookupTableData, ScalarValue
+
+_ScalarOrListData = ScalarValue | list[ScalarValue] | tuple[ScalarValue, ...]
 
 
 class LookupTableInterface(Interface):
@@ -36,7 +38,34 @@ class LookupTableInterface(Interface):
     @overload
     def build_table(
         self,
-        data: LookupTableData,
+        data: pd.Series[Any],
+        name: str = "",
+        value_columns: None = None,
+    ) -> LookupTable[pd.Series[Any]]:
+        ...
+
+    @overload
+    def build_table(
+        self,
+        data: pd.DataFrame,
+        name: str = "",
+        value_columns: list[str] | tuple[str, ...] = ...,
+    ) -> LookupTable[pd.DataFrame]:
+        ...
+
+    @overload
+    def build_table(
+        self,
+        data: pd.DataFrame,
+        name: str = "",
+        value_columns: str | None = None,
+    ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
+        ...
+
+    @overload
+    def build_table(
+        self,
+        data: ScalarValue,
         name: str = "",
         value_columns: str | None = None,
     ) -> LookupTable[pd.Series[Any]]:
@@ -45,7 +74,25 @@ class LookupTableInterface(Interface):
     @overload
     def build_table(
         self,
-        data: LookupTableData,
+        data: list[ScalarValue] | tuple[ScalarValue, ...],
+        name: str = "",
+        value_columns: list[str] | tuple[str, ...] = ...,
+    ) -> LookupTable[pd.DataFrame]:
+        ...
+
+    @overload
+    def build_table(
+        self,
+        data: DataFrameMapping,
+        name: str = "",
+        value_columns: str | None = None,
+    ) -> LookupTable[pd.Series[Any]]:
+        ...
+
+    @overload
+    def build_table(
+        self,
+        data: DataFrameMapping,
         name: str = "",
         value_columns: list[str] | tuple[str, ...] = ...,
     ) -> LookupTable[pd.DataFrame]:
@@ -59,23 +106,35 @@ class LookupTableInterface(Interface):
     ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
         """Construct a LookupTable from input data.
 
-        If the data is a scalar value, this will return a table that when called
-        will return that scalar value for each index entry.
+        # TODO fix this docstring
+        The recommended form of ``data`` is a :class:`pandas.DataFrame` (or
+        :class:`pandas.Series`) whose row index carries the parameter/key
+        columns and whose DataFrame columns carry the value columns. Row-index
+        level names that follow the ``<name>_start`` / ``<name>_end`` convention
+        are treated as continuous binned ranges and interpolated using order 0
+        (step function) interpolation; other row-index level names are treated
+        as exact-match key columns. A :class:`pandas.Series` input causes the
+        table to return a :class:`pandas.Series`; a :class:`pandas.DataFrame`
+        input (including with a column :class:`pandas.MultiIndex`) causes the
+        table to return a :class:`pandas.DataFrame` with the same column
+        structure as the input.
 
-        If the data is a pandas DataFrame columns with names in value_columns
-        will be returned directly when the table is called with a population index.
-        The value to return for each index entry will be looked up based on the values
-        at those indices of other columns of the DataFrame in the simulation population.
-        Non-value columns which exist as a pair of the form "some_column_start" and
-        "some_column_end" will be treated as ranges, and the column "some_column"
-        will be interpolated using order 0 (step function) interpolation over that range.
-        Other non-value columns will be treated as exact matches for lookups.
+        If the data is a scalar value, this will return a table that, when
+        called, returns that scalar value for each index entry.
 
-        If value_columns is a single string, the returned table will return a
-        :class:`pandas.Series` when called. If value_columns is a list or tuple
-        of strings, the returned table will return a pandas DataFrame
-        when called. If value_columns is None, it will return a :class:`pandas.Series`
-        with the name "value".
+        # TODO this is incorrect - a scalar or a list/tuple of scalars is supported
+        # TODO what does deprecated:: 4.0 mean?
+        .. deprecated:: 4.0
+            Passing data without a structured index -- a flat DataFrame, a
+            scalar, or a list/tuple of scalars -- is deprecated. Construct
+            your data with the parameter/key columns on the row index and
+            the value columns on the DataFrame columns instead.
+
+        # TODO this is also incorrect - value_columns is still required for scalar and list/tuple inputs
+        .. deprecated:: 4.0
+            The ``value_columns`` argument is deprecated. In the recommended
+            (indexed) form, value columns are inferred from the DataFrame's
+            columns; the argument is ignored in that case.
 
         Parameters
         ----------
@@ -85,11 +144,13 @@ class LookupTableInterface(Interface):
         name
             The name of the table. If not provided, a generic name will be assigned.
         value_columns
-            The name(s) of the column(s) in the data to return when
-            the table is called.
+            # TODO this is incorrect - value_columns is still required for scalar and list/tuple inputs
+            Deprecated. Only used for legacy flat-DataFrame, scalar, and
+            list inputs. In indexed mode, value columns are inferred from the
+            data and this argument is ignored.
 
         Returns
         -------
             LookupTable
         """
-        return self._manager.build_table(data, name, value_columns)
+        return self._manager.build_table(data, name, value_columns)  # type: ignore [arg-type]

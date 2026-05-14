@@ -40,7 +40,7 @@ class Interpolation:
         data: pd.DataFrame,
         categorical_parameters: Sequence[str],
         continuous_parameters: Sequence[Sequence[str]],
-        value_columns: Sequence[str],
+        value_columns: Sequence[Hashable],
         order: int,
         extrapolate: bool,
         validate: bool,
@@ -142,8 +142,8 @@ def validate_parameters(
     data: pd.DataFrame,
     categorical_parameters: Sequence[str],
     continuous_parameters: Sequence[Sequence[str]],
-    value_columns: Sequence[str],
-) -> Sequence[str]:
+    value_columns: Sequence[Hashable],
+) -> Sequence[Hashable]:
     if data.empty:
         raise ValueError("You must supply non-empty data to create the interpolation.")
 
@@ -291,7 +291,7 @@ class Order0Interp:
         self,
         data: pd.DataFrame,
         continuous_parameters: Sequence[Sequence[str]],
-        value_columns: list[str],
+        value_columns: list[Hashable],
         extrapolate: bool,
         validate: bool,
     ):

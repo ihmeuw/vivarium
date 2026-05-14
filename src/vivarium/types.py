@@ -26,6 +26,7 @@ LookupTableData = (
     #  will break some assumptions of Component.get_data()
     ScalarValue
     | pd.DataFrame
+    | pd.Series  # type: ignore [type-arg]
     | list[ScalarValue]
     | tuple[ScalarValue, ...]
     | DataFrameMapping

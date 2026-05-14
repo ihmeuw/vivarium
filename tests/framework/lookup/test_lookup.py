@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+import warnings
 from typing import Any
 
 import numpy as np
@@ -16,7 +17,7 @@ from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.lookup.manager import LookupTableManager
-from vivarium.framework.lookup.table import LookupTable
+from vivarium.framework.lookup.table import LookupTable, _ColumnTemplate
 from vivarium.testing_utilities import TestPopulation, build_table, metadata
 from vivarium.types import LookupTableData, ScalarValue
 
@@ -359,28 +360,32 @@ class TestValidateBuildTableParameters:
     def test_no_data(self, data: LookupTableData, mocker: MockerFixture) -> None:
         with pytest.raises(ValueError, match="supply some data"):
             mock_table = mocker.Mock(spec=LookupTable)
-            mock_table._value_columns = []
             LookupTable._validate_data_inputs(mock_table, data)
 
     @pytest.mark.parametrize(
-        "data, val_cols, match",
+        "data, value_columns, return_type, match",
         [
-            ([1, 2, 3], "a", "value_columns must be a list or tuple of strings"),
-            ([1, 2, 3], ["a", "b"], "match the number of values"),
-            (5, ["a", "b"], "value_columns must be a string"),
+            ([1, 2, 3], ["a"], pd.Series, "value_columns must be a list or tuple of strings"),
+            ([1, 2, 3], ["a", "b"], pd.DataFrame, "match the number of values"),
+            (5, ["a", "b"], pd.DataFrame, "value_columns must be a string"),
         ],
     )
     def test_scalar_data_value_columns_mismatch(
         self,
         data: LookupTableData,
-        val_cols: str | list[str],
+        value_columns: list[str],
+        return_type: type[pd.Series] | type[pd.DataFrame],  # type: ignore [type-arg]
         match: str,
         mocker: MockerFixture,
     ) -> None:
         with pytest.raises(ValueError, match=match):
             mock_table = mocker.Mock(spec=LookupTable)
-            mock_table._value_columns = val_cols
-            LookupTable._validate_data_inputs(mock_table, data)
+            template: _ColumnTemplate[Any] = _ColumnTemplate(
+                original_columns=pd.Index(value_columns),
+                return_type=return_type,
+                flat_to_original={col: col for col in value_columns},
+            )
+            LookupTable._validate_data_shape(mock_table, data, template)
 
     @pytest.mark.parametrize("data", ["FAIL", pd.Interval(5, 10), "2019-05-17"])
     def test_validate_parameters_fail_other_data(
@@ -388,12 +393,10 @@ class TestValidateBuildTableParameters:
     ) -> None:
         with pytest.raises(TypeError, match="only allowable types"):
             mock_table = mocker.Mock(spec=LookupTable)
-            mock_table._value_columns = []
             LookupTable._validate_data_inputs(mock_table, data)
 
     def test_validate_parameters_pass_scalar_data(self, mocker: MockerFixture) -> None:
         mock_table = mocker.Mock(spec=LookupTable)
-        mock_table._value_columns = ["a", "b", "c"]
         LookupTable._validate_data_inputs(mock_table, [1, 2, 3])
 
     def test_validate_parameters_pass_dataframe_data(self, mocker: MockerFixture) -> None:
@@ -401,8 +404,6 @@ class TestValidateBuildTableParameters:
             {"a": [1, 2], "b_start": [0, 5], "b_end": [5, 10], "c": [100, 150]}
         )
         mock_table = mocker.Mock(spec=LookupTable)
-        mock_table._value_columns = ["c"]
-        mock_table.value_columns = ["c"]
         LookupTable._validate_data_inputs(mock_table, data)
 
 
@@ -866,3 +867,257 @@ class TestLookupTableSetData:
         self._check_set_data_result(
             component, expected_data, expected_key_columns, expected_parameter_columns
         )
+
+
+class TestIndexedInput:
+    """Tests for indexed-DataFrame / Series input to LookupTable.
+
+    In the indexed form, the user constructs a DataFrame (or Series) whose
+    row index carries the parameter/key columns and whose DataFrame columns
+    are exactly the value columns. The lookup table infers value columns from
+    the data and the legacy ``value_columns`` argument is unnecessary.
+    """
+
+    @pytest.fixture
+    def manager(self, mocker: MockerFixture) -> LookupTableManager:
+        manager = LookupTableManager()
+        manager.clock = mocker.Mock()
+        manager._get_view = mocker.Mock()
+        manager._add_resource = mocker.Mock()
+        manager._add_constraint = mocker.Mock()
+        manager._get_current_component = mocker.Mock()
+        manager.interpolation_order = 0
+        manager.extrapolate = True
+        manager.validate_interpolation = True
+        return manager
+
+    @staticmethod
+    def _make_sex_age_dataframe() -> pd.DataFrame:
+        return pd.DataFrame(
+            {"rate": [0.1, 0.2, 0.3, 0.4]},
+            index=pd.MultiIndex.from_tuples(
+                [
+                    ("Female", 0.0, 50.0),
+                    ("Female", 50.0, 125.0),
+                    ("Male", 0.0, 50.0),
+                    ("Male", 50.0, 125.0),
+                ],
+                names=["sex", "age_start", "age_end"],
+            ),
+        )
+
+    def test_multiindex_rows_basic(self, manager: LookupTableManager) -> None:
+        data = self._make_sex_age_dataframe()
+        table = manager._build_table(LookupCreator(), data, "test", value_columns=None)
+        assert table.parameter_columns == ["age"]
+        assert table.key_columns == ["sex"]
+        assert table.value_columns == ["rate"]
+        assert table.column_template.return_type is pd.DataFrame
+
+    def test_column_multiindex_preserved(self, manager: LookupTableManager) -> None:
+        index = pd.MultiIndex.from_tuples(
+            [(0.0, 50.0), (50.0, 125.0)], names=["age_start", "age_end"]
+        )
+        cols = pd.MultiIndex.from_tuples(
+            [("rate", "Female"), ("rate", "Male")], names=["measure", "sex"]
+        )
+        data = pd.DataFrame([[0.1, 0.2], [0.3, 0.4]], index=index, columns=cols)
+        table = manager._build_table(LookupCreator(), data, "test", value_columns=None)
+        assert table.parameter_columns == ["age"]
+        assert table.key_columns == []
+        # The flat value column names are the tuple-joined strings.
+        assert table.value_columns == ["rate__Female", "rate__Male"]
+        # The column template preserves the original MultiIndex for output.
+        assert isinstance(table._column_template.original_columns, pd.MultiIndex)
+        assert list(table._column_template.original_columns) == [
+            ("rate", "Female"),
+            ("rate", "Male"),
+        ]
+
+    def test_series_input_returns_series(self, manager: LookupTableManager) -> None:
+        data = pd.Series(
+            [0.1, 0.2],
+            index=pd.Index(["Female", "Male"], name="sex"),
+            name="rate",
+        )
+        table = manager._build_table(LookupCreator(), data, "test", value_columns=None)
+        assert table.column_template.return_type is pd.Series
+        assert table.value_columns == ["rate"]
+        assert table.key_columns == ["sex"]
+        assert table.parameter_columns == []
+
+    def test_nameless_series_input_returns_nameless_series(
+        self, manager: LookupTableManager
+    ) -> None:
+        """A Series with ``name=None`` should still produce a Series return
+        (not be misidentified as a DataFrame) and ``value_columns`` should
+        carry the original ``None`` label rather than a substituted default."""
+        data = pd.Series([0.1, 0.2], index=pd.Index(["Female", "Male"], name="sex"))
+        assert data.name is None
+        table = manager._build_table(LookupCreator(), data, "test", value_columns=None)
+        assert table.column_template.return_type is pd.Series
+        assert table.value_columns == [None]
+
+    def test_single_level_named_index_triggers_new_mode(
+        self, manager: LookupTableManager
+    ) -> None:
+        data = pd.DataFrame(
+            {"rate": [0.1, 0.2]},
+            index=pd.Index(["Female", "Male"], name="sex"),
+        )
+        # Should NOT emit the flat-data deprecation warning.
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", DeprecationWarning)
+            table = manager._build_table(LookupCreator(), data, "test", value_columns=None)
+        assert table.key_columns == ["sex"]
+        assert table.value_columns == ["rate"]
+
+    def test_value_columns_inferred_when_none(self, manager: LookupTableManager) -> None:
+        data = self._make_sex_age_dataframe()
+        table = manager._build_table(LookupCreator(), data, "test", value_columns=None)
+        assert table.value_columns == ["rate"]
+
+    def test_flat_dataframe_emits_deprecation_warning(
+        self, manager: LookupTableManager
+    ) -> None:
+        flat = pd.DataFrame({"sex": ["Female", "Male"], "value": [100, 200]})
+        with pytest.warns(DeprecationWarning, match="flat DataFrame"):
+            manager._build_table(LookupCreator(), flat, "test", value_columns="value")
+
+    def test_value_columns_argument_emits_deprecation_warning_for_indexed_input(
+        self, manager: LookupTableManager
+    ) -> None:
+        """Passing value_columns alongside indexed data emits a deprecation warning."""
+        manager._get_current_component.return_value = LookupCreator()  # type: ignore [attr-defined]
+        data = self._make_sex_age_dataframe()
+        with pytest.warns(DeprecationWarning, match="`value_columns` argument"):
+            manager.build_table(data, "test_explicit_vc", value_columns="rate")
+
+    def test_value_columns_argument_no_deprecation_for_scalar(
+        self, manager: LookupTableManager
+    ) -> None:
+        """Passing value_columns alongside a scalar is NOT deprecated -- scalar
+        inputs legitimately need value_columns to name their output."""
+        manager._get_current_component.return_value = LookupCreator()  # type: ignore [attr-defined]
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", DeprecationWarning)
+            manager.build_table(5, "test_scalar_vc", value_columns="value")
+
+    def test_value_columns_argument_no_deprecation_for_list(
+        self, manager: LookupTableManager
+    ) -> None:
+        """Passing value_columns alongside a list is NOT deprecated."""
+        manager._get_current_component.return_value = LookupCreator()  # type: ignore [attr-defined]
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", DeprecationWarning)
+            manager.build_table([1, 2], "test_list_vc", value_columns=["a", "b"])
+
+    def test_mapping_input_emits_flat_data_deprecation(
+        self, manager: LookupTableManager
+    ) -> None:
+        data = {"sex": ["Female", "Male"], "value": [100, 200]}
+        with pytest.warns(DeprecationWarning, match="flat DataFrame"):
+            manager._build_table(LookupCreator(), data, "test", value_columns="value")
+
+    def test_set_data_recall_with_flat_dataframe_warns(
+        self, manager: LookupTableManager
+    ) -> None:
+        indexed = self._make_sex_age_dataframe()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            table = manager._build_table(LookupCreator(), indexed, "t", value_columns=None)
+        flat = pd.DataFrame(
+            {
+                "sex": ["Female", "Female", "Male", "Male"],
+                "age_start": [0.0, 50.0, 0.0, 50.0],
+                "age_end": [50.0, 125.0, 50.0, 125.0],
+                "rate": [0.1, 0.2, 0.3, 0.4],
+            }
+        )
+        with pytest.warns(DeprecationWarning, match="flat DataFrame"):
+            table.set_data(flat)
+
+    def test_flat_series_rejected(self, manager: LookupTableManager) -> None:
+        flat_series = pd.Series([1, 2, 3])
+        with pytest.raises(ValueError, match="structured index"):
+            manager._build_table(LookupCreator(), flat_series, "test", value_columns=None)
+
+    def test_unnamed_index_level_rejected(self, manager: LookupTableManager) -> None:
+        data = pd.DataFrame(
+            {"rate": [0.1, 0.2]},
+            index=pd.Index(["Female", "Male"]),  # no name
+        )
+        with pytest.raises(ValueError, match="must be named"):
+            manager._build_table(LookupCreator(), data, "test", value_columns=None)
+
+    def test_duplicate_index_level_names_rejected(self, manager: LookupTableManager) -> None:
+        data = pd.DataFrame(
+            {"rate": [0.1, 0.2]},
+            index=pd.MultiIndex.from_tuples([("a", "b"), ("c", "d")], names=["x", "x"]),
+        )
+        with pytest.raises(ValueError, match="must be unique"):
+            manager._build_table(LookupCreator(), data, "test", value_columns=None)
+
+    def test_index_value_column_name_collision_rejected(
+        self, manager: LookupTableManager
+    ) -> None:
+        data = pd.DataFrame(
+            {"sex": [0.1, 0.2]},  # value column called "sex"
+            index=pd.Index(["Female", "Male"], name="sex"),  # index level also "sex"
+        )
+        with pytest.raises(ValueError, match="collide"):
+            manager._build_table(LookupCreator(), data, "test", value_columns=None)
+
+    def test_indexed_call_returns_population_index(
+        self, base_config: LayeredConfigTree
+    ) -> None:
+        """Calling an indexed-table on a population index returns properly
+        shaped output with the population index."""
+        component = TestPopulation()
+        simulation = InteractiveContext(components=[component], configuration=base_config)
+        data = pd.DataFrame(
+            {"rate": [0.1, 0.2]},
+            index=pd.Index(["Female", "Male"], name="sex"),
+        )
+        table = simulation._tables._build_table(component, data, "", value_columns=None)
+        pop_index = simulation.get_population_index()
+        result = table(pop_index)
+        assert isinstance(result, pd.DataFrame)
+        assert list(result.columns) == ["rate"]
+        assert result.index.equals(pop_index)
+
+    def test_indexed_series_call_returns_series(self, base_config: LayeredConfigTree) -> None:
+        component = TestPopulation()
+        simulation = InteractiveContext(components=[component], configuration=base_config)
+        data = pd.Series(
+            [0.1, 0.2],
+            index=pd.Index(["Female", "Male"], name="sex"),
+            name="rate",
+        )
+        table = simulation._tables._build_table(component, data, "", value_columns=None)
+        pop_index = simulation.get_population_index()
+        result = table(pop_index)
+        assert isinstance(result, pd.Series)
+        assert result.name == "rate"
+        assert result.index.equals(pop_index)
+
+    def test_indexed_column_multiindex_call_preserves_columns(
+        self, base_config: LayeredConfigTree
+    ) -> None:
+        component = TestPopulation()
+        simulation = InteractiveContext(components=[component], configuration=base_config)
+        cols = pd.MultiIndex.from_tuples(
+            [("rate", "low"), ("rate", "high")], names=["measure", "level"]
+        )
+        data = pd.DataFrame(
+            [[0.1, 0.2], [0.3, 0.4]],
+            index=pd.Index(["Female", "Male"], name="sex"),
+            columns=cols,
+        )
+        table = simulation._tables._build_table(component, data, "", value_columns=None)
+        pop_index = simulation.get_population_index()
+        result = table(pop_index)
+        assert isinstance(result, pd.DataFrame)
+        assert isinstance(result.columns, pd.MultiIndex)
+        assert list(result.columns) == [("rate", "low"), ("rate", "high")]
+        assert result.columns.names == ["measure", "level"]
