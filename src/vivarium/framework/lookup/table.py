@@ -17,7 +17,7 @@ import warnings
 from collections.abc import Hashable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, ClassVar, Generic
+from typing import TYPE_CHECKING, Any, Generic
 from typing import SupportsFloat as Numeric
 from typing import TypeVar, cast, overload
 
@@ -27,7 +27,7 @@ from vivarium.component import Component
 from vivarium.framework.lookup.interpolation import Interpolation, is_indexed_form
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.framework.resource import Resource
-from vivarium.types import LookupTableData, ScalarValue
+from vivarium.types import LookupTableData
 
 if TYPE_CHECKING:
     from vivarium.framework.lookup.manager import LookupTableManager
@@ -45,9 +45,16 @@ FLAT_DATAFRAME_DEPRECATION_MESSAGE = (
     "Index) and value columns on the DataFrame columns instead."
 )
 
+VALUE_COLUMNS_DEPRECATION_MESSAGE = (
+    "The `value_columns` argument to LookupTable.build_table is deprecated "
+    "and will be removed in a future release when ``data`` is in indexed "
+    "form. Value columns are inferred from the DataFrame columns (or the "
+    "Series name) of an indexed input."
+)
+
 
 @dataclass(frozen=True, eq=False)
-class _ColumnTemplate(Generic[T]):
+class _ReturnedColumnSchema(Generic[T]):
     """Records the shape the lookup table should return."""
 
     returned_columns: pd.Index[Any]
@@ -60,7 +67,7 @@ class _ColumnTemplate(Generic[T]):
     def __eq__(self, other: object) -> bool:
         """Two templates are equal iff they produce the same lookup shape."""
         return (
-            isinstance(other, _ColumnTemplate)
+            isinstance(other, _ReturnedColumnSchema)
             and self.return_type is other.return_type
             and self.returned_columns.equals(other.returned_columns)
             and list(self.returned_columns.names) == list(other.returned_columns.names)
@@ -71,11 +78,11 @@ class _ColumnTemplate(Generic[T]):
         cls,
         data: LookupTableData,
         value_columns: list[str] | tuple[str, ...] | str | None = None,
-    ) -> _ColumnTemplate[Any]:
-        """Return the column template that should govern ``data``.
+    ) -> _ReturnedColumnSchema[Any]:
+        """Return the column schema that should govern ``data``.
 
-        For an indexed input, the template is derived from the data itself
-        and ``value_columns`` is ignored. For non-indexed input, the template
+        For an indexed input, the schema is derived from the data itself
+        and ``value_columns`` is ignored. For non-indexed input, the schema
         is built from the user-supplied ``value_columns`` hint: a ``str``
         selects ``return_type=pd.Series``, anything else selects
         ``return_type=pd.DataFrame``.
@@ -90,11 +97,13 @@ class _ColumnTemplate(Generic[T]):
                 returned_columns=data.columns,
                 return_type=pd.DataFrame,  # type: ignore [arg-type]
             )
-        if isinstance(value_columns, str):
-            cols: list[Hashable] = [value_columns]
+        if value_columns is None:
+            cols: list[Hashable] = [DEFAULT_VALUE_COLUMN]
             return_type: type = pd.Series
+        elif isinstance(value_columns, str):
+            cols = [value_columns]
+            return_type = pd.Series
         else:
-            assert value_columns is not None  # caller guarantees this on a first-build path
             cols = list(value_columns)
             return_type = pd.DataFrame
         return cls(
@@ -137,7 +146,7 @@ class LookupTable(Resource, Generic[T]):
     @property
     def value_columns(self) -> pd.Index:  # type: ignore [type-arg]
         """The column names returned when calling this lookup table."""
-        return self._column_template.returned_columns
+        return self._returned_column_schema.returned_columns
 
     @property
     def lookup_attributes(self) -> list[str]:
@@ -145,22 +154,22 @@ class LookupTable(Resource, Generic[T]):
         return self.key_columns + self.parameter_columns
 
     @property
-    def _column_template(self) -> _ColumnTemplate[T]:
+    def _returned_column_schema(self) -> _ReturnedColumnSchema[T]:
         """How to reshape the internal flat result into the user-facing return value.
 
         Set on the first ``set_data`` call and read-only thereafter; the
         template itself is a frozen dataclass.
         """
-        if self.__column_template is None:
+        if self.__returned_column_schema is None:
             raise ValueError("Column template has not been set.")
-        return self.__column_template
+        return self.__returned_column_schema
 
     def __init__(
         self,
         component: Component,
         data: LookupTableData,
         name: str,
-        value_columns: list[str] | tuple[str, ...] | str,
+        value_columns: list[str] | tuple[str, ...] | str | None,
         manager: LookupTableManager,
         population_view: PopulationView,
     ):
@@ -174,8 +183,8 @@ class LookupTable(Resource, Generic[T]):
         self.interpolation: Interpolation | None = None
         """Interpolation object to use when data is a DataFrame. Will be None if data is
         a scalar or list of scalars."""
-        self.__column_template: _ColumnTemplate[T] | None = None
-        """The column template governing the shape of ``data`` and the return type of this table."""
+        self.__returned_column_schema: _ReturnedColumnSchema[T] | None = None
+        """The schema governing the shape of ``data`` and the return type of this table."""
 
         self._set_data(data, value_columns)
 
@@ -183,7 +192,7 @@ class LookupTable(Resource, Generic[T]):
         """Set new data on this lookup table.
 
         The data must match the column schema established at construction
-        time; passing data that would yield a different ``_ColumnTemplate``
+        time; passing data that would yield a different ``_ReturnedColumnSchema``
         raises ``ValueError``. Passing a flat ``pandas.DataFrame`` (one
         whose row index is the default ``RangeIndex``) emits a
         ``DeprecationWarning``.
@@ -214,15 +223,14 @@ class LookupTable(Resource, Generic[T]):
 
         Called from ``__init__`` with a non-None ``value_columns`` hint (the
         user's argument to ``build_table``), which builds and locks the
-        ``_ColumnTemplate``. Called from ``set_data`` with ``value_columns=None``,
-        which reuses the locked template and validates the new data against it.
+        ``_ReturnedColumnSchema``. Called from ``set_data`` with ``value_columns=None``,
+        which reuses the locked schema and validates the new data against it.
 
         ``Mapping`` inputs (e.g. ``dict``) are converted to a flat DataFrame
         without emitting the flat-DataFrame deprecation, since they are a
         first-class entry point.
         """
-        indexed = is_indexed_form(data)
-        if isinstance(data, pd.DataFrame) and not indexed:
+        if isinstance(data, pd.DataFrame) and not is_indexed_form(data):
             warnings.warn(
                 FLAT_DATAFRAME_DEPRECATION_MESSAGE,
                 DeprecationWarning,
@@ -231,11 +239,18 @@ class LookupTable(Resource, Generic[T]):
         elif isinstance(data, Mapping):
             data = pd.DataFrame(data)
 
+        if value_columns is not None and is_indexed_form(data):
+            warnings.warn(
+                VALUE_COLUMNS_DEPRECATION_MESSAGE,
+                DeprecationWarning,
+                stacklevel=3,
+            )
+
         self._validate_data_inputs(data)
 
-        if self.__column_template is None:
-            self.__column_template = cast(
-                "_ColumnTemplate[T]", _ColumnTemplate.from_data(data, value_columns)
+        if self.__returned_column_schema is None:
+            self.__returned_column_schema = cast(
+                "_ReturnedColumnSchema[T]", _ReturnedColumnSchema.from_data(data, value_columns)
             )
 
         self._validate_shape(data)
@@ -298,12 +313,12 @@ class LookupTable(Resource, Generic[T]):
                         "your simulation uses a DateTimeClock."
                     )
             result = self.interpolation(pop)
-            if self._column_template.return_type is pd.Series:
+            if self._returned_column_schema.return_type is pd.Series:
                 squeezed = result.squeeze(axis=1)
-                squeezed.name = self._column_template.returned_columns[0]
+                squeezed.name = self._returned_column_schema.returned_columns[0]
                 result = squeezed
 
-        expected_type = self._column_template.return_type
+        expected_type = self._returned_column_schema.return_type
         if not isinstance(result, expected_type):
             raise TypeError(
                 f"LookupTable expected to return {expected_type}, but got {type(result)}"
@@ -401,16 +416,16 @@ class LookupTable(Resource, Generic[T]):
         """Check that ``data`` matches the ``template`` shape."""
         if is_indexed_form(data):
             # ``value_columns`` is ignored on the indexed path.
-            new_template = _ColumnTemplate.from_data(data)
-            if new_template != self._column_template:
+            new_schema = _ReturnedColumnSchema.from_data(data)
+            if new_schema != self._returned_column_schema:
                 raise ValueError(
                     "Cannot change column schema on set_data after initial setup. "
-                    f"Existing template: {self._column_template}; new: {new_template}."
+                    f"Existing schema: {self._returned_column_schema}; new: {new_schema}."
                 )
             return
-        originals = list(self._column_template.returned_columns)
+        originals = list(self._returned_column_schema.returned_columns)
         if isinstance(data, (list, tuple)):
-            if self._column_template.return_type is pd.Series:
+            if self._returned_column_schema.return_type is pd.Series:
                 raise ValueError(
                     "When supplying multiple values, value_columns must be a list or tuple of strings."
                 )
@@ -425,7 +440,7 @@ class LookupTable(Resource, Generic[T]):
                     f"Data is missing the following value columns: {missing_columns}"
                 )
         else:
-            if self._column_template.return_type is not pd.Series:
+            if self._returned_column_schema.return_type is not pd.Series:
                 raise ValueError(
                     "When supplying a single value, value_columns must be a string if provided."
                 )

@@ -17,7 +17,7 @@ from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.lookup.manager import LookupTableManager
-from vivarium.framework.lookup.table import LookupTable, _ColumnTemplate
+from vivarium.framework.lookup.table import LookupTable, _ReturnedColumnSchema
 from vivarium.testing_utilities import TestPopulation, build_table, metadata
 from vivarium.types import DataFrameMapping, LookupTableData, ScalarValue
 
@@ -395,13 +395,13 @@ class TestValidateBuildTableParameters:
     ) -> None:
         with pytest.raises(ValueError, match=match):
             mock_table = mocker.Mock(spec=LookupTable)
-            template: _ColumnTemplate[Any] = _ColumnTemplate(
+            schema: _ReturnedColumnSchema[Any] = _ReturnedColumnSchema(
                 returned_columns=pd.Index(value_columns),
                 return_type=return_type,
             )
             # ``_validate_shape`` reads the template off ``self._column_template``;
             # override the mock's attribute lookup to return our fixture template.
-            mock_table._column_template = template
+            mock_table._column_template = schema
             LookupTable._validate_shape(mock_table, data)
 
     @pytest.mark.parametrize("data", ["FAIL", pd.Interval(5, 10), "2019-05-17"])
@@ -890,18 +890,18 @@ class TestColumnTemplate:
     """Unit tests for ``_ColumnTemplate.__eq__`` -- the schema-lock invariant."""
 
     def test_eq_identical(self) -> None:
-        a = _ColumnTemplate(returned_columns=pd.Index(["x"]), return_type=pd.Series)
-        b = _ColumnTemplate(returned_columns=pd.Index(["x"]), return_type=pd.Series)
+        a = _ReturnedColumnSchema(returned_columns=pd.Index(["x"]), return_type=pd.Series)
+        b = _ReturnedColumnSchema(returned_columns=pd.Index(["x"]), return_type=pd.Series)
         assert a == b
 
     def test_eq_different_return_type(self) -> None:
-        a = _ColumnTemplate(returned_columns=pd.Index(["x"]), return_type=pd.Series)
-        b = _ColumnTemplate(returned_columns=pd.Index(["x"]), return_type=pd.DataFrame)
+        a = _ReturnedColumnSchema(returned_columns=pd.Index(["x"]), return_type=pd.Series)
+        b = _ReturnedColumnSchema(returned_columns=pd.Index(["x"]), return_type=pd.DataFrame)
         assert a != b
 
     def test_eq_different_columns(self) -> None:
-        a = _ColumnTemplate(returned_columns=pd.Index(["x"]), return_type=pd.DataFrame)
-        b = _ColumnTemplate(returned_columns=pd.Index(["y"]), return_type=pd.DataFrame)
+        a = _ReturnedColumnSchema(returned_columns=pd.Index(["x"]), return_type=pd.DataFrame)
+        b = _ReturnedColumnSchema(returned_columns=pd.Index(["y"]), return_type=pd.DataFrame)
         assert a != b
 
     def test_eq_multiindex(self) -> None:
@@ -911,8 +911,8 @@ class TestColumnTemplate:
         cols_b = pd.MultiIndex.from_tuples(
             [("rate", "low"), ("rate", "high")], names=["measure", "level"]
         )
-        a = _ColumnTemplate(returned_columns=cols_a, return_type=pd.DataFrame)
-        b = _ColumnTemplate(returned_columns=cols_b, return_type=pd.DataFrame)
+        a = _ReturnedColumnSchema(returned_columns=cols_a, return_type=pd.DataFrame)
+        b = _ReturnedColumnSchema(returned_columns=cols_b, return_type=pd.DataFrame)
         assert a == b
 
     def test_eq_multiindex_differs_only_in_names(self) -> None:
@@ -920,12 +920,12 @@ class TestColumnTemplate:
         difference so that a re-set_data with reordered/renamed levels fails."""
         cols_a = pd.MultiIndex.from_tuples([("rate", "low")], names=["measure", "level"])
         cols_b = pd.MultiIndex.from_tuples([("rate", "low")], names=["metric", "tier"])
-        a = _ColumnTemplate(returned_columns=cols_a, return_type=pd.DataFrame)
-        b = _ColumnTemplate(returned_columns=cols_b, return_type=pd.DataFrame)
+        a = _ReturnedColumnSchema(returned_columns=cols_a, return_type=pd.DataFrame)
+        b = _ReturnedColumnSchema(returned_columns=cols_b, return_type=pd.DataFrame)
         assert a != b
 
     def test_eq_against_non_template_is_false(self) -> None:
-        a = _ColumnTemplate(returned_columns=pd.Index(["x"]), return_type=pd.Series)
+        a = _ReturnedColumnSchema(returned_columns=pd.Index(["x"]), return_type=pd.Series)
         assert a != "x"
         assert a != 0
         assert a != None  # noqa: E711
@@ -933,7 +933,7 @@ class TestColumnTemplate:
     def test_is_unhashable(self) -> None:
         """``__hash__`` is explicitly ``None`` -- templates cannot be put into
         sets or dict keys, matching the unhashable-because-eq-is-defined rule."""
-        a = _ColumnTemplate(returned_columns=pd.Index(["x"]), return_type=pd.Series)
+        a = _ReturnedColumnSchema(returned_columns=pd.Index(["x"]), return_type=pd.Series)
         with pytest.raises(TypeError):
             hash(a)
 
@@ -981,7 +981,7 @@ class TestIndexedInput:
         assert table.parameter_columns == ["age"]
         assert table.key_columns == ["sex"]
         assert list(table.value_columns) == ["rate"]
-        assert table._column_template.return_type is pd.DataFrame
+        assert table._returned_column_schema.return_type is pd.DataFrame
 
     def test_column_multiindex_preserved(self, manager: LookupTableManager) -> None:
         index = pd.MultiIndex.from_tuples(
@@ -998,12 +998,12 @@ class TestIndexedInput:
         # not the opaque internal IDs used for the interpolation pipeline.
         assert list(table.value_columns) == [("rate", "Female"), ("rate", "Male")]
         # The column template preserves the original MultiIndex for output.
-        assert isinstance(table._column_template.returned_columns, pd.MultiIndex)
-        assert list(table._column_template.returned_columns) == [
+        assert isinstance(table._returned_column_schema.returned_columns, pd.MultiIndex)
+        assert list(table._returned_column_schema.returned_columns) == [
             ("rate", "Female"),
             ("rate", "Male"),
         ]
-        assert table._column_template.returned_columns.names == ["measure", "sex"]
+        assert table._returned_column_schema.returned_columns.names == ["measure", "sex"]
 
     def test_series_input_returns_series(self, manager: LookupTableManager) -> None:
         data = pd.Series(
@@ -1012,7 +1012,7 @@ class TestIndexedInput:
             name="rate",
         )
         table = manager._build_table(LookupCreator(), data, "test", value_columns=None)
-        assert table._column_template.return_type is pd.Series
+        assert table._returned_column_schema.return_type is pd.Series
         assert list(table.value_columns) == ["rate"]
         assert table.key_columns == ["sex"]
         assert table.parameter_columns == []
@@ -1026,7 +1026,7 @@ class TestIndexedInput:
         data = pd.Series([0.1, 0.2], index=pd.Index(["Female", "Male"], name="sex"))
         assert data.name is None
         table = manager._build_table(LookupCreator(), data, "test", value_columns=None)
-        assert table._column_template.return_type is pd.Series
+        assert table._returned_column_schema.return_type is pd.Series
         assert list(table.value_columns) == [None]
 
     def test_single_level_named_index_triggers_new_mode(
@@ -1279,7 +1279,7 @@ class TestIndexedInput:
             name="rate",
         )
         table = manager._build_table(LookupCreator(), data, "test", value_columns=None)
-        assert table._column_template.return_type is pd.Series
+        assert table._returned_column_schema.return_type is pd.Series
         assert list(table.value_columns) == ["rate"]
         assert set(table.key_columns) == {"sex", "location"}
         assert table.parameter_columns == []
@@ -1320,7 +1320,7 @@ class TestIndexedInput:
             warnings.simplefilter("ignore", DeprecationWarning)
             table = manager._build_table(LookupCreator(), flat, "t", value_columns="value")
         assert list(table.value_columns) == ["value"]
-        assert table._column_template.return_type is pd.Series
+        assert table._returned_column_schema.return_type is pd.Series
         # Re-set with an indexed Series carrying the same value-column label.
         indexed = pd.Series(
             [0.3, 0.4],
@@ -1329,4 +1329,4 @@ class TestIndexedInput:
         )
         table.set_data(indexed)
         assert list(table.value_columns) == ["value"]
-        assert table._column_template.return_type is pd.Series
+        assert table._returned_column_schema.return_type is pd.Series

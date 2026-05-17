@@ -14,7 +14,6 @@ the individuals represented by that index. See the
 
 from __future__ import annotations
 
-import warnings
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
@@ -22,16 +21,9 @@ from layered_config_tree import LayeredConfigTree
 
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
-from vivarium.framework.lookup.table import DEFAULT_VALUE_COLUMN, LookupTable, is_indexed_form
+from vivarium.framework.lookup.table import LookupTable
 from vivarium.manager import Manager
 from vivarium.types import LookupTableData
-
-VALUE_COLUMNS_DEPRECATION_MESSAGE = (
-    "The `value_columns` argument to LookupTable.build_table is deprecated "
-    "and will be removed in a future release when ``data`` is in indexed "
-    "form. Value columns are inferred from the DataFrame columns (or the "
-    "Series name) of an indexed input."
-)
 
 if TYPE_CHECKING:
     from vivarium import Component
@@ -101,12 +93,6 @@ class LookupTableManager(Manager):
         value_columns: list[str] | tuple[str, ...] | str | None,
     ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
         """Construct a lookup table from input data."""
-        if value_columns is not None and is_indexed_form(data):
-            warnings.warn(
-                VALUE_COLUMNS_DEPRECATION_MESSAGE,
-                DeprecationWarning,
-                stacklevel=3,
-            )
         component = self._get_current_component()
         table = self._build_table(component, data, name, value_columns)
         self._add_resource(table)
@@ -140,7 +126,7 @@ class LookupTableManager(Manager):
             name=name,
             component=component,
             data=data,
-            value_columns=value_columns or DEFAULT_VALUE_COLUMN,
+            value_columns=value_columns,
             manager=self,
             population_view=self._get_view(),
         )
