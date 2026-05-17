@@ -48,8 +48,7 @@ def test_1d_interpolation() -> None:
 
     i = Interpolation(
         df,
-        value_columns=["c"],
-        original_columns=pd.Index(["c"]),
+        returned_columns=pd.Index(["c"]),
         order=1,
         extrapolate=True,
         validate=True,
@@ -77,8 +76,7 @@ def test_age_year_interpolation() -> None:
 
     i = Interpolation(
         df,
-        value_columns=["pop"],
-        original_columns=pd.Index(["pop"]),
+        returned_columns=pd.Index(["pop"]),
         order=1,
         extrapolate=True,
         validate=True,
@@ -102,8 +100,7 @@ def test_interpolation_called_missing_param_col(query: pd.DataFrame) -> None:
     df = df.sample(frac=1)  # Shuffle table to assure interpolation works given unsorted input
     i = Interpolation(
         df,
-        value_columns=["pop"],
-        original_columns=pd.Index(["pop"]),
+        returned_columns=pd.Index(["pop"]),
         order=1,
         extrapolate=True,
         validate=True,
@@ -121,8 +118,7 @@ def test_2d_interpolation() -> None:
 
     i = Interpolation(
         df,
-        value_columns=["c", "d"],
-        original_columns=pd.Index(["c", "d"]),
+        returned_columns=pd.Index(["c", "d"]),
         order=1,
         extrapolate=True,
         validate=True,
@@ -144,8 +140,7 @@ def test_interpolation_with_categorical_parameters() -> None:
 
     i = Interpolation(
         df,
-        value_columns=["c"],
-        original_columns=pd.Index(["c"]),
+        returned_columns=pd.Index(["c"]),
         order=1,
         extrapolate=True,
         validate=True,
@@ -169,8 +164,7 @@ def test_order_zero_2d() -> None:
 
     i = Interpolation(
         df,
-        value_columns=["c"],
-        original_columns=pd.Index(["c"]),
+        returned_columns=pd.Index(["c"]),
         order=0,
         extrapolate=True,
         validate=True,
@@ -192,8 +186,7 @@ def test_order_zero_2d_fails_on_extrapolation() -> None:
 
     i = Interpolation(
         df,
-        value_columns=["c"],
-        original_columns=pd.Index(["c"]),
+        returned_columns=pd.Index(["c"]),
         order=0,
         extrapolate=False,
         validate=True,
@@ -215,8 +208,7 @@ def test_order_zero_1d_no_extrapolation() -> None:
     s = make_bin_edges(s, "index")
     f = Interpolation(
         s,
-        value_columns=["val"],
-        original_columns=pd.Index(["val"]),
+        returned_columns=pd.Index(["val"]),
         order=0,
         extrapolate=False,
         validate=True,
@@ -237,8 +229,7 @@ def test_order_zero_1d_constant_extrapolation() -> None:
     s = make_bin_edges(s, "index")
     f = Interpolation(
         s,
-        value_columns=["val"],
-        original_columns=pd.Index(["val"]),
+        returned_columns=pd.Index(["val"]),
         order=0,
         extrapolate=True,
         validate=True,
@@ -369,8 +360,7 @@ def test_order_zero_1d_with_key_column() -> None:
 
     i = Interpolation(
         data,
-        value_columns=["value_1", "value_2"],
-        original_columns=pd.Index(["value_1", "value_2"]),
+        returned_columns=pd.Index(["value_1", "value_2"]),
         order=0,
         extrapolate=True,
         validate=True,
@@ -407,8 +397,7 @@ def test_order_zero_non_numeric_values() -> None:
 
     i = Interpolation(
         data,
-        value_columns=["value_1"],
-        original_columns=pd.Index(["value_1"]),
+        returned_columns=pd.Index(["value_1"]),
         order=0,
         extrapolate=True,
         validate=True,
@@ -446,8 +435,7 @@ def test_order_zero_3d_with_key_col() -> None:
 
     interp = Interpolation(
         data,
-        value_columns=["value"],
-        original_columns=pd.Index(["value"]),
+        returned_columns=pd.Index(["value"]),
         order=0,
         extrapolate=True,
         validate=True,
@@ -484,8 +472,7 @@ def test_order_zero_diff_bin_sizes() -> None:
 
     i = Interpolation(
         data,
-        value_columns=["value"],
-        original_columns=pd.Index(["value"]),
+        returned_columns=pd.Index(["value"]),
         order=0,
         extrapolate=False,
         validate=True,
@@ -518,8 +505,7 @@ def test_order_zero_given_call_column() -> None:
 
     i = Interpolation(
         data,
-        value_columns=["value"],
-        original_columns=pd.Index(["value"]),
+        returned_columns=pd.Index(["value"]),
         order=0,
         extrapolate=False,
         validate=True,
@@ -540,8 +526,7 @@ def test_interpolation_init_validate_option_invalid_data(validate: bool) -> None
         ):
             Interpolation(
                 pd.DataFrame(),
-                value_columns=[],
-                original_columns=pd.Index([]),
+                returned_columns=pd.Index([]),
                 order=0,
                 extrapolate=True,
                 validate=validate,
@@ -549,8 +534,7 @@ def test_interpolation_init_validate_option_invalid_data(validate: bool) -> None
     else:
         Interpolation(
             pd.DataFrame(),
-            value_columns=[],
-            original_columns=pd.Index([]),
+            returned_columns=pd.Index([]),
             order=0,
             extrapolate=True,
             validate=validate,
@@ -563,8 +547,7 @@ def test_interpolation_init_validate_option_valid_data(validate: bool) -> None:
     s = make_bin_edges(s, "index")
     Interpolation(
         s,
-        value_columns=["val"],
-        original_columns=pd.Index(["val"]),
+        returned_columns=pd.Index(["val"]),
         order=0,
         extrapolate=True,
         validate=validate,
@@ -577,8 +560,7 @@ def test_interpolation_call_validate_option_invalid_data(validate: bool) -> None
     s = make_bin_edges(s, "index")
     i = Interpolation(
         s,
-        value_columns=["val"],
-        original_columns=pd.Index(["val"]),
+        returned_columns=pd.Index(["val"]),
         order=0,
         extrapolate=True,
         validate=validate,
@@ -611,8 +593,7 @@ def test_interpolation_call_validate_option_valid_data(validate: bool) -> None:
 
     i = Interpolation(
         data,
-        value_columns=["value"],
-        original_columns=pd.Index(["value"]),
+        returned_columns=pd.Index(["value"]),
         order=0,
         extrapolate=False,
         validate=validate,

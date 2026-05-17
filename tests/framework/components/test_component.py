@@ -296,8 +296,8 @@ def test_component_lookup_table_configuration(hdf_file_path: Path) -> None:
     assert component.favorite_color_table.parameter_columns == ["test_column_3"]
     assert component.favorite_number_table.key_columns == []
     assert component.favorite_number_table.parameter_columns == ["test_column_3"]
-    assert component.favorite_scalar_table.value_columns == ["scalar"]
-    assert component.favorite_list_table.value_columns == ["column_1", "column_2"]
+    assert list(component.favorite_scalar_table.value_columns) == ["scalar"]
+    assert list(component.favorite_list_table.value_columns) == ["column_1", "column_2"]
     assert component.cooling_time_table.key_columns == ["test_column_1"]
     assert not component.cooling_time_table.parameter_columns
 

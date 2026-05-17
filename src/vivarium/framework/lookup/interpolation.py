@@ -10,7 +10,7 @@ simulations.
 from __future__ import annotations
 
 from collections.abc import Hashable, Sequence
-from typing import Any, TypeGuard
+from typing import Any, ClassVar, TypeGuard
 
 import numpy as np
 import pandas as pd
@@ -51,11 +51,14 @@ class Interpolation:
 
     """
 
+    _FLAT_COLUMN_PREFIX: ClassVar[str] = "__lookup_col_"
+    """Prefix for opaque internal value-column IDs used in the flat DataFrame
+    passed to the interpolation pipeline. Never exposed externally."""
+
     def __init__(
         self,
         data: pd.DataFrame | pd.Series[Any],
-        value_columns: list[str],
-        original_columns: pd.Index,  # type: ignore [type-arg]
+        returned_columns: pd.Index[Any],
         order: int,
         extrapolate: bool,
         validate: bool,
@@ -66,9 +69,15 @@ class Interpolation:
                 f"Interpolation is only supported for order 0. You specified order {order}"
             )
 
-        self.value_columns = value_columns
-        self.data = self._reshape_data(data, original_columns)
-        self._set_continuous_and_categorical_parameters()
+        self.returned_columns = returned_columns
+        self.value_columns = [f"{self._FLAT_COLUMN_PREFIX}{i}" for i in range(len(returned_columns))]
+        parameter_columns = (
+            list(data.index.names)
+            if is_indexed_form(data)
+            else [c for c in data.columns if c not in returned_columns]
+        )
+        self._set_continuous_and_categorical_parameters(parameter_columns)
+        self.data = self._reshape_data(data, returned_columns)
 
         if validate:
             validate_parameters(
@@ -109,7 +118,7 @@ class Interpolation:
             )
 
     def _reshape_data(
-        self, raw_data: pd.DataFrame | pd.Series, original_columns: pd.Index
+        self, raw_data: pd.DataFrame | pd.Series, returned_columns: pd.Index
     ) -> LookupTableData:
         """Get the flat representation of ``data`` for interpolation."""
         if not isinstance(raw_data, (pd.DataFrame, pd.Series)):
@@ -124,31 +133,26 @@ class Interpolation:
 
         # This is the deprecated path where the input data is already in flat form
         assert isinstance(raw_data, pd.DataFrame)  # only Series/indexed paths above
-        return raw_data.rename(columns=dict(zip(list(original_columns), self.value_columns)))
+        return raw_data.rename(columns=dict(zip(list(returned_columns), self.value_columns)))
 
-    def _set_continuous_and_categorical_parameters(self) -> None:
-        """Set the continuous and categorical parameters based on the interpolation data."""
-        # TODO get these parameters from the data's index before flattening in indexed case
-        all_columns = list(self.data.columns)
-
-        potential_parameter_columns = [
-            str(col).removesuffix("_start")
-            for col in all_columns
-            if str(col).endswith("_start")
-        ]
-        continuous_columns = []
-        bin_edge_columns = []
-        for column in potential_parameter_columns:
-            if f"{column}_end" in all_columns:
-                continuous_columns.append(column)
-                bin_edge_columns += [f"{column}_start", f"{column}_end"]
+    def _set_continuous_and_categorical_parameters(
+        self, parameter_columns: list[Hashable]
+    ) -> None:
+        """Partition ``parameter_columns`` into continuous (``_start``/``_end`` pairs) and categorical."""
+        parameter_columns_set = set(parameter_columns)
+        continuous_columns: list[str] = []
+        bin_edge_columns: set[Hashable] = set()
+        for column in parameter_columns:
+            col_str = str(column)
+            if col_str.endswith("_start"):
+                base = col_str.removesuffix("_start")
+                if f"{base}_end" in parameter_columns_set:
+                    continuous_columns.append(base)
+                    bin_edge_columns.update({col_str, f"{base}_end"})
 
         self.categorical_parameters = [
-            col
-            for col in all_columns
-            if col not in self.value_columns and col not in bin_edge_columns
+            col for col in parameter_columns if col not in bin_edge_columns
         ]
-
         self.continuous_parameters: list[tuple[str, str, str]] = [
             (p, f"{p}_start", f"{p}_end") for p in continuous_columns
         ]
@@ -195,6 +199,7 @@ class Interpolation:
                 index=interpolants.index, columns=self.value_columns, dtype=np.float64
             )
 
+        result.columns = self.returned_columns
         return result
 
     def __repr__(self) -> str:

@@ -50,11 +50,7 @@ FLAT_DATAFRAME_DEPRECATION_MESSAGE = (
 class _ColumnTemplate(Generic[T]):
     """Records the shape the lookup table should return."""
 
-    _FLAT_COLUMN_PREFIX: ClassVar[str] = "__lookup_col_"
-    """Prefix for opaque internal value-column IDs used in the flat DataFrame
-    passed to the interpolation pipeline. Never exposed externally."""
-
-    original_columns: pd.Index  # type: ignore [type-arg]
+    returned_columns: pd.Index[Any]
     """The column labels that will be on the result of calling this lookup table."""
     return_type: type[T] = pd.DataFrame  # type: ignore [assignment]
     """The type that this lookup table should return, either pd.Series or pd.DataFrame."""
@@ -66,19 +62,9 @@ class _ColumnTemplate(Generic[T]):
         return (
             isinstance(other, _ColumnTemplate)
             and self.return_type is other.return_type
-            and self.original_columns.equals(other.original_columns)
-            and list(self.original_columns.names) == list(other.original_columns.names)
+            and self.returned_columns.equals(other.returned_columns)
+            and list(self.returned_columns.names) == list(other.returned_columns.names)
         )
-
-    @property
-    def flat_value_columns(self) -> list[str]:
-        """Opaque internal IDs naming the value columns of the flat DataFrame.
-
-        Strings of the form ``__lookup_col_<i>``, one per original column.
-        Used by the interpolation pipeline; :meth:`LookupTable.__call__`
-        restores the user-facing labels on the result.
-        """
-        return [f"{self._FLAT_COLUMN_PREFIX}{i}" for i in range(len(self.original_columns))]
 
     @classmethod
     def from_data(
@@ -96,12 +82,12 @@ class _ColumnTemplate(Generic[T]):
         """
         if isinstance(data, pd.Series):
             return cls(
-                original_columns=pd.Index([data.name]),
+                returned_columns=pd.Index([data.name]),
                 return_type=pd.Series,  # type: ignore [arg-type]
             )
         if is_indexed_form(data):
             return cls(
-                original_columns=data.columns,
+                returned_columns=data.columns,
                 return_type=pd.DataFrame,  # type: ignore [arg-type]
             )
         if isinstance(value_columns, str):
@@ -112,7 +98,7 @@ class _ColumnTemplate(Generic[T]):
             cols = list(value_columns)
             return_type = pd.DataFrame
         return cls(
-            original_columns=pd.Index(cols),
+            returned_columns=pd.Index(cols),
             return_type=return_type,
         )
 
@@ -149,10 +135,9 @@ class LookupTable(Resource, Generic[T]):
         return [p[0] for p in self.interpolation.continuous_parameters]
 
     @property
-    def value_columns(self) -> list[Hashable]:
+    def value_columns(self) -> pd.Index:  # type: ignore [type-arg]
         """The column names returned when calling this lookup table."""
-        # TODO this really should return an Index
-        return list(self._column_template.original_columns)
+        return self._column_template.returned_columns
 
     @property
     def lookup_attributes(self) -> list[str]:
@@ -258,8 +243,7 @@ class LookupTable(Resource, Generic[T]):
         if isinstance(self.data, (pd.Series, pd.DataFrame)):
             self.interpolation = Interpolation(
                 data=self.data,
-                value_columns=self._column_template.flat_value_columns,
-                original_columns=self._column_template.original_columns,
+                returned_columns=self.value_columns,
                 order=self._manager.interpolation_order,
                 extrapolate=self._manager.extrapolate,
                 validate=self._manager.validate_interpolation,
@@ -316,10 +300,8 @@ class LookupTable(Resource, Generic[T]):
             result = self.interpolation(pop)
             if self._column_template.return_type is pd.Series:
                 squeezed = result.squeeze(axis=1)
-                squeezed.name = self._column_template.original_columns[0]
+                squeezed.name = self._column_template.returned_columns[0]
                 result = squeezed
-            else:
-                result.columns = self._column_template.original_columns
 
         expected_type = self._column_template.return_type
         if not isinstance(result, expected_type):
@@ -426,7 +408,7 @@ class LookupTable(Resource, Generic[T]):
                     f"Existing template: {self._column_template}; new: {new_template}."
                 )
             return
-        originals = list(self._column_template.original_columns)
+        originals = list(self._column_template.returned_columns)
         if isinstance(data, (list, tuple)):
             if self._column_template.return_type is pd.Series:
                 raise ValueError(
