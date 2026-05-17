@@ -195,7 +195,9 @@ class Interpolation:
 
         # This is the deprecated path where the input data is already in flat form
         assert isinstance(raw_data, pd.DataFrame)  # only Series/indexed paths above
-        return raw_data.rename(columns=dict(zip(list(returned_columns), self._internal_value_columns)))
+        return raw_data.rename(
+            columns=dict(zip(list(returned_columns), self._internal_value_columns))
+        )
 
     def __call__(self, interpolants: pd.DataFrame) -> pd.DataFrame:
         """Get the interpolated results for the parameters in interpolants.
@@ -236,7 +238,9 @@ class Interpolation:
             # specify some numeric type for columns, so they won't be objects but
             # will be updated with whatever column type it actually is
             result = pd.DataFrame(
-                index=interpolants.index, columns=self._internal_value_columns, dtype=np.float64
+                index=interpolants.index,
+                columns=self._internal_value_columns,
+                dtype=np.float64,
             )
 
         # Restore the user-facing column labels (and column-index level names);

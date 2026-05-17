@@ -10,6 +10,7 @@ This module provides an interface to the :class:`LookupTableManager <vivarium.fr
 from __future__ import annotations
 
 import warnings
+from collections.abc import Mapping
 from typing import Any, overload
 
 import pandas as pd
@@ -18,6 +19,7 @@ from vivarium.framework.lookup.interpolation import has_named_row_index
 from vivarium.framework.lookup.manager import LookupTableManager
 from vivarium.framework.lookup.table import (
     FLAT_DATAFRAME_DEPRECATION_MESSAGE,
+    MAPPING_INPUT_DEPRECATION_MESSAGE,
     LookupTable,
 )
 from vivarium.manager import Interface
@@ -188,6 +190,12 @@ class LookupTableInterface(Interface):
         if isinstance(data, pd.DataFrame) and not has_named_row_index(data):
             warnings.warn(
                 FLAT_DATAFRAME_DEPRECATION_MESSAGE,
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        if isinstance(data, Mapping):
+            warnings.warn(
+                MAPPING_INPUT_DEPRECATION_MESSAGE,
                 DeprecationWarning,
                 stacklevel=2,
             )

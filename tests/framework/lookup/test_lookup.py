@@ -18,11 +18,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.lookup.interface import LookupTableInterface
 from vivarium.framework.lookup.manager import LookupTableManager
-from vivarium.framework.lookup.table import (
-    LookupTable,
-    _ColumnSchema,
-    _schemas_match,
-)
+from vivarium.framework.lookup.table import LookupTable, _ColumnSchema, _schemas_match
 from vivarium.testing_utilities import TestPopulation, build_table, metadata
 from vivarium.types import DataFrameMapping, LookupTableData, ScalarValue
 
@@ -392,19 +388,15 @@ class TestValidateBuildTableParameters:
             tuple(),
         ],
     )
-    def test_no_data(
-        self, data: LookupTableData, lookup_manager: LookupTableManager
-    ) -> None:
+    def test_no_data(self, data: LookupTableData, lookup_manager: LookupTableManager) -> None:
+        # value_columns=None so the empty-Series case isn't intercepted by the
+        # value_columns + indexed guard (an empty Series qualifies as indexed).
         with pytest.raises(ValueError, match="supply some data"):
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", DeprecationWarning)
-                lookup_manager._build_table(
-                    LookupCreator(), data, "test", value_columns="value"
-                )
+                lookup_manager._build_table(LookupCreator(), data, "test", value_columns=None)
 
-    def test_validate_flat_series_rejected(
-        self, lookup_manager: LookupTableManager
-    ) -> None:
+    def test_validate_flat_series_rejected(self, lookup_manager: LookupTableManager) -> None:
         """A ``pandas.Series`` with a default ``RangeIndex`` is rejected on the
         construction path."""
         with pytest.raises(ValueError, match="structured"):
@@ -431,7 +423,9 @@ class TestValidateBuildTableParameters:
     ) -> None:
         """Length/shape mismatches between ``value_columns`` and a non-indexed
         input are reported as schema-lock failures by ``_validate_shape``."""
-        with pytest.raises(ValueError, match="Cannot change LookupTable return type or value columns"):
+        with pytest.raises(
+            ValueError, match="Cannot change LookupTable return type or value columns"
+        ):
             lookup_manager._build_table(
                 LookupCreator(), data, "test", value_columns=value_columns
             )
@@ -441,9 +435,7 @@ class TestValidateBuildTableParameters:
         self, data: LookupTableData, lookup_manager: LookupTableManager
     ) -> None:
         with pytest.raises(TypeError, match="only allowable types"):
-            lookup_manager._build_table(
-                LookupCreator(), data, "test", value_columns="value"
-            )
+            lookup_manager._build_table(LookupCreator(), data, "test", value_columns="value")
 
     def test_build_table_scalar_list_succeeds(
         self, lookup_manager: LookupTableManager
@@ -462,9 +454,7 @@ class TestValidateBuildTableParameters:
                 [("x", 0, 5), ("y", 5, 10)], names=["a", "b_start", "b_end"]
             ),
         )
-        table = lookup_manager._build_table(
-            LookupCreator(), data, "test", value_columns=None
-        )
+        table = lookup_manager._build_table(LookupCreator(), data, "test", value_columns=None)
         assert list(table.value_columns) == ["c"]
         assert table.key_columns == ["a"]
         assert table.parameter_columns == ["b"]
@@ -479,9 +469,7 @@ class TestValidateBuildTableParameters:
             index=pd.Index(["Female", "Male"], name="sex"),
         )
         with pytest.raises(ValueError, match="Passing `value_columns`"):
-            lookup_manager._build_table(
-                LookupCreator(), data, "test", value_columns="rate"
-            )
+            lookup_manager._build_table(LookupCreator(), data, "test", value_columns="rate")
 
 
 def test__build_table_from_dict(base_config: LayeredConfigTree) -> None:
@@ -1057,9 +1045,7 @@ class TestIndexedInput:
         """A column ``MultiIndex`` tuple ``("sex", "rate")`` is a distinct value
         from a string index level name ``"sex"``, so the two cannot collide
         even when they share an inner token."""
-        cols = pd.MultiIndex.from_tuples(
-            [("sex", "rate")], names=["category", "measure"]
-        )
+        cols = pd.MultiIndex.from_tuples([("sex", "rate")], names=["category", "measure"])
         data = pd.DataFrame([[0.1], [0.2]], index=self._sex_index(), columns=cols)
         table = lookup_manager._build_table(LookupCreator(), data, "test", value_columns=None)
         assert list(table.value_columns) == [("sex", "rate")]
@@ -1169,29 +1155,31 @@ class TestIndexedInput:
             warnings.simplefilter("error", DeprecationWarning)
             interface.build_table([1, 2], "test_list_vc", value_columns=["a", "b"])
 
-    def test_mapping_input_does_not_emit_deprecation_warning(
+    def test_mapping_input_emits_deprecation_warning(
         self, lookup_manager: LookupTableManager
     ) -> None:
-        """``Mapping`` (e.g. ``dict``) is a first-class input form; it must not
-        trigger the flat-DataFrame deprecation even though it is converted
-        internally to a flat DataFrame."""
+        """``Mapping`` (e.g. ``dict``) inputs are deprecated alongside the flat
+        DataFrame form. The Mapping-specific deprecation fires (not the
+        flat-DataFrame one) so the user sees a message tailored to their input."""
         lookup_manager._get_current_component.return_value = LookupCreator()  # type: ignore [attr-defined]
         interface = LookupTableInterface(lookup_manager)
         data: DataFrameMapping = {
             "sex": ["Female", "Male"],
             "value": cast("list[ScalarValue]", [100.0, 200.0]),
         }
-        with warnings.catch_warnings():
-            warnings.simplefilter("error", DeprecationWarning)
+        with warnings.catch_warnings(record=True) as records:
+            warnings.simplefilter("always")
             interface.build_table(data, "test", value_columns="value")
+        deprecations = [r for r in records if issubclass(r.category, DeprecationWarning)]
+        assert len(deprecations) == 1
+        assert "Mapping" in str(deprecations[0].message)
+        assert deprecations[0].filename == __file__
 
     def test_set_data_recall_with_flat_dataframe_warns(
         self, lookup_manager: LookupTableManager
     ) -> None:
         indexed = self._make_sex_age_dataframe()
-        table = lookup_manager._build_table(
-            LookupCreator(), indexed, "t", value_columns=None
-        )
+        table = lookup_manager._build_table(LookupCreator(), indexed, "t", value_columns=None)
         flat = pd.DataFrame(
             {
                 "sex": ["Female", "Female", "Male", "Male"],
@@ -1440,7 +1428,9 @@ class TestIndexedInput:
         )
         # Different value-column label ("score" instead of "rate").
         different = pd.DataFrame({"score": [0.1, 0.2]}, index=self._sex_index())
-        with pytest.raises(ValueError, match="Cannot change LookupTable return type or value columns"):
+        with pytest.raises(
+            ValueError, match="Cannot change LookupTable return type or value columns"
+        ):
             table.set_data(different)
 
     def test_set_data_return_type_change_raises(
@@ -1455,7 +1445,9 @@ class TestIndexedInput:
             value_columns=None,
         )
         df = pd.DataFrame({"rate": [0.1, 0.2]}, index=self._sex_index())
-        with pytest.raises(ValueError, match="Cannot change LookupTable return type or value columns"):
+        with pytest.raises(
+            ValueError, match="Cannot change LookupTable return type or value columns"
+        ):
             series_table.set_data(df)
 
         df_table = lookup_manager._build_table(
@@ -1464,7 +1456,9 @@ class TestIndexedInput:
             "df_t",
             value_columns=None,
         )
-        with pytest.raises(ValueError, match="Cannot change LookupTable return type or value columns"):
+        with pytest.raises(
+            ValueError, match="Cannot change LookupTable return type or value columns"
+        ):
             df_table.set_data(pd.Series([0.1, 0.2], index=self._sex_index(), name="rate"))
 
     def test_set_data_multiindex_column_name_change_raises(
@@ -1485,10 +1479,10 @@ class TestIndexedInput:
         data_b = pd.DataFrame(
             [[0.1, 0.2], [0.3, 0.4]], index=self._sex_index(), columns=cols_b
         )
-        table = lookup_manager._build_table(
-            LookupCreator(), data_a, "t", value_columns=None
-        )
-        with pytest.raises(ValueError, match="Cannot change LookupTable return type or value columns"):
+        table = lookup_manager._build_table(LookupCreator(), data_a, "t", value_columns=None)
+        with pytest.raises(
+            ValueError, match="Cannot change LookupTable return type or value columns"
+        ):
             table.set_data(data_b)
 
     def test_set_data_flat_to_indexed_then_check_schema_lock(

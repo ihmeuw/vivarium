@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Generic
 from typing import SupportsFloat as Numeric
-from typing import TypeVar, cast, overload
+from typing import TypeVar, cast
 
 import pandas as pd
 
@@ -45,6 +45,13 @@ FLAT_DATAFRAME_DEPRECATION_MESSAGE = (
     "Index) and value columns on the DataFrame columns instead."
 )
 
+MAPPING_INPUT_DEPRECATION_MESSAGE = (
+    "Passing a Mapping (e.g., dict) to LookupTable is deprecated and will "
+    "be removed in a future release. Construct your data as a DataFrame (or "
+    "Series) with the parameter/key columns on the row index (MultiIndex or "
+    "named Index) and value columns on the DataFrame columns instead."
+)
+
 VALUE_COLUMNS_INDEXED_ERROR_MESSAGE = (
     "Passing `value_columns` alongside an indexed DataFrame/Series is not "
     "allowed: value columns are inferred from the DataFrame columns (or the "
@@ -63,8 +70,7 @@ class _ColumnSchema(Generic[T]):
 
     def __str__(self) -> str:
         return (
-            f"<pandas.{self.return_type.__name__}, "
-            f"value_columns={self.value_columns!r}>"
+            f"<pandas.{self.return_type.__name__}, " f"value_columns={self.value_columns!r}>"
         )
 
     @classmethod
@@ -207,18 +213,14 @@ class LookupTable(Resource, Generic[T]):
         """Interpolation object to use when data is a DataFrame. Will be None if data is
         a scalar or list of scalars."""
 
-        # Normalize first so subsequent structural checks see the actual
-        # data shape (Mapping inputs are first-class).
         if isinstance(data, Mapping):
             data = pd.DataFrame(data)
 
-        self._validate_data_inputs(data)
         if value_columns is not None and has_named_row_index(data):
             raise ValueError(VALUE_COLUMNS_INDEXED_ERROR_MESSAGE)
 
         self.__column_schema: _ColumnSchema[T] = cast(
-            "_ColumnSchema[T]",
-            _ColumnSchema.from_data(data, value_columns)
+            "_ColumnSchema[T]", _ColumnSchema.from_data(data, value_columns)
         )
 
         self._set_data(data)
@@ -255,7 +257,14 @@ class LookupTable(Resource, Generic[T]):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        self._validate_data_inputs(data)
+        if isinstance(data, Mapping):
+            warnings.warn(
+                MAPPING_INPUT_DEPRECATION_MESSAGE,
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            data = pd.DataFrame(data)
+
         self._set_data(data)
 
     def _set_data(self, data: LookupTableData) -> None:
@@ -268,10 +277,7 @@ class LookupTable(Resource, Generic[T]):
         Also updates the LookupTable's ``required_resources`` based on the
         new data's lookup attributes.
         """
-        if isinstance(data, Mapping):
-            data = pd.DataFrame(data)
-
-        self._validate_shape(data)
+        self._validate_data(data)
         self.data = data
         if isinstance(self.data, (pd.Series, pd.DataFrame)):
             self.interpolation = Interpolation(
@@ -331,7 +337,7 @@ class LookupTable(Resource, Generic[T]):
                         "your simulation uses a DateTimeClock."
                     )
             result = self.interpolation(pop)
-            
+
             if self._column_schema.return_type is pd.Series:
                 assert len(self.value_columns) == 1
                 squeezed = result.squeeze(axis=1)
@@ -366,30 +372,11 @@ class LookupTable(Resource, Generic[T]):
         """
         return f"{component_name}.{table_name}"
 
-    def _validate_indexed_input(self, data: pd.DataFrame | pd.Series[Any]) -> None:
-        """Validate the structure of an indexed DataFrame / Series input."""
-        index_level_names = list(data.index.names)
-        if any(name is None for name in index_level_names):
-            raise ValueError(
-                "All row index levels must be named when passing an indexed "
-                f"DataFrame/Series to LookupTable. Got names: {index_level_names}."
-            )
-        if len(set(index_level_names)) != len(index_level_names):
-            raise ValueError(
-                "Row index level names must be unique when passing an indexed "
-                f"DataFrame/Series to LookupTable. Got names: {index_level_names}."
-            )
-
-    def _validate_data_inputs(self, data: LookupTableData) -> None:
-        """Validate that the data input is generally well-formed.
-
-        Checks emptiness, allowable type, the structured-index requirement on
-        Series inputs, and (for indexed inputs) the structural requirements
-        on index/column labels. Shape compatibility with the locked schema
-        is checked separately by :meth:`_validate_shape`.
-        """
+    def _validate_data(self, data: LookupTableData) -> None:
+        """Validate ``data`` and check that it matches the locked column schema."""
         if data is None or (
-            isinstance(data, (pd.Series, list, tuple)) and len(data) == 0
+            isinstance(data, (pd.Series, list, tuple))
+            and len(data) == 0
             or (isinstance(data, pd.DataFrame) and data.empty)
         ):
             raise ValueError("Must supply some data")
@@ -417,10 +404,18 @@ class LookupTable(Resource, Generic[T]):
             )
 
         if has_named_row_index(data):
-            self._validate_indexed_input(data)
+            index_level_names = list(data.index.names)
+            if any(name is None for name in index_level_names):
+                raise ValueError(
+                    "All row index levels must be named when passing an indexed "
+                    f"DataFrame/Series to LookupTable. Got names: {index_level_names}."
+                )
+            if len(set(index_level_names)) != len(index_level_names):
+                raise ValueError(
+                    "Row index level names must be unique when passing an indexed "
+                    f"DataFrame/Series to LookupTable. Got names: {index_level_names}."
+                )
 
-    def _validate_shape(self, data: LookupTableData) -> None:
-        """Check that ``data`` matches the locked column schema."""
         expected = self._column_schema
         if has_named_row_index(data):
             new_schema = _ColumnSchema.from_data(data)
@@ -441,7 +436,9 @@ class LookupTable(Resource, Generic[T]):
                     f"{expected.return_type.__name__}; got {len(data)} value(s)."
                 )
         elif isinstance(data, pd.DataFrame):
-            if missing_columns := [col for col in expected_columns if col not in data.columns]:
+            if missing_columns := [
+                col for col in expected_columns if col not in data.columns
+            ]:
                 raise ValueError(
                     "Cannot change LookupTable return type or value columns on set_data after "
                     f"initial setup. Data is missing the following value columns: {missing_columns}."
