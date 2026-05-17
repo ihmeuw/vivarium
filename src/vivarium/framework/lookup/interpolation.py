@@ -20,10 +20,17 @@ from vivarium.types import LookupTableData
 _SubTablesType = list[tuple[tuple[Hashable, ...] | Hashable | None, pd.DataFrame]]
 
 
-def is_indexed_form(
+def has_named_row_index(
     data: LookupTableData,
 ) -> TypeGuard[pd.DataFrame | pd.Series[Any]]:
-    """Determine if ``data`` belongs on the indexed route or the flat-data route."""
+    """Return True if ``data`` carries its parameter/key columns on the row index.
+
+    A :class:`pandas.Series` always qualifies. A :class:`pandas.DataFrame`
+    qualifies when *any* row-index level is named (a partially named
+    ``MultiIndex`` is intentionally included so that the caller's mistake is
+    surfaced by :meth:`LookupTable._validate_indexed_input` rather than
+    silently falling back to the flat-DataFrame path).
+    """
     if isinstance(data, pd.Series):
         return True
     if isinstance(data, pd.DataFrame):
@@ -32,33 +39,63 @@ def is_indexed_form(
 
 
 class Interpolation:
-    """A callable that returns the result of an interpolation function over input data.
+    """A callable that interpolates value columns over categorical/continuous parameters.
+
+    The parameter columns are inferred from the input data: when ``data`` is
+    an *indexed* :class:`pandas.DataFrame` or :class:`pandas.Series`, the row
+    index level names are the parameters; when ``data`` is a flat DataFrame
+    (deprecated), the parameters are the columns not listed in
+    ``returned_columns``. Parameter columns whose names follow the
+    ``<name>_start`` / ``<name>_end`` convention are paired up as continuous
+    binned parameters; all other parameter columns are treated as categorical
+    key columns.
+
+    This naming convention is the only way ``Interpolation`` distinguishes
+    continuous from categorical parameters, so the class is not fully generic
+    — it is the interpolation primitive that
+    :class:`~vivarium.framework.lookup.table.LookupTable` is built on.
 
     Attributes
     ----------
     data
-        The data from which to build the interpolation. Contains
-        categorical_parameters and continuous_parameters.
+        The flat DataFrame the interpolation pipeline operates on. Value
+        columns are renamed to opaque internal IDs (see
+        ``_FLAT_COLUMN_PREFIX``); ``returned_columns`` carries the original
+        user-facing labels and is reapplied to the output of
+        :meth:`__call__`.
+    returned_columns
+        The user-facing column labels (including tuple labels from a column
+        ``MultiIndex`` and ``None`` from a nameless Series) restored on the
+        output of :meth:`__call__`.
     categorical_parameters
-        Column names to be used as categorical parameters in Interpolation
-        to select between interpolation functions.
+        Parameter columns used to select between interpolation sub-tables.
     continuous_parameters
-        Column names to be used as continuous parameters in Interpolation. If
-        bin edges, should be of the form (column name used in call, column name
-        for left bin edge, column name for right bin edge).
+        Parameter columns used as binned ranges. Tuples of the form
+        ``(name, name_start, name_end)``.
     order
-        Order of interpolation.
+        Order of interpolation. Only ``0`` is currently supported.
 
     """
 
     _FLAT_COLUMN_PREFIX: ClassVar[str] = "__lookup_col_"
-    """Prefix for opaque internal value-column IDs used in the flat DataFrame
-    passed to the interpolation pipeline. Never exposed externally."""
+    """Prefix for opaque internal value-column IDs used by the interpolation
+    pipeline.
+
+    Why: pandas operations (``groupby``, ``reset_index``, ``merge``) do not
+    safely round-trip tuple labels (from a column ``MultiIndex``), ``None``
+    (from a nameless Series), or arbitrary ``Hashable`` labels. Substituting
+    string IDs internally lets us reuse the existing flat-DataFrame
+    pipeline; the original labels are reapplied on the output of
+    :meth:`__call__`.
+
+    The prefix is internal to the pipeline output but does remain visible on
+    :attr:`data` and :attr:`value_columns` for the lifetime of the
+    Interpolation instance (e.g. in a debugger or ``repr``)."""
 
     def __init__(
         self,
         data: pd.DataFrame | pd.Series[Any],
-        returned_columns: pd.Index[Any],
+        value_columns: pd.Index[Any],
         order: int,
         extrapolate: bool,
         validate: bool,
@@ -69,14 +106,14 @@ class Interpolation:
                 f"Interpolation is only supported for order 0. You specified order {order}"
             )
 
-        self.returned_columns = returned_columns
-        self.value_columns = [
-            f"{self._FLAT_COLUMN_PREFIX}{i}" for i in range(len(returned_columns))
+        self.value_columns = value_columns
+        self._internal_value_columns = [
+            f"{self._FLAT_COLUMN_PREFIX}{i}" for i in range(len(value_columns))
         ]
         parameter_columns = (
             list(data.index.names)
-            if is_indexed_form(data)
-            else [c for c in data.columns if c not in returned_columns]
+            if has_named_row_index(data)
+            else [c for c in data.columns if c not in value_columns]
         )
         self.continuous_parameters: list[
             tuple[str, str, str]
@@ -84,14 +121,14 @@ class Interpolation:
         self.categorical_parameters: list[str] = self._get_categorical_parameters(
             parameter_columns
         )
-        self.data = self._reshape_data(data, returned_columns)
+        self.data = self._reshape_data(data, value_columns)
 
         if validate:
             validate_parameters(
                 self.data,
                 self.categorical_parameters,
                 self.continuous_parameters,
-                self.value_columns,
+                self._internal_value_columns,
             )
 
         self.order = order
@@ -119,7 +156,7 @@ class Interpolation:
             self.interpolations[key] = Order0Interp(
                 base_table,
                 self.continuous_parameters,
-                self.value_columns,
+                self._internal_value_columns,
                 self.extrapolate,
                 self.validate,
             )
@@ -148,17 +185,17 @@ class Interpolation:
         returned_columns: pd.Index[Any],
     ) -> pd.DataFrame:
         """Get the flat representation of ``data`` for interpolation."""
-        if is_indexed_form(raw_data):
+        if has_named_row_index(raw_data):
             if isinstance(raw_data, pd.Series):
                 flat = raw_data.to_frame(name=raw_data.name)
             else:
                 flat = raw_data.copy(deep=False)
-            flat.columns = pd.Index(self.value_columns)
+            flat.columns = pd.Index(self._internal_value_columns)
             return flat.reset_index()
 
         # This is the deprecated path where the input data is already in flat form
         assert isinstance(raw_data, pd.DataFrame)  # only Series/indexed paths above
-        return raw_data.rename(columns=dict(zip(list(returned_columns), self.value_columns)))
+        return raw_data.rename(columns=dict(zip(list(returned_columns), self._internal_value_columns)))
 
     def __call__(self, interpolants: pd.DataFrame) -> pd.DataFrame:
         """Get the interpolated results for the parameters in interpolants.
@@ -194,15 +231,17 @@ class Interpolation:
 
         if parts:
             result = pd.concat(parts)
-            result = result.reindex(interpolants.index)[self.value_columns]
+            result = result.reindex(interpolants.index)[self._internal_value_columns]
         else:
             # specify some numeric type for columns, so they won't be objects but
             # will be updated with whatever column type it actually is
             result = pd.DataFrame(
-                index=interpolants.index, columns=self.value_columns, dtype=np.float64
+                index=interpolants.index, columns=self._internal_value_columns, dtype=np.float64
             )
 
-        result.columns = self.returned_columns
+        # Restore the user-facing column labels (and column-index level names);
+        # the pipeline used opaque ``_FLAT_COLUMN_PREFIX`` IDs internally.
+        result.columns = self.value_columns
         return result
 
     def __repr__(self) -> str:

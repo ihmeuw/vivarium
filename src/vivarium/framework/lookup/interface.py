@@ -9,12 +9,17 @@ This module provides an interface to the :class:`LookupTableManager <vivarium.fr
 
 from __future__ import annotations
 
+import warnings
 from typing import Any, overload
 
 import pandas as pd
 
+from vivarium.framework.lookup.interpolation import has_named_row_index
 from vivarium.framework.lookup.manager import LookupTableManager
-from vivarium.framework.lookup.table import LookupTable
+from vivarium.framework.lookup.table import (
+    FLAT_DATAFRAME_DEPRECATION_MESSAGE,
+    LookupTable,
+)
 from vivarium.manager import Interface
 from vivarium.types import DataFrameMapping, LookupTableData, ScalarValue
 
@@ -58,8 +63,17 @@ class LookupTableInterface(Interface):
         self,
         data: pd.DataFrame,
         name: str = "",
-        value_columns: str | None = None,
-    ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
+        value_columns: str = ...,
+    ) -> LookupTable[pd.Series[Any]]:
+        ...
+
+    @overload
+    def build_table(
+        self,
+        data: pd.DataFrame,
+        name: str = "",
+        value_columns: None = None,
+    ) -> LookupTable[pd.DataFrame]:
         ...
 
     @overload
@@ -139,13 +153,16 @@ class LookupTableInterface(Interface):
             The source data which will be used to build the resulting
             :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`.
         name
-            The name of the table. If not provided, a generic name will be assigned.
+            The name of the table. Defaults to ``""``; when empty, the
+            manager assigns a generic ``"lookup_table_<n>"`` name. The
+            stored table is keyed as ``"<component_name>.<name>"`` so an
+            empty ``name`` produces a trailing dot in that key.
         value_columns
             Names of the value column(s) of the resulting lookup table.
 
             * For an *indexed* DataFrame or Series, ``value_columns`` is
-              inferred from the data; passing it explicitly is deprecated and
-              emits a :class:`DeprecationWarning`.
+              inferred from the data; passing it explicitly raises a
+              :class:`ValueError`.
             * For a scalar, a list/tuple of scalars, or a legacy flat
               DataFrame, ``value_columns`` is honored (and is required to
               name the output for list/tuple inputs).
@@ -154,6 +171,12 @@ class LookupTableInterface(Interface):
         -------
             LookupTable
 
+        Raises
+        ------
+        ValueError
+            If ``value_columns`` is provided alongside an indexed
+            ``pandas.DataFrame`` or ``pandas.Series``.
+
         .. deprecated:: 4.2.0
             Passing a flat :class:`pandas.DataFrame` (one whose row index is
             the default :class:`pandas.RangeIndex`) is deprecated. Construct
@@ -161,11 +184,11 @@ class LookupTableInterface(Interface):
             columns on a named ``Index`` or ``MultiIndex`` and value columns
             as the DataFrame columns. Scalars, lists/tuples, and Mapping
             inputs remain fully supported.
-
-        .. deprecated:: 4.2.0
-            Passing ``value_columns`` alongside *indexed* input is deprecated;
-            value columns are inferred from the data. ``value_columns`` is
-            still used (and required for lists/tuples) when ``data`` is a
-            scalar, a list/tuple of scalars, or a legacy flat DataFrame.
         """
+        if isinstance(data, pd.DataFrame) and not has_named_row_index(data):
+            warnings.warn(
+                FLAT_DATAFRAME_DEPRECATION_MESSAGE,
+                DeprecationWarning,
+                stacklevel=2,
+            )
         return self._manager.build_table(data, name, value_columns)

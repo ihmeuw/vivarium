@@ -5,15 +5,29 @@
   names that follow the ``<name>_start`` / ``<name>_end`` convention are treated as
   continuous parameter columns; other level names are treated as exact-match key
   columns. Column ``MultiIndex`` is also preserved on output.
-- API: ``LookupTable.value_columns`` is now typed ``list[Hashable]`` (was ``list[str]``)
-  to accommodate ``None`` (nameless Series) and tuple labels (column ``MultiIndex``).
+- API: ``LookupTable.value_columns`` is now typed ``pandas.Index[Any]`` (was
+  ``list[str]``) to accommodate ``None`` (nameless Series) and tuple labels (column
+  ``MultiIndex``). Callers that compared the property against a list (e.g.
+  ``table.value_columns == ["c"]`` or ``if "rate" in table.value_columns``) will
+  need to materialize a list first (``list(table.value_columns) == ["c"]``) — note
+  that ``==`` on a ``pandas.Index`` returns an elementwise boolean array, not a
+  scalar.
+- API (advanced): ``Interpolation.__init__`` no longer takes
+  ``categorical_parameters`` / ``continuous_parameters`` arguments; it now accepts
+  a ``returned_columns: pandas.Index`` argument and infers the parameter columns
+  from the input data using the ``<name>_start`` / ``<name>_end`` convention.
+  Direct ``Interpolation`` callers (rare) must migrate to the new signature.
+- API: ``LookupTable._returned_column_schema`` is the new home of the locked
+  column-shape contract (replaces the prior ``_column_template`` attribute referenced
+  in pre-release iterations of this branch). The schema-lock comparison is exposed
+  via the ``_schemas_match`` helper rather than a custom ``__eq__``.
+- Raise: Passing ``value_columns`` alongside an indexed ``DataFrame`` / ``Series`` now
+  raises ``ValueError``. Value columns are inferred from the data on the indexed
+  path; the previous deprecation warning silently overrode the user's argument.
 - Deprecation: Passing a flat ``pandas.DataFrame`` (one whose row index is the default
   ``RangeIndex``) to ``build_table`` / ``set_data`` is deprecated. Construct your data
   with parameter/key columns on a named row index instead. Scalars, lists/tuples, and
   ``Mapping`` inputs remain fully supported.
-- Deprecation: Passing ``value_columns`` alongside an indexed input is deprecated;
-  value columns are inferred from the data. ``value_columns`` is still used (and
-  required for lists/tuples) when ``data`` is a scalar, list/tuple, or flat DataFrame.
 
 **4.1.5 - 05/11/26**
 

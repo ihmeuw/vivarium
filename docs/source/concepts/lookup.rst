@@ -90,6 +90,15 @@ the same column structure as the input.
 
 .. note::
 
+   Parameter and key columns must live **only** on the row index, not on
+   ``.columns``. When migrating from a flat DataFrame, prefer the default
+   ``data.set_index([...])`` (which drops the columns from ``.columns``)
+   over ``data.set_index([...], drop=False)`` — the latter leaves the
+   parameter/key columns duplicated on ``.columns`` and trips the
+   "value column name collides with index level name" validation.
+
+.. note::
+
    Passing a *flat* :class:`pandas.DataFrame` — one whose row index is the
    default :class:`pandas.RangeIndex`, with parameter/key columns sitting as
    ordinary columns alongside the value columns — is still supported but
@@ -312,20 +321,34 @@ Example Usage
 ~~~~~~~~~~~~~
 
 The following is an example of creating and calling a lookup table in an
-:ref:`interactive setting <interactive_tutorial>` using the data from 
-`Construction Parameters`_ above. The interface and process are the same when 
-integrating a lookup table into a :term:`component <Component>`, which is primarily 
-how they are used. Assuming you have a valid simulation object named ``sim`` and 
-the data from the above table in a :class:`pandas.DataFrame` named ``data``, you 
-can construct a lookup table in the following way, using the interface from the builder.
-You don't have to provide a name for the table, but it is recommended to do so for clarity
-and for ease of debugging. If you don't provide value column names, it will default to
-``"value"``.
- 
+:ref:`interactive setting <interactive_tutorial>` using the data from
+`Construction Parameters`_ above. The interface and process are the same when
+integrating a lookup table into a :term:`component <Component>`, which is
+primarily how they are used. Assuming you have a valid simulation object
+named ``sim``, you can construct a lookup table in the following way using
+the interface from the builder. You don't have to provide a name for the
+table, but it is recommended to do so for clarity and for ease of debugging.
+
+In the recommended *indexed form*, the parameter/key columns live on the row
+index and the single :class:`pandas.Series` column becomes the table's return
+value. The Series ``name`` (``"BMI"`` below) is what the returned Series will
+be named when the table is called.
+
 
 .. code-block:: python
 
-      # value_columns implicitly set to remaining columns
+    > import pandas as pd
+    > data = pd.Series(
+    ...     [20, 25, 30, 27] * 2,
+    ...     index=pd.MultiIndex.from_tuples(
+    ...         [
+    ...             ("Male", 0, 20), ("Male", 20, 40), ("Male", 40, 60), ("Male", 60, 100),
+    ...             ("Female", 0, 20), ("Female", 20, 40), ("Female", 40, 60), ("Female", 60, 100),
+    ...         ],
+    ...         names=["sex", "age_start", "age_end"],
+    ...     ),
+    ...     name="BMI",
+    ... )
     > bmi = sim.builder.lookup.build_table(data, name="bmi")
     > pop_index = sim.get_population_index()
     > bmi(pop_index).head()  # returns BMI values for the population
