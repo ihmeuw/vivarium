@@ -98,6 +98,15 @@ class LookupTableInterface(Interface):
     ) -> LookupTable[pd.DataFrame]:
         ...
 
+    @overload
+    def build_table(
+        self,
+        data: LookupTableData,
+        name: str = "",
+        value_columns: list[str] | tuple[str, ...] | str | None = None,
+    ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
+        ...
+
     def build_table(
         self,
         data: LookupTableData,

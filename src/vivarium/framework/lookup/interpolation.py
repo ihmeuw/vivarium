@@ -131,9 +131,8 @@ class Interpolation:
         parameter_columns_set = set(parameter_columns)
         continuous_columns: list[str] = []
         for column in parameter_columns:
-            col_str = str(column)
-            if col_str.endswith("_start"):
-                base = col_str.removesuffix("_start")
+            if column.endswith("_start"):
+                base = column.removesuffix("_start")
                 if f"{base}_end" in parameter_columns_set:
                     continuous_columns.append(base)
         return [(p, f"{p}_start", f"{p}_end") for p in continuous_columns]
@@ -144,11 +143,11 @@ class Interpolation:
         return [col for col in parameter_columns if col not in bin_edge_columns]
 
     def _reshape_data(
-        self, raw_data: pd.DataFrame | pd.Series, returned_columns: pd.Index
-    ) -> LookupTableData:
+        self,
+        raw_data: pd.DataFrame | pd.Series[Any],
+        returned_columns: pd.Index[Any],
+    ) -> pd.DataFrame:
         """Get the flat representation of ``data`` for interpolation."""
-        if not isinstance(raw_data, (pd.DataFrame, pd.Series)):
-            return raw_data
         if is_indexed_form(raw_data):
             if isinstance(raw_data, pd.Series):
                 flat = raw_data.to_frame(name=raw_data.name)
@@ -373,7 +372,7 @@ class Order0Interp:
         self,
         data: pd.DataFrame,
         continuous_parameters: Sequence[tuple[str, str, str]],
-        value_columns: list[Hashable],
+        value_columns: list[str],
         extrapolate: bool,
         validate: bool,
     ):

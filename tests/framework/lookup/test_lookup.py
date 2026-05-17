@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 import warnings
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -19,7 +19,7 @@ from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.lookup.manager import LookupTableManager
 from vivarium.framework.lookup.table import LookupTable, _ColumnTemplate
 from vivarium.testing_utilities import TestPopulation, build_table, metadata
-from vivarium.types import LookupTableData, ScalarValue
+from vivarium.types import DataFrameMapping, LookupTableData, ScalarValue
 
 
 def test_build_table_calls_methods_correctly(mocker: MockerFixture) -> None:
@@ -1113,7 +1113,10 @@ class TestIndexedInput:
         trigger the flat-DataFrame deprecation even though it is converted
         internally to a flat DataFrame."""
         manager._get_current_component.return_value = LookupCreator()  # type: ignore [attr-defined]
-        data = {"sex": ["Female", "Male"], "value": [100, 200]}
+        data: DataFrameMapping = {
+            "sex": ["Female", "Male"],
+            "value": cast("list[ScalarValue]", [100.0, 200.0]),
+        }
         with warnings.catch_warnings():
             warnings.simplefilter("error", DeprecationWarning)
             manager.build_table(data, "test", value_columns="value")
