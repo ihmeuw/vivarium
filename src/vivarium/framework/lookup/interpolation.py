@@ -70,13 +70,20 @@ class Interpolation:
             )
 
         self.returned_columns = returned_columns
-        self.value_columns = [f"{self._FLAT_COLUMN_PREFIX}{i}" for i in range(len(returned_columns))]
+        self.value_columns = [
+            f"{self._FLAT_COLUMN_PREFIX}{i}" for i in range(len(returned_columns))
+        ]
         parameter_columns = (
             list(data.index.names)
             if is_indexed_form(data)
             else [c for c in data.columns if c not in returned_columns]
         )
-        self._set_continuous_and_categorical_parameters(parameter_columns)
+        self.continuous_parameters: list[
+            tuple[str, str, str]
+        ] = self._get_continuous_parameters(parameter_columns)
+        self.categorical_parameters: list[str] = self._get_categorical_parameters(
+            parameter_columns
+        )
         self.data = self._reshape_data(data, returned_columns)
 
         if validate:
@@ -117,6 +124,25 @@ class Interpolation:
                 self.validate,
             )
 
+    def _get_continuous_parameters(
+        self, parameter_columns: list[str]
+    ) -> list[tuple[str, str, str]]:
+        """Get continuous parameter columns as tuples of (base, start, end)."""
+        parameter_columns_set = set(parameter_columns)
+        continuous_columns: list[str] = []
+        for column in parameter_columns:
+            col_str = str(column)
+            if col_str.endswith("_start"):
+                base = col_str.removesuffix("_start")
+                if f"{base}_end" in parameter_columns_set:
+                    continuous_columns.append(base)
+        return [(p, f"{p}_start", f"{p}_end") for p in continuous_columns]
+
+    def _get_categorical_parameters(self, parameter_columns: list[str]) -> list[str]:
+        """Get categorical parameter columns."""
+        bin_edge_columns = {edge for p in self.continuous_parameters for edge in p[1:]}
+        return [col for col in parameter_columns if col not in bin_edge_columns]
+
     def _reshape_data(
         self, raw_data: pd.DataFrame | pd.Series, returned_columns: pd.Index
     ) -> LookupTableData:
@@ -134,28 +160,6 @@ class Interpolation:
         # This is the deprecated path where the input data is already in flat form
         assert isinstance(raw_data, pd.DataFrame)  # only Series/indexed paths above
         return raw_data.rename(columns=dict(zip(list(returned_columns), self.value_columns)))
-
-    def _set_continuous_and_categorical_parameters(
-        self, parameter_columns: list[Hashable]
-    ) -> None:
-        """Partition ``parameter_columns`` into continuous (``_start``/``_end`` pairs) and categorical."""
-        parameter_columns_set = set(parameter_columns)
-        continuous_columns: list[str] = []
-        bin_edge_columns: set[Hashable] = set()
-        for column in parameter_columns:
-            col_str = str(column)
-            if col_str.endswith("_start"):
-                base = col_str.removesuffix("_start")
-                if f"{base}_end" in parameter_columns_set:
-                    continuous_columns.append(base)
-                    bin_edge_columns.update({col_str, f"{base}_end"})
-
-        self.categorical_parameters = [
-            col for col in parameter_columns if col not in bin_edge_columns
-        ]
-        self.continuous_parameters: list[tuple[str, str, str]] = [
-            (p, f"{p}_start", f"{p}_end") for p in continuous_columns
-        ]
 
     def __call__(self, interpolants: pd.DataFrame) -> pd.DataFrame:
         """Get the interpolated results for the parameters in interpolants.
