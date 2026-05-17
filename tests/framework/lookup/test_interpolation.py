@@ -20,14 +20,14 @@ def make_bin_edges(data: pd.DataFrame, col: str) -> pd.DataFrame:
     mid_pts = data[[col]].drop_duplicates().sort_values(by=col).reset_index(drop=True)
     mid_pts["shift"] = mid_pts[col].shift()
 
-    mid_pts["left"] = mid_pts.apply(
+    mid_pts["start"] = mid_pts.apply(
         lambda row: (row[col] if pd.isna(row["shift"]) else 0.5 * (row[col] + row["shift"])),
         axis=1,
     )
 
-    mid_pts["right"] = mid_pts["left"].shift(-1)
-    mid_pts["right"] = mid_pts.right.fillna(
-        mid_pts.right.max() + mid_pts.left.tolist()[-1] - mid_pts.left.tolist()[-2]
+    mid_pts["end"] = mid_pts["start"].shift(-1)
+    mid_pts["end"] = mid_pts.end.fillna(
+        mid_pts.end.max() + mid_pts.start.tolist()[-1] - mid_pts.start.tolist()[-2]
     )
 
     data = data.copy()
@@ -36,9 +36,9 @@ def make_bin_edges(data: pd.DataFrame, col: str) -> pd.DataFrame:
     data = data.set_index(col, drop=False)
     mid_pts = mid_pts.set_index(col, drop=False)
 
-    data[[col, f"{col}_left", f"{col}_right"]] = mid_pts[[col, "left", "right"]]
+    data[[f"{col}_start", f"{col}_end"]] = mid_pts[["start", "end"]]
 
-    return data.set_index(idx)
+    return data.set_index(idx).drop(columns=[col])
 
 
 @pytest.mark.skip(reason="only order 0 interpolation currently supported")
@@ -46,7 +46,14 @@ def test_1d_interpolation() -> None:
     df = pd.DataFrame({"a": np.arange(100), "b": np.arange(100), "c": np.arange(100, 0, -1)})
     df = df.sample(frac=1)  # Shuffle table to assure interpolation works given unsorted input
 
-    i = Interpolation(df, (), [("a", "a_start", "a_end")], ("c",), 1, True, True)
+    i = Interpolation(
+        df,
+        value_columns=["c"],
+        original_columns=pd.Index(["c"]),
+        order=1,
+        extrapolate=True,
+        validate=True,
+    )
 
     query = pd.DataFrame({"a": np.arange(0, 100, step=0.01)})
 
@@ -69,7 +76,12 @@ def test_age_year_interpolation() -> None:
     df = df.sample(frac=1)  # Shuffle table to assure interpolation works given unsorted input
 
     i = Interpolation(
-        df, ("sex", "age"), [("year", "year_start", "year_end")], ("pop",), 1, True, True
+        df,
+        value_columns=["pop"],
+        original_columns=pd.Index(["pop"]),
+        order=1,
+        extrapolate=True,
+        validate=True,
     )
     query = pd.DataFrame({"year": [1990, 1990], "age": [35, 35], "sex": ["Male", "Female"]})
     assert np.allclose(i(query), 388.5)
@@ -88,8 +100,14 @@ def test_interpolation_called_missing_param_col(query: pd.DataFrame) -> None:
     df = pd.DataFrame(list(itertools.product(*a)), columns=["year", "age", "sex"])
     df["pop"] = df.age * 11.1
     df = df.sample(frac=1)  # Shuffle table to assure interpolation works given unsorted input
-    param_cols = [("year", "year_start", "year_end"), ("age", "age_start", "age_end")]
-    i = Interpolation(df, ["sex"], param_cols, ["pop"], 1, True, True)
+    i = Interpolation(
+        df,
+        value_columns=["pop"],
+        original_columns=pd.Index(["pop"]),
+        order=1,
+        extrapolate=True,
+        validate=True,
+    )
     with pytest.raises(ValueError):
         i(query)
 
@@ -101,8 +119,14 @@ def test_2d_interpolation() -> None:
     df = pd.DataFrame({"a": a, "b": b, "c": b, "d": a})
     df = df.sample(frac=1)  # Shuffle table to assure interpolation works given unsorted input
 
-    param_cols = [("a", "a_start", "a_end"), ("b", "b_start", "b_end")]
-    i = Interpolation(df, (), param_cols, ["c", "d"], 1, True, True)
+    i = Interpolation(
+        df,
+        value_columns=["c", "d"],
+        original_columns=pd.Index(["c", "d"]),
+        order=1,
+        extrapolate=True,
+        validate=True,
+    )
 
     query = pd.DataFrame({"a": np.arange(0, 4, step=0.01), "b": np.arange(0, 4, step=0.01)})
 
@@ -118,7 +142,14 @@ def test_interpolation_with_categorical_parameters() -> None:
     df = pd.DataFrame({"a": a, "b": b, "c": c})
     df = df.sample(frac=1)  # Shuffle table to assure interpolation works given unsorted input
 
-    i = Interpolation(df, ("a",), [("b", "b_start", "b_end")], ["c"], 1, True, True)
+    i = Interpolation(
+        df,
+        value_columns=["c"],
+        original_columns=pd.Index(["c"]),
+        order=1,
+        extrapolate=True,
+        validate=True,
+    )
 
     query_one = pd.DataFrame({"a": "one", "b": np.arange(0, 100, step=0.01)})
     query_two = pd.DataFrame({"a": "two", "b": np.arange(0, 100, step=0.01)})
@@ -138,9 +169,8 @@ def test_order_zero_2d() -> None:
 
     i = Interpolation(
         df,
-        ("garbage",),
-        [("a", "a_left", "a_right"), ("b", "b_left", "b_right")],
-        ["c"],
+        value_columns=["c"],
+        original_columns=pd.Index(["c"]),
         order=0,
         extrapolate=True,
         validate=True,
@@ -162,9 +192,8 @@ def test_order_zero_2d_fails_on_extrapolation() -> None:
 
     i = Interpolation(
         df,
-        ("garbage",),
-        [("a", "a_left", "a_right"), ("b", "b_left", "b_right")],
-        ["c"],
+        value_columns=["c"],
+        original_columns=pd.Index(["c"]),
         order=0,
         extrapolate=False,
         validate=True,
@@ -186,9 +215,8 @@ def test_order_zero_1d_no_extrapolation() -> None:
     s = make_bin_edges(s, "index")
     f = Interpolation(
         s,
-        tuple(),
-        [["index", "index_left", "index_right"]],
-        ["val"],
+        value_columns=["val"],
+        original_columns=pd.Index(["val"]),
         order=0,
         extrapolate=False,
         validate=True,
@@ -209,9 +237,8 @@ def test_order_zero_1d_constant_extrapolation() -> None:
     s = make_bin_edges(s, "index")
     f = Interpolation(
         s,
-        tuple(),
-        [["index", "index_left", "index_right"]],
-        ["val"],
+        value_columns=["val"],
+        original_columns=pd.Index(["val"]),
         order=0,
         extrapolate=True,
         validate=True,
@@ -231,7 +258,7 @@ def test_validate_parameters__empty_data() -> None:
                 columns=["age_left", "age_right", "sex", "year_left", "year_right", "value"]
             ),
             ["sex"],
-            [("age", "age_left", "age_right"), ["year", "year_left", "year_right"]],
+            [("age", "age_left", "age_right"), ("year", "year_left", "year_right")],
             ["value"],
         )
 
@@ -248,7 +275,7 @@ def test_check_data_complete_gaps() -> None:
 
     with pytest.raises(NotImplementedError) as error:
         check_data_complete(
-            data, [("year", "year_start", "year_end"), ["age", "age_start", "age_end"]]
+            data, [("year", "year_start", "year_end"), ("age", "age_start", "age_end")]
         )
 
     message = error.value.args[0]
@@ -284,7 +311,7 @@ def test_check_data_missing_combos() -> None:
 
     with pytest.raises(ValueError) as error:
         check_data_complete(
-            data, [["year", "year_start", "year_end"], ("age", "age_start", "age_end")]
+            data, [("year", "year_start", "year_end"), ("age", "age_start", "age_end")]
         )
 
     message = error.value.args[0]
@@ -340,8 +367,14 @@ def test_order_zero_1d_with_key_column() -> None:
         }
     )
 
-    param_cols = [("year", "year_start", "year_end")]
-    i = Interpolation(data, ["sex"], param_cols, ["value_1", "value_2"], 0, True, True)
+    i = Interpolation(
+        data,
+        value_columns=["value_1", "value_2"],
+        original_columns=pd.Index(["value_1", "value_2"]),
+        order=0,
+        extrapolate=True,
+        validate=True,
+    )
 
     query = pd.DataFrame(
         {
@@ -372,8 +405,14 @@ def test_order_zero_non_numeric_values() -> None:
         }
     )
 
-    param_cols = [("year", "year_start", "year_end"), ("age", "age_start", "age_end")]
-    i = Interpolation(data, tuple(), param_cols, ["value_1"], 0, True, True)
+    i = Interpolation(
+        data,
+        value_columns=["value_1"],
+        original_columns=pd.Index(["value_1"]),
+        order=0,
+        extrapolate=True,
+        validate=True,
+    )
 
     query = pd.DataFrame(
         {
@@ -405,19 +444,13 @@ def test_order_zero_3d_with_key_col() -> None:
         }
     )
 
-    param_cols = [
-        ("age", "age_start", "age_end"),
-        ("year", "year_start", "year_end"),
-        ("height", "height_start", "height_end"),
-    ]
     interp = Interpolation(
         data,
-        ("sex",),
-        param_cols,
-        ["value"],
-        0,
-        True,
-        True,
+        value_columns=["value"],
+        original_columns=pd.Index(["value"]),
+        order=0,
+        extrapolate=True,
+        validate=True,
     )
 
     interpolants = pd.DataFrame(
@@ -449,8 +482,14 @@ def test_order_zero_diff_bin_sizes() -> None:
         }
     )
 
-    param_cols = [("year", "year_start", "year_end")]
-    i = Interpolation(data, tuple(), param_cols, ["value"], 0, False, True)
+    i = Interpolation(
+        data,
+        value_columns=["value"],
+        original_columns=pd.Index(["value"]),
+        order=0,
+        extrapolate=False,
+        validate=True,
+    )
 
     query = pd.DataFrame({"year": [2007, 1990, 2005.4, 1994, 2004, 1995, 2002, 1995.5, 1996]})
 
@@ -460,6 +499,9 @@ def test_order_zero_diff_bin_sizes() -> None:
 
 
 def test_order_zero_given_call_column() -> None:
+    # The auto-detected continuous parameter ("year") matches both the bin-edge
+    # prefix and the query column name; the redundant "year" column from the
+    # legacy test data is dropped since the new design infers the call column.
     data = pd.DataFrame(
         {
             "year_start": [
@@ -470,13 +512,18 @@ def test_order_zero_given_call_column() -> None:
                 2005.5,
             ],
             "year_end": [1995, 1996, 2005, 2005.5, 2010],
-            "year": [1992.5, 1995.5, 2000, 2005.25, 2007.75],
             "value": [1, 5, 2.3, 6, 100],
         }
     )
 
-    param_cols = [("year", "year_start", "year_end")]
-    i = Interpolation(data, tuple(), param_cols, ["value"], 0, False, True)
+    i = Interpolation(
+        data,
+        value_columns=["value"],
+        original_columns=pd.Index(["value"]),
+        order=0,
+        extrapolate=False,
+        validate=True,
+    )
 
     query = pd.DataFrame({"year": [2007, 1990, 2005.4, 1994, 2004, 1995, 2002, 1995.5, 1996]})
 
@@ -491,25 +538,51 @@ def test_interpolation_init_validate_option_invalid_data(validate: bool) -> None
         with pytest.raises(
             ValueError, match="You must supply non-empty data to create the interpolation."
         ):
-            i = Interpolation(pd.DataFrame(), [], [], [], 0, True, validate)
+            Interpolation(
+                pd.DataFrame(),
+                value_columns=[],
+                original_columns=pd.Index([]),
+                order=0,
+                extrapolate=True,
+                validate=validate,
+            )
     else:
-        i = Interpolation(pd.DataFrame(), [], [], [], 0, True, validate)
+        Interpolation(
+            pd.DataFrame(),
+            value_columns=[],
+            original_columns=pd.Index([]),
+            order=0,
+            extrapolate=True,
+            validate=validate,
+        )
 
 
 @pytest.mark.parametrize("validate", [True, False])
 def test_interpolation_init_validate_option_valid_data(validate: bool) -> None:
     s = pd.Series({0: 0, 1: 1}, name="val").reset_index()
     s = make_bin_edges(s, "index")
-    param_cols = [["index", "index_left", "index_right"]]
-    Interpolation(s, tuple(), param_cols, ["val"], 0, True, validate)
+    Interpolation(
+        s,
+        value_columns=["val"],
+        original_columns=pd.Index(["val"]),
+        order=0,
+        extrapolate=True,
+        validate=validate,
+    )
 
 
 @pytest.mark.parametrize("validate", [True, False])
 def test_interpolation_call_validate_option_invalid_data(validate: bool) -> None:
     s = pd.Series({0: 0, 1: 1}, name="val").reset_index()
     s = make_bin_edges(s, "index")
-    param_cols = [["index", "index_left", "index_right"]]
-    i = Interpolation(s, tuple(), param_cols, ["val"], 0, True, validate)
+    i = Interpolation(
+        s,
+        value_columns=["val"],
+        original_columns=pd.Index(["val"]),
+        order=0,
+        extrapolate=True,
+        validate=validate,
+    )
     if validate:
         with pytest.raises(
             TypeError, match=r"Interpolations can only be called on pandas.DataFrames.*"
@@ -536,8 +609,14 @@ def test_interpolation_call_validate_option_valid_data(validate: bool) -> None:
         }
     )
 
-    param_cols = [("year", "year_start", "year_end")]
-    i = Interpolation(data, tuple(), param_cols, ["value"], 0, False, validate)
+    i = Interpolation(
+        data,
+        value_columns=["value"],
+        original_columns=pd.Index(["value"]),
+        order=0,
+        extrapolate=False,
+        validate=validate,
+    )
     query = pd.DataFrame({"year": [2007, 1990, 2005.4, 1994, 2004, 1995, 2002, 1995.5, 1996]})
 
     result = i(query)

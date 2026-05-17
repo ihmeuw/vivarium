@@ -15,23 +15,22 @@ the individuals represented by that index. See the
 from __future__ import annotations
 
 import warnings
-from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 from layered_config_tree import LayeredConfigTree
 
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
-from vivarium.framework.lookup.table import LookupTable, DEFAULT_VALUE_COLUMN
+from vivarium.framework.lookup.table import DEFAULT_VALUE_COLUMN, LookupTable, is_indexed_form
 from vivarium.manager import Manager
-from vivarium.types import DataFrameMapping, LookupTableData, ScalarValue
+from vivarium.types import LookupTableData
 
 VALUE_COLUMNS_DEPRECATION_MESSAGE = (
-    "The `value_columns` argument to LookupTable.build_table is deprecated and "
-    "will be removed in a future release. Construct your data with the value "
-    "columns on the DataFrame columns (and parameter/key columns on the row "
-    "index) instead; the lookup table will infer the value columns from the data."
+    "The `value_columns` argument to LookupTable.build_table is deprecated "
+    "and will be removed in a future release when ``data`` is in indexed "
+    "form. Value columns are inferred from the DataFrame columns (or the "
+    "Series name) of an indexed input."
 )
 
 if TYPE_CHECKING:
@@ -95,69 +94,6 @@ class LookupTableManager(Manager):
                         f" table '{table_name}' during setup."
                     )
 
-    @overload
-    def build_table(
-        self,
-        data: pd.Series[Any],
-        name: str,
-        value_columns: None,
-    ) -> LookupTable[pd.Series[Any]]:
-        ...
-
-    @overload
-    def build_table(
-        self,
-        data: pd.DataFrame,
-        name: str,
-        value_columns: list[str] | tuple[str, ...],
-    ) -> LookupTable[pd.DataFrame]:
-        ...
-
-    @overload
-    def build_table(
-        self,
-        data: pd.DataFrame,
-        name: str,
-        value_columns: str | None,
-    ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
-        ...
-
-    @overload
-    def build_table(
-        self,
-        data: ScalarValue,
-        name: str,
-        value_columns: str | None,
-    ) -> LookupTable[pd.Series[Any]]:
-        ...
-
-    @overload
-    def build_table(
-        self,
-        data: list[ScalarValue] | tuple[ScalarValue, ...],
-        name: str,
-        value_columns: list[str] | tuple[str, ...],
-    ) -> LookupTable[pd.DataFrame]:
-        ...
-
-    @overload
-    def build_table(
-        self,
-        data: DataFrameMapping,
-        name: str,
-        value_columns: str | None,
-    ) -> LookupTable[pd.Series[Any]]:
-        ...
-
-    @overload
-    def build_table(
-        self,
-        data: DataFrameMapping,
-        name: str,
-        value_columns: list[str] | tuple[str, ...],
-    ) -> LookupTable[pd.DataFrame]:
-        ...
-
     def build_table(
         self,
         data: LookupTableData,
@@ -165,10 +101,7 @@ class LookupTableManager(Manager):
         value_columns: list[str] | tuple[str, ...] | str | None,
     ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
         """Construct a lookup table from input data."""
-        if value_columns is not None and (
-            isinstance(data, pd.Series)
-            or (isinstance(data, pd.DataFrame) and not isinstance(data.index, pd.RangeIndex))
-        ):
+        if value_columns is not None and is_indexed_form(data):
             warnings.warn(
                 VALUE_COLUMNS_DEPRECATION_MESSAGE,
                 DeprecationWarning,
@@ -202,9 +135,6 @@ class LookupTableManager(Manager):
         # generic names is useful for introspection.
         if not name:
             name = f"lookup_table_{len(self.tables)}"
-
-        if isinstance(data, Mapping):
-            data = pd.DataFrame(data)
 
         table = LookupTable(
             name=name,

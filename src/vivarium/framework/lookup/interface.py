@@ -104,9 +104,9 @@ class LookupTableInterface(Interface):
         name: str = "",
         value_columns: list[str] | tuple[str, ...] | str | None = None,
     ) -> LookupTable[pd.Series[Any]] | LookupTable[pd.DataFrame]:
-        """Construct a LookupTable from input data.
+        """Construct and register a :class:`LookupTable <vivarium.framework.lookup.table.LookupTable>`
+        from input data.
 
-        # TODO fix this docstring
         The recommended form of ``data`` is a :class:`pandas.DataFrame` (or
         :class:`pandas.Series`) whose row index carries the parameter/key
         columns and whose DataFrame columns carry the value columns. Row-index
@@ -119,22 +119,10 @@ class LookupTableInterface(Interface):
         table to return a :class:`pandas.DataFrame` with the same column
         structure as the input.
 
-        If the data is a scalar value, this will return a table that, when
-        called, returns that scalar value for each index entry.
-
-        # TODO this is incorrect - a scalar or a list/tuple of scalars is supported
-        # TODO what does deprecated:: 4.0 mean?
-        .. deprecated:: 4.0
-            Passing data without a structured index -- a flat DataFrame, a
-            scalar, or a list/tuple of scalars -- is deprecated. Construct
-            your data with the parameter/key columns on the row index and
-            the value columns on the DataFrame columns instead.
-
-        # TODO this is also incorrect - value_columns is still required for scalar and list/tuple inputs
-        .. deprecated:: 4.0
-            The ``value_columns`` argument is deprecated. In the recommended
-            (indexed) form, value columns are inferred from the DataFrame's
-            columns; the argument is ignored in that case.
+        Scalars and lists/tuples of scalars are also supported; when called,
+        the table broadcasts the value(s) over the population index. Mappings
+        (e.g., ``dict``) are accepted and converted to a ``DataFrame``
+        internally.
 
         Parameters
         ----------
@@ -144,13 +132,31 @@ class LookupTableInterface(Interface):
         name
             The name of the table. If not provided, a generic name will be assigned.
         value_columns
-            # TODO this is incorrect - value_columns is still required for scalar and list/tuple inputs
-            Deprecated. Only used for legacy flat-DataFrame, scalar, and
-            list inputs. In indexed mode, value columns are inferred from the
-            data and this argument is ignored.
+            Names of the value column(s) of the resulting lookup table.
+
+            * For an *indexed* DataFrame or Series, ``value_columns`` is
+              inferred from the data; passing it explicitly is deprecated and
+              emits a :class:`DeprecationWarning`.
+            * For a scalar, a list/tuple of scalars, or a legacy flat
+              DataFrame, ``value_columns`` is honored (and is required to
+              name the output for list/tuple inputs).
 
         Returns
         -------
             LookupTable
+
+        .. deprecated:: 4.2.0
+            Passing a flat :class:`pandas.DataFrame` (one whose row index is
+            the default :class:`pandas.RangeIndex`) is deprecated. Construct
+            your DataFrame (or :class:`pandas.Series`) with parameter/key
+            columns on a named ``Index`` or ``MultiIndex`` and value columns
+            as the DataFrame columns. Scalars, lists/tuples, and Mapping
+            inputs remain fully supported.
+
+        .. deprecated:: 4.2.0
+            Passing ``value_columns`` alongside *indexed* input is deprecated;
+            value columns are inferred from the data. ``value_columns`` is
+            still used (and required for lists/tuples) when ``data`` is a
+            scalar, a list/tuple of scalars, or a legacy flat DataFrame.
         """
-        return self._manager.build_table(data, name, value_columns)  # type: ignore [arg-type]
+        return self._manager.build_table(data, name, value_columns)

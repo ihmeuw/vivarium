@@ -1,3 +1,20 @@
+**4.2.0 - TBD**
+
+- Feature: Support indexed (named ``Index`` / ``MultiIndex``) ``pandas.DataFrame`` and
+  ``pandas.Series`` inputs to ``LookupTableInterface.build_table``. Row-index level
+  names that follow the ``<name>_start`` / ``<name>_end`` convention are treated as
+  continuous parameter columns; other level names are treated as exact-match key
+  columns. Column ``MultiIndex`` is also preserved on output.
+- API: ``LookupTable.value_columns`` is now typed ``list[Hashable]`` (was ``list[str]``)
+  to accommodate ``None`` (nameless Series) and tuple labels (column ``MultiIndex``).
+- Deprecation: Passing a flat ``pandas.DataFrame`` (one whose row index is the default
+  ``RangeIndex``) to ``build_table`` / ``set_data`` is deprecated. Construct your data
+  with parameter/key columns on a named row index instead. Scalars, lists/tuples, and
+  ``Mapping`` inputs remain fully supported.
+- Deprecation: Passing ``value_columns`` alongside an indexed input is deprecated;
+  value columns are inferred from the data. ``value_columns`` is still used (and
+  required for lists/tuples) when ``data`` is a scalar, list/tuple, or flat DataFrame.
+
 **4.1.5 - 05/11/26**
 
 - Feature: Convert stratified observer object columns to categorical

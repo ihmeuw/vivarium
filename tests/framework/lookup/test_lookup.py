@@ -355,12 +355,27 @@ class TestLookupTableResource:
 
 class TestValidateBuildTableParameters:
     @pytest.mark.parametrize(
-        "data", [None, pd.DataFrame(), pd.DataFrame(columns=["a", "b", "c"]), [], tuple()]
+        "data",
+        [
+            None,
+            pd.DataFrame(),
+            pd.DataFrame(columns=["a", "b", "c"]),
+            pd.Series(dtype=float),
+            [],
+            tuple(),
+        ],
     )
     def test_no_data(self, data: LookupTableData, mocker: MockerFixture) -> None:
         with pytest.raises(ValueError, match="supply some data"):
             mock_table = mocker.Mock(spec=LookupTable)
             LookupTable._validate_data_inputs(mock_table, data)
+
+    def test_validate_flat_series_rejected(self, mocker: MockerFixture) -> None:
+        """A pandas Series with a default RangeIndex is rejected at the
+        shared entry point even when not going through ``_build_table``."""
+        mock_table = mocker.Mock(spec=LookupTable)
+        with pytest.raises(ValueError, match="structured"):
+            LookupTable._validate_data_inputs(mock_table, pd.Series([1.0, 2.0]))
 
     @pytest.mark.parametrize(
         "data, value_columns, return_type, match",
@@ -383,9 +398,11 @@ class TestValidateBuildTableParameters:
             template: _ColumnTemplate[Any] = _ColumnTemplate(
                 original_columns=pd.Index(value_columns),
                 return_type=return_type,
-                flat_to_original={col: col for col in value_columns},
             )
-            LookupTable._validate_data_shape(mock_table, data, template)
+            # ``_validate_shape`` reads the template off ``self._column_template``;
+            # override the mock's attribute lookup to return our fixture template.
+            mock_table._column_template = template
+            LookupTable._validate_shape(mock_table, data)
 
     @pytest.mark.parametrize("data", ["FAIL", pd.Interval(5, 10), "2019-05-17"])
     def test_validate_parameters_fail_other_data(
@@ -869,6 +886,58 @@ class TestLookupTableSetData:
         )
 
 
+class TestColumnTemplate:
+    """Unit tests for ``_ColumnTemplate.__eq__`` -- the schema-lock invariant."""
+
+    def test_eq_identical(self) -> None:
+        a = _ColumnTemplate(original_columns=pd.Index(["x"]), return_type=pd.Series)
+        b = _ColumnTemplate(original_columns=pd.Index(["x"]), return_type=pd.Series)
+        assert a == b
+
+    def test_eq_different_return_type(self) -> None:
+        a = _ColumnTemplate(original_columns=pd.Index(["x"]), return_type=pd.Series)
+        b = _ColumnTemplate(original_columns=pd.Index(["x"]), return_type=pd.DataFrame)
+        assert a != b
+
+    def test_eq_different_columns(self) -> None:
+        a = _ColumnTemplate(original_columns=pd.Index(["x"]), return_type=pd.DataFrame)
+        b = _ColumnTemplate(original_columns=pd.Index(["y"]), return_type=pd.DataFrame)
+        assert a != b
+
+    def test_eq_multiindex(self) -> None:
+        cols_a = pd.MultiIndex.from_tuples(
+            [("rate", "low"), ("rate", "high")], names=["measure", "level"]
+        )
+        cols_b = pd.MultiIndex.from_tuples(
+            [("rate", "low"), ("rate", "high")], names=["measure", "level"]
+        )
+        a = _ColumnTemplate(original_columns=cols_a, return_type=pd.DataFrame)
+        b = _ColumnTemplate(original_columns=cols_b, return_type=pd.DataFrame)
+        assert a == b
+
+    def test_eq_multiindex_differs_only_in_names(self) -> None:
+        """``pd.Index.equals`` ignores level names; ``__eq__`` must catch the
+        difference so that a re-set_data with reordered/renamed levels fails."""
+        cols_a = pd.MultiIndex.from_tuples([("rate", "low")], names=["measure", "level"])
+        cols_b = pd.MultiIndex.from_tuples([("rate", "low")], names=["metric", "tier"])
+        a = _ColumnTemplate(original_columns=cols_a, return_type=pd.DataFrame)
+        b = _ColumnTemplate(original_columns=cols_b, return_type=pd.DataFrame)
+        assert a != b
+
+    def test_eq_against_non_template_is_false(self) -> None:
+        a = _ColumnTemplate(original_columns=pd.Index(["x"]), return_type=pd.Series)
+        assert a != "x"
+        assert a != 0
+        assert a != None  # noqa: E711
+
+    def test_is_unhashable(self) -> None:
+        """``__hash__`` is explicitly ``None`` -- templates cannot be put into
+        sets or dict keys, matching the unhashable-because-eq-is-defined rule."""
+        a = _ColumnTemplate(original_columns=pd.Index(["x"]), return_type=pd.Series)
+        with pytest.raises(TypeError):
+            hash(a)
+
+
 class TestIndexedInput:
     """Tests for indexed-DataFrame / Series input to LookupTable.
 
@@ -912,7 +981,7 @@ class TestIndexedInput:
         assert table.parameter_columns == ["age"]
         assert table.key_columns == ["sex"]
         assert table.value_columns == ["rate"]
-        assert table.column_template.return_type is pd.DataFrame
+        assert table._column_template.return_type is pd.DataFrame
 
     def test_column_multiindex_preserved(self, manager: LookupTableManager) -> None:
         index = pd.MultiIndex.from_tuples(
@@ -925,14 +994,16 @@ class TestIndexedInput:
         table = manager._build_table(LookupCreator(), data, "test", value_columns=None)
         assert table.parameter_columns == ["age"]
         assert table.key_columns == []
-        # The flat value column names are the tuple-joined strings.
-        assert table.value_columns == ["rate__Female", "rate__Male"]
+        # value_columns exposes the user-facing labels (the original tuples),
+        # not the opaque internal IDs used for the interpolation pipeline.
+        assert table.value_columns == [("rate", "Female"), ("rate", "Male")]
         # The column template preserves the original MultiIndex for output.
         assert isinstance(table._column_template.original_columns, pd.MultiIndex)
         assert list(table._column_template.original_columns) == [
             ("rate", "Female"),
             ("rate", "Male"),
         ]
+        assert table._column_template.original_columns.names == ["measure", "sex"]
 
     def test_series_input_returns_series(self, manager: LookupTableManager) -> None:
         data = pd.Series(
@@ -941,7 +1012,7 @@ class TestIndexedInput:
             name="rate",
         )
         table = manager._build_table(LookupCreator(), data, "test", value_columns=None)
-        assert table.column_template.return_type is pd.Series
+        assert table._column_template.return_type is pd.Series
         assert table.value_columns == ["rate"]
         assert table.key_columns == ["sex"]
         assert table.parameter_columns == []
@@ -955,7 +1026,7 @@ class TestIndexedInput:
         data = pd.Series([0.1, 0.2], index=pd.Index(["Female", "Male"], name="sex"))
         assert data.name is None
         table = manager._build_table(LookupCreator(), data, "test", value_columns=None)
-        assert table.column_template.return_type is pd.Series
+        assert table._column_template.return_type is pd.Series
         assert table.value_columns == [None]
 
     def test_single_level_named_index_triggers_new_mode(
@@ -980,18 +1051,30 @@ class TestIndexedInput:
     def test_flat_dataframe_emits_deprecation_warning(
         self, manager: LookupTableManager
     ) -> None:
+        """Passing a flat DataFrame to the public ``build_table`` entry point
+        emits exactly one ``DeprecationWarning`` mentioning flat DataFrames."""
+        manager._get_current_component.return_value = LookupCreator()  # type: ignore [attr-defined]
         flat = pd.DataFrame({"sex": ["Female", "Male"], "value": [100, 200]})
-        with pytest.warns(DeprecationWarning, match="flat DataFrame"):
-            manager._build_table(LookupCreator(), flat, "test", value_columns="value")
+        with warnings.catch_warnings(record=True) as records:
+            warnings.simplefilter("always")
+            manager.build_table(flat, "test", value_columns="value")
+        deprecations = [r for r in records if issubclass(r.category, DeprecationWarning)]
+        assert len(deprecations) == 1
+        assert "flat DataFrame" in str(deprecations[0].message)
 
     def test_value_columns_argument_emits_deprecation_warning_for_indexed_input(
         self, manager: LookupTableManager
     ) -> None:
-        """Passing value_columns alongside indexed data emits a deprecation warning."""
+        """Passing value_columns alongside indexed data emits exactly one
+        ``DeprecationWarning`` mentioning ``value_columns``."""
         manager._get_current_component.return_value = LookupCreator()  # type: ignore [attr-defined]
         data = self._make_sex_age_dataframe()
-        with pytest.warns(DeprecationWarning, match="`value_columns` argument"):
+        with warnings.catch_warnings(record=True) as records:
+            warnings.simplefilter("always")
             manager.build_table(data, "test_explicit_vc", value_columns="rate")
+        deprecations = [r for r in records if issubclass(r.category, DeprecationWarning)]
+        assert len(deprecations) == 1
+        assert "`value_columns` argument" in str(deprecations[0].message)
 
     def test_value_columns_argument_no_deprecation_for_scalar(
         self, manager: LookupTableManager
@@ -1003,6 +1086,17 @@ class TestIndexedInput:
             warnings.simplefilter("error", DeprecationWarning)
             manager.build_table(5, "test_scalar_vc", value_columns="value")
 
+    def test_value_columns_none_for_scalar_uses_default(
+        self, manager: LookupTableManager
+    ) -> None:
+        """``value_columns=None`` for a scalar falls back to ``DEFAULT_VALUE_COLUMN``
+        and does not emit any deprecation warning."""
+        manager._get_current_component.return_value = LookupCreator()  # type: ignore [attr-defined]
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", DeprecationWarning)
+            table = manager.build_table(5, "test_scalar_default", value_columns=None)
+        assert table.value_columns == ["value"]
+
     def test_value_columns_argument_no_deprecation_for_list(
         self, manager: LookupTableManager
     ) -> None:
@@ -1012,20 +1106,23 @@ class TestIndexedInput:
             warnings.simplefilter("error", DeprecationWarning)
             manager.build_table([1, 2], "test_list_vc", value_columns=["a", "b"])
 
-    def test_mapping_input_emits_flat_data_deprecation(
+    def test_mapping_input_does_not_emit_deprecation_warning(
         self, manager: LookupTableManager
     ) -> None:
+        """``Mapping`` (e.g. ``dict``) is a first-class input form; it must not
+        trigger the flat-DataFrame deprecation even though it is converted
+        internally to a flat DataFrame."""
+        manager._get_current_component.return_value = LookupCreator()  # type: ignore [attr-defined]
         data = {"sex": ["Female", "Male"], "value": [100, 200]}
-        with pytest.warns(DeprecationWarning, match="flat DataFrame"):
-            manager._build_table(LookupCreator(), data, "test", value_columns="value")
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", DeprecationWarning)
+            manager.build_table(data, "test", value_columns="value")
 
     def test_set_data_recall_with_flat_dataframe_warns(
         self, manager: LookupTableManager
     ) -> None:
         indexed = self._make_sex_age_dataframe()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            table = manager._build_table(LookupCreator(), indexed, "t", value_columns=None)
+        table = manager._build_table(LookupCreator(), indexed, "t", value_columns=None)
         flat = pd.DataFrame(
             {
                 "sex": ["Female", "Female", "Male", "Male"],
@@ -1034,8 +1131,12 @@ class TestIndexedInput:
                 "rate": [0.1, 0.2, 0.3, 0.4],
             }
         )
-        with pytest.warns(DeprecationWarning, match="flat DataFrame"):
+        with warnings.catch_warnings(record=True) as records:
+            warnings.simplefilter("always")
             table.set_data(flat)
+        deprecations = [r for r in records if issubclass(r.category, DeprecationWarning)]
+        assert len(deprecations) == 1
+        assert "flat DataFrame" in str(deprecations[0].message)
 
     def test_flat_series_rejected(self, manager: LookupTableManager) -> None:
         flat_series = pd.Series([1, 2, 3])
@@ -1072,7 +1173,7 @@ class TestIndexedInput:
         self, base_config: LayeredConfigTree
     ) -> None:
         """Calling an indexed-table on a population index returns properly
-        shaped output with the population index."""
+        shaped output with the population index AND the correct per-row values."""
         component = TestPopulation()
         simulation = InteractiveContext(components=[component], configuration=base_config)
         data = pd.DataFrame(
@@ -1085,6 +1186,9 @@ class TestIndexedInput:
         assert isinstance(result, pd.DataFrame)
         assert list(result.columns) == ["rate"]
         assert result.index.equals(pop_index)
+        pop = simulation.get_population(["sex"])
+        expected = pop["sex"].map({"Female": 0.1, "Male": 0.2}).to_numpy()
+        np.testing.assert_array_equal(result["rate"].to_numpy(), expected)
 
     def test_indexed_series_call_returns_series(self, base_config: LayeredConfigTree) -> None:
         component = TestPopulation()
@@ -1100,6 +1204,43 @@ class TestIndexedInput:
         assert isinstance(result, pd.Series)
         assert result.name == "rate"
         assert result.index.equals(pop_index)
+        pop = simulation.get_population(["sex"])
+        expected = pop["sex"].map({"Female": 0.1, "Male": 0.2}).to_numpy()
+        np.testing.assert_array_equal(result.to_numpy(), expected)
+
+    def test_indexed_call_with_continuous_parameter(
+        self, base_config: LayeredConfigTree
+    ) -> None:
+        """End-to-end exercise of indexed input that combines a key column
+        (``sex``) with a continuous binned parameter (``age``)."""
+        component = TestPopulation()
+        simulation = InteractiveContext(components=[component], configuration=base_config)
+        data = self._make_sex_age_dataframe()
+        table = simulation._tables._build_table(component, data, "", value_columns=None)
+        pop_index = simulation.get_population_index()
+        result = table(pop_index)
+        assert isinstance(result, pd.DataFrame)
+        assert list(result.columns) == ["rate"]
+        assert result.index.equals(pop_index)
+        # Values should fall in {0.1, 0.2, 0.3, 0.4} (the four bins).
+        assert set(result["rate"].unique()).issubset({0.1, 0.2, 0.3, 0.4})
+
+    def test_indexed_call_on_empty_population_index(
+        self, base_config: LayeredConfigTree
+    ) -> None:
+        """Calling an indexed lookup on an empty index returns an empty result
+        of the right type/shape."""
+        component = TestPopulation()
+        simulation = InteractiveContext(components=[component], configuration=base_config)
+        data = pd.DataFrame(
+            {"rate": [0.1, 0.2]},
+            index=pd.Index(["Female", "Male"], name="sex"),
+        )
+        table = simulation._tables._build_table(component, data, "", value_columns=None)
+        result = table(pd.Index([], dtype=int))
+        assert isinstance(result, pd.DataFrame)
+        assert list(result.columns) == ["rate"]
+        assert len(result) == 0
 
     def test_indexed_column_multiindex_call_preserves_columns(
         self, base_config: LayeredConfigTree
@@ -1121,3 +1262,76 @@ class TestIndexedInput:
         assert isinstance(result.columns, pd.MultiIndex)
         assert list(result.columns) == [("rate", "low"), ("rate", "high")]
         assert result.columns.names == ["measure", "level"]
+        pop = simulation.get_population(["sex"])
+        expected_low = pop["sex"].map({"Female": 0.1, "Male": 0.3}).to_numpy()
+        expected_high = pop["sex"].map({"Female": 0.2, "Male": 0.4}).to_numpy()
+        np.testing.assert_array_equal(result[("rate", "low")].to_numpy(), expected_low)
+        np.testing.assert_array_equal(result[("rate", "high")].to_numpy(), expected_high)
+
+    def test_series_with_multiindex_row_index(self, manager: LookupTableManager) -> None:
+        """A Series whose row index is itself a MultiIndex is a valid indexed input."""
+        data = pd.Series(
+            [0.1, 0.2, 0.3, 0.4],
+            index=pd.MultiIndex.from_tuples(
+                [
+                    ("Female", "USA"),
+                    ("Female", "Canada"),
+                    ("Male", "USA"),
+                    ("Male", "Canada"),
+                ],
+                names=["sex", "location"],
+            ),
+            name="rate",
+        )
+        table = manager._build_table(LookupCreator(), data, "test", value_columns=None)
+        assert table._column_template.return_type is pd.Series
+        assert table.value_columns == ["rate"]
+        assert set(table.key_columns) == {"sex", "location"}
+        assert table.parameter_columns == []
+
+    def test_set_data_schema_change_raises(self, manager: LookupTableManager) -> None:
+        """``set_data`` must reject data that would change the column shape."""
+        table = manager._build_table(
+            LookupCreator(),
+            self._make_sex_age_dataframe(),
+            "t",
+            value_columns=None,
+        )
+        # Different value-column label ("score" instead of "rate").
+        different = pd.DataFrame(
+            {"score": [0.1, 0.2]},
+            index=pd.Index(["Female", "Male"], name="sex"),
+        )
+        with pytest.raises(ValueError, match="Cannot change column schema"):
+            table.set_data(different)
+
+    def test_set_data_flat_to_indexed_then_check_schema_lock(
+        self, manager: LookupTableManager
+    ) -> None:
+        """A flat-DataFrame-originated table can be re-set with indexed data
+        as long as the resulting template matches the locked schema.
+
+        Here we use ``value_columns="value"`` (a string) on the flat path
+        — that locks ``return_type=pd.Series`` — and re-set with an indexed
+        Series of the same label, which produces a matching template.
+        """
+        flat = pd.DataFrame(
+            {
+                "sex": ["Female", "Male"],
+                "value": [0.1, 0.2],
+            }
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            table = manager._build_table(LookupCreator(), flat, "t", value_columns="value")
+        assert table.value_columns == ["value"]
+        assert table._column_template.return_type is pd.Series
+        # Re-set with an indexed Series carrying the same value-column label.
+        indexed = pd.Series(
+            [0.3, 0.4],
+            index=pd.Index(["Female", "Male"], name="sex"),
+            name="value",
+        )
+        table.set_data(indexed)
+        assert table.value_columns == ["value"]
+        assert table._column_template.return_type is pd.Series

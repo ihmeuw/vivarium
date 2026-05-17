@@ -7,12 +7,28 @@ Provides interpolation algorithms across tabular data for ``vivarium``
 simulations.
 
 """
+from __future__ import annotations
+
 from collections.abc import Hashable, Sequence
+from typing import Any, TypeGuard
 
 import numpy as np
 import pandas as pd
 
+from vivarium.types import LookupTableData
+
 _SubTablesType = list[tuple[tuple[Hashable, ...] | Hashable | None, pd.DataFrame]]
+
+
+def is_indexed_form(
+    data: LookupTableData,
+) -> TypeGuard[pd.DataFrame | pd.Series[Any]]:
+    """Determine if ``data`` belongs on the indexed route or the flat-data route."""
+    if isinstance(data, pd.Series):
+        return True
+    if isinstance(data, pd.DataFrame):
+        return any(name is not None for name in data.index.names)
+    return False
 
 
 class Interpolation:
@@ -37,10 +53,9 @@ class Interpolation:
 
     def __init__(
         self,
-        data: pd.DataFrame,
-        categorical_parameters: Sequence[str],
-        continuous_parameters: Sequence[Sequence[str]],
-        value_columns: Sequence[Hashable],
+        data: pd.DataFrame | pd.Series[Any],
+        value_columns: list[str],
+        original_columns: pd.Index,  # type: ignore [type-arg]
         order: int,
         extrapolate: bool,
         validate: bool,
@@ -51,15 +66,18 @@ class Interpolation:
                 f"Interpolation is only supported for order 0. You specified order {order}"
             )
 
+        self.value_columns = value_columns
+        self.data = self._reshape_data(data, original_columns)
+        self._set_continuous_and_categorical_parameters()
+
         if validate:
             validate_parameters(
-                data, categorical_parameters, continuous_parameters, value_columns
+                self.data,
+                self.categorical_parameters,
+                self.continuous_parameters,
+                self.value_columns,
             )
 
-        self.categorical_parameters = categorical_parameters
-        self.data = data.copy()
-        self.continuous_parameters = continuous_parameters
-        self.value_columns = list(value_columns)
         self.order = order
         self.extrapolate = extrapolate
         self.validate = validate
@@ -89,6 +107,51 @@ class Interpolation:
                 self.extrapolate,
                 self.validate,
             )
+
+    def _reshape_data(
+        self, raw_data: pd.DataFrame | pd.Series, original_columns: pd.Index
+    ) -> LookupTableData:
+        """Get the flat representation of ``data`` for interpolation."""
+        if not isinstance(raw_data, (pd.DataFrame, pd.Series)):
+            return raw_data
+        if is_indexed_form(raw_data):
+            if isinstance(raw_data, pd.Series):
+                flat = raw_data.to_frame(name=raw_data.name)
+            else:
+                flat = raw_data.copy(deep=False)
+            flat.columns = pd.Index(self.value_columns)
+            return flat.reset_index()
+
+        # This is the deprecated path where the input data is already in flat form
+        assert isinstance(raw_data, pd.DataFrame)  # only Series/indexed paths above
+        return raw_data.rename(columns=dict(zip(list(original_columns), self.value_columns)))
+
+    def _set_continuous_and_categorical_parameters(self) -> None:
+        """Set the continuous and categorical parameters based on the interpolation data."""
+        # TODO get these parameters from the data's index before flattening in indexed case
+        all_columns = list(self.data.columns)
+
+        potential_parameter_columns = [
+            str(col).removesuffix("_start")
+            for col in all_columns
+            if str(col).endswith("_start")
+        ]
+        continuous_columns = []
+        bin_edge_columns = []
+        for column in potential_parameter_columns:
+            if f"{column}_end" in all_columns:
+                continuous_columns.append(column)
+                bin_edge_columns += [f"{column}_start", f"{column}_end"]
+
+        self.categorical_parameters = [
+            col
+            for col in all_columns
+            if col not in self.value_columns and col not in bin_edge_columns
+        ]
+
+        self.continuous_parameters: list[tuple[str, str, str]] = [
+            (p, f"{p}_start", f"{p}_end") for p in continuous_columns
+        ]
 
     def __call__(self, interpolants: pd.DataFrame) -> pd.DataFrame:
         """Get the interpolated results for the parameters in interpolants.
@@ -141,9 +204,9 @@ class Interpolation:
 def validate_parameters(
     data: pd.DataFrame,
     categorical_parameters: Sequence[str],
-    continuous_parameters: Sequence[Sequence[str]],
+    continuous_parameters: Sequence[tuple[str, str, str]],
     value_columns: Sequence[Hashable],
-) -> Sequence[Hashable]:
+) -> None:
     if data.empty:
         raise ValueError("You must supply non-empty data to create the interpolation.")
 
@@ -162,13 +225,23 @@ def validate_parameters(
             f"No non-parameter data. Available columns: {data.columns}, "
             f"Parameter columns: {set(categorical_parameters) | set(continuous_parameters)}"
         )
-    return value_columns
+
+    required_cols = {
+        *categorical_parameters,
+        *{col for p in continuous_parameters for col in p},
+        *value_columns,
+    }
+    if extra_columns := list(data.columns.difference(list(required_cols))):
+        raise ValueError(
+            "Data contains extra columns not in key_columns, parameter_columns, or "
+            f"value_columns: {extra_columns}"
+        )
 
 
 def validate_call_data(
     data: pd.DataFrame,
     categorical_parameters: Sequence[str],
-    continuous_parameters: Sequence[Sequence[str]],
+    continuous_parameters: Sequence[tuple[str, str, str]],
 ) -> None:
     if not isinstance(data, pd.DataFrame):
         raise TypeError(
@@ -197,7 +270,7 @@ def validate_call_data(
 
 
 def check_data_complete(
-    data: pd.DataFrame, continuous_parameters: Sequence[Sequence[str]]
+    data: pd.DataFrame, continuous_parameters: Sequence[tuple[str, str, str]]
 ) -> None:
     """Check that data is complete for interpolation.
 
@@ -290,7 +363,7 @@ class Order0Interp:
     def __init__(
         self,
         data: pd.DataFrame,
-        continuous_parameters: Sequence[Sequence[str]],
+        continuous_parameters: Sequence[tuple[str, str, str]],
         value_columns: list[Hashable],
         extrapolate: bool,
         validate: bool,

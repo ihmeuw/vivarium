@@ -49,8 +49,8 @@ At initialization time, the
 :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>` examines the
 provided data and configures itself accordingly. If the data is a scalar value
 (or list/tuple of scalars), the table simply broadcasts those values over the
-population index when called. If the data is a :class:`pandas.DataFrame`, the
-table delegates to an
+population index when called. If the data is a :class:`pandas.DataFrame` or
+:class:`pandas.Series`, the table delegates to an
 :class:`Interpolation <vivarium.framework.lookup.interpolation.Interpolation>`
 object that handles both categorical and continuous parameter lookups. The
 :class:`Interpolation <vivarium.framework.lookup.interpolation.Interpolation>`
@@ -58,6 +58,44 @@ groups the data by any categorical (key) columns and then, for each group,
 finds the correct bin for any continuous parameters. Tables with only
 categorical parameters are simply the special case where there are no
 continuous parameters to bin on.
+
+The recommended way to supply tabular data is in *indexed form*: a
+:class:`pandas.DataFrame` (or :class:`pandas.Series`) whose row index — a named
+:class:`pandas.Index` or :class:`pandas.MultiIndex` — carries the parameter/key
+columns and whose DataFrame columns are exactly the value columns. Row-index
+level names following the ``<name>_start`` / ``<name>_end`` convention are
+treated as continuous binned ranges; other names are treated as exact-match
+key columns. A :class:`pandas.Series` input causes the table to return a
+:class:`pandas.Series`; a :class:`pandas.DataFrame` input (including with a
+column :class:`pandas.MultiIndex`) returns a :class:`pandas.DataFrame` with
+the same column structure as the input.
+
+.. code-block:: python
+
+    import pandas as pd
+
+    data = pd.DataFrame(
+        {"rate": [0.1, 0.2, 0.3, 0.4]},
+        index=pd.MultiIndex.from_tuples(
+            [
+                ("Female", 0.0, 50.0),
+                ("Female", 50.0, 125.0),
+                ("Male", 0.0, 50.0),
+                ("Male", 50.0, 125.0),
+            ],
+            names=["sex", "age_start", "age_end"],
+        ),
+    )
+    table = builder.lookup.build_table(data, name="rate_table")
+
+.. note::
+
+   Passing a *flat* :class:`pandas.DataFrame` — one whose row index is the
+   default :class:`pandas.RangeIndex`, with parameter/key columns sitting as
+   ordinary columns alongside the value columns — is still supported but
+   deprecated. The `Column Detection`_ section below describes how parameter,
+   key, and value columns are inferred from a flat DataFrame. New code should
+   prefer the indexed form above.
 
 .. note::
 
@@ -196,9 +234,16 @@ following data source types are supported:
 Column Detection
 ^^^^^^^^^^^^^^^^
 
-When building a lookup table from a :class:`pandas.DataFrame` using ``data_sources``,
-the component automatically determines key columns, parameter columns, and value columns
-based on the data structure:
+.. note::
+
+   The column-detection rules below apply only to the deprecated flat
+   :class:`pandas.DataFrame` form. With the recommended indexed form, value
+   columns are inferred from the DataFrame columns (or the Series name) and
+   key / parameter columns come from the named row-index levels.
+
+When building a lookup table from a flat :class:`pandas.DataFrame` using
+``data_sources``, the component automatically determines key columns,
+parameter columns, and value columns based on the data structure:
 
 - **Value columns** can be provided as an argument to :meth:`~vivarium.component.Component.build_lookup_table`
   If value columns are not provided, it will default to ``"value"``.
