@@ -1,33 +1,11 @@
 **4.2.0 - TBD**
 
-- Feature: Support indexed (named ``Index`` / ``MultiIndex``) ``pandas.DataFrame`` and
-  ``pandas.Series`` inputs to ``LookupTableInterface.build_table``. Row-index level
-  names that follow the ``<name>_start`` / ``<name>_end`` convention are treated as
-  continuous parameter columns; other level names are treated as exact-match key
-  columns. Column ``MultiIndex`` is also preserved on output.
-- API: ``LookupTable.value_columns`` is now typed ``pandas.Index[Any]`` (was
-  ``list[str]``) to accommodate ``None`` (nameless Series) and tuple labels (column
-  ``MultiIndex``). Callers that compared the property against a list (e.g.
-  ``table.value_columns == ["c"]`` or ``if "rate" in table.value_columns``) will
-  need to materialize a list first (``list(table.value_columns) == ["c"]``) — note
-  that ``==`` on a ``pandas.Index`` returns an elementwise boolean array, not a
-  scalar.
-- API (advanced): ``Interpolation.__init__`` no longer takes
-  ``categorical_parameters`` / ``continuous_parameters`` arguments; it now accepts
-  a ``returned_columns: pandas.Index`` argument and infers the parameter columns
-  from the input data using the ``<name>_start`` / ``<name>_end`` convention.
-  Direct ``Interpolation`` callers (rare) must migrate to the new signature.
-- API: ``LookupTable._returned_column_schema`` is the new home of the locked
-  column-shape contract (replaces the prior ``_column_template`` attribute referenced
-  in pre-release iterations of this branch). The schema-lock comparison is exposed
-  via the ``_schemas_match`` helper rather than a custom ``__eq__``.
-- Raise: Passing ``value_columns`` alongside an indexed ``DataFrame`` / ``Series`` now
-  raises ``ValueError``. Value columns are inferred from the data on the indexed
-  path; the previous deprecation warning silently overrode the user's argument.
-- Deprecation: Passing a flat ``pandas.DataFrame`` (one whose row index is the default
-  ``RangeIndex``) to ``build_table`` / ``set_data`` is deprecated. Construct your data
-  with parameter/key columns on a named row index instead. Scalars, lists/tuples, and
-  ``Mapping`` inputs remain fully supported.
+- Feature: ``LookupTable`` accepts ``DataFrame``/``Series`` with lookup attributes on the row index.
+- API: ``LookupTable.value_columns`` is now a ``pandas.Index`` (was ``list[str]``).
+- API: ``Interpolation.__init__`` infers parameter columns from data; takes ``value_columns``.
+- Raise: ``value_columns`` alongside an indexed ``DataFrame``/``Series`` is now an error.
+- Deprecation: passing a flat ``DataFrame`` to ``build_table``/``set_data`` is deprecated.
+- Deprecation: passing a ``Mapping`` to ``build_table``/``set_data`` is deprecated.
 
 **4.1.5 - 05/11/26**
 
