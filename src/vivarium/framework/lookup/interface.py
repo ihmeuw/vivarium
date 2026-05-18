@@ -132,22 +132,35 @@ class LookupTableInterface(Interface):
         """Construct and register a :class:`LookupTable <vivarium.framework.lookup.table.LookupTable>`
         from input data.
 
-        The recommended form of ``data`` is a :class:`pandas.DataFrame` (or
-        :class:`pandas.Series`) whose row index carries the parameter/key
-        columns and whose DataFrame columns carry the value columns. Row-index
-        level names that follow the ``<name>_start`` / ``<name>_end`` convention
-        are treated as continuous binned ranges and interpolated using order 0
-        (step function) interpolation; other row-index level names are treated
-        as exact-match key columns. A :class:`pandas.Series` input causes the
-        table to return a :class:`pandas.Series`; a :class:`pandas.DataFrame`
-        input (including with a column :class:`pandas.MultiIndex`) causes the
-        table to return a :class:`pandas.DataFrame` with the same column
-        structure as the input.
+        Data can be provided as a :class:`pandas.DataFrame`, a
+        :class:`pandas.Series`, a scalar, or a list/tuple of scalars. The form of
+        the input data determines what form the result of calling the resulting
+        lookup table will take. If a scalar or list/tuple is provided, that
+        result will be broadcast over the calling index. Scalars will return a
+        Series, whereas a list/tuple will return a DataFrame. If a DataFrame or
+        Series is provided, the returned columns will be in exactly the form of
+        the input data.
 
-        Scalars and lists/tuples of scalars are also supported; when called,
-        the table broadcasts the value(s) over the population index. Mappings
-        (e.g., ``dict``) are accepted and converted to a ``DataFrame``
-        internally.
+        Row-index level names that follow the ``<name>_start`` / ``<name>_end``
+        convention are treated as continuous binned ranges and interpolated
+        using order 0 (step function) interpolation; other row-index level names
+        are treated as exact-match categorical columns.
+
+        Value columns are not permitted when the input data is a
+        :class:`pandas.DataFrame` or :class:`pandas.Series`, as the value
+        columns are inferred from the DataFrame columns or the Series name. For
+        list/tuple inputs, value columns are required to name the resulting
+        DataFrame columns. For scalar inputs, value columns can be provided to
+        name the resulting Series column; if not provided, the resulting Series
+        will be unnamed.
+
+        .. deprecated:: 4.2.0
+            Passing a Mapping or a flat :class:`pandas.DataFrame` (one whose
+            row index is the default :class:`pandas.RangeIndex`) is
+            deprecated. Construct your DataFrame (or :class:`pandas.Series`)
+            with parameter/key columns on a named ``Index`` or ``MultiIndex``
+            and value columns as the DataFrame columns. Scalars and
+            lists/tuples remain fully supported.
 
         Parameters
         ----------
@@ -161,13 +174,7 @@ class LookupTableInterface(Interface):
             empty ``name`` produces a trailing dot in that key.
         value_columns
             Names of the value column(s) of the resulting lookup table.
-
-            * For an *indexed* DataFrame or Series, ``value_columns`` is
-              inferred from the data; passing it explicitly raises a
-              :class:`ValueError`.
-            * For a scalar, a list/tuple of scalars, or a legacy flat
-              DataFrame, ``value_columns`` is honored (and is required to
-              name the output for list/tuple inputs).
+            Should only be provided for scalar or list/tuple input data.
 
         Returns
         -------
@@ -178,14 +185,6 @@ class LookupTableInterface(Interface):
         ValueError
             If ``value_columns`` is provided alongside an indexed
             ``pandas.DataFrame`` or ``pandas.Series``.
-
-        .. deprecated:: 4.2.0
-            Passing a flat :class:`pandas.DataFrame` (one whose row index is
-            the default :class:`pandas.RangeIndex`) is deprecated. Construct
-            your DataFrame (or :class:`pandas.Series`) with parameter/key
-            columns on a named ``Index`` or ``MultiIndex`` and value columns
-            as the DataFrame columns. Scalars, lists/tuples, and Mapping
-            inputs remain fully supported.
         """
         if isinstance(data, pd.DataFrame) and not has_named_row_index(data):
             warnings.warn(

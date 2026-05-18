@@ -290,16 +290,30 @@ def test_component_lookup_table_configuration(hdf_file_path: Path) -> None:
     assert isinstance(component.cooling_time_table.data, pd.DataFrame)
 
     # Check for correct columns in lookup tables
-    assert component.favorite_team_table.key_columns == ["test_column_1"]
-    assert not component.favorite_team_table.parameter_columns
-    assert component.favorite_color_table.key_columns == ["test_column_2"]
-    assert component.favorite_color_table.parameter_columns == ["test_column_3"]
-    assert component.favorite_number_table.key_columns == []
-    assert component.favorite_number_table.parameter_columns == ["test_column_3"]
+    assert component.favorite_team_table.interpolation is not None
+    assert component.favorite_color_table.interpolation is not None
+    assert component.favorite_number_table.interpolation is not None
+    assert component.cooling_time_table.interpolation is not None
+    assert component.favorite_team_table.interpolation.categorical_parameters == [
+        "test_column_1"
+    ]
+    assert not component.favorite_team_table.interpolation.continuous_parameters
+    assert component.favorite_color_table.interpolation.categorical_parameters == [
+        "test_column_2"
+    ]
+    assert component.favorite_color_table.interpolation.continuous_parameters == [
+        "test_column_3"
+    ]
+    assert component.favorite_number_table.interpolation.categorical_parameters == []
+    assert component.favorite_number_table.interpolation.continuous_parameters == [
+        "test_column_3"
+    ]
     assert list(component.favorite_scalar_table.value_columns) == ["scalar"]
     assert list(component.favorite_list_table.value_columns) == ["column_1", "column_2"]
-    assert component.cooling_time_table.key_columns == ["test_column_1"]
-    assert not component.cooling_time_table.parameter_columns
+    assert component.cooling_time_table.interpolation.categorical_parameters == [
+        "test_column_1"
+    ]
+    assert not component.cooling_time_table.interpolation.continuous_parameters
 
     # Check for correct data in lookup tables
     assert component.favorite_team_table.data.equals(favorite_team.reset_index())

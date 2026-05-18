@@ -246,10 +246,10 @@ def test_validate_parameters__empty_data() -> None:
     with pytest.raises(ValueError, match="must supply non-empty data"):
         validate_parameters(
             pd.DataFrame(
-                columns=["age_left", "age_right", "sex", "year_left", "year_right", "value"]
+                columns=["age_start", "age_end", "sex", "year_start", "year_end", "value"]
             ),
             ["sex"],
-            [("age", "age_left", "age_right"), ("year", "year_left", "year_right")],
+            ["age", "year"],
             ["value"],
         )
 
@@ -271,7 +271,7 @@ def test_validate_parameters__extra_columns() -> None:
         validate_parameters(
             data,
             ["sex"],
-            [("age", "age_start", "age_end")],
+            ["age"],
             ["value"],
         )
 
@@ -347,11 +347,7 @@ def test_order0interp() -> None:
 
     interp = Order0Interp(
         data,
-        [
-            ("age", "age_start", "age_end"),
-            ("year", "year_start", "year_end"),
-            ("height", "height_start", "height_end"),
-        ],
+        ["age", "year", "height"],
         ["value"],
         True,
         True,
@@ -636,13 +632,11 @@ def test_order0interp_validate_option_invalid_data(validate: bool) -> None:
 
     if validate:
         with pytest.raises(ValueError) as error:
-            interp = Order0Interp(
-                data, [("year", "year_start", "year_end")], [], True, validate
-            )
+            interp = Order0Interp(data, ["year"], [], True, validate)
             message = error.value.args[0]
             assert "year_start" in message and "year_end" in message
     else:
-        interp = Order0Interp(data, [("year", "year_start", "year_end")], [], True, validate)
+        interp = Order0Interp(data, ["year"], [], True, validate)
 
 
 @pytest.mark.parametrize("validate", [True, False])
@@ -651,6 +645,4 @@ def test_order0interp_validate_option_valid_data(validate: bool) -> None:
         {"year_start": [1990, 1995], "year_end": [1995, 2000], "value": [5, 3]}
     )
 
-    interp = Order0Interp(
-        data, [("year", "year_start", "year_end")], ["value"], True, validate
-    )
+    interp = Order0Interp(data, ["year"], ["value"], True, validate)

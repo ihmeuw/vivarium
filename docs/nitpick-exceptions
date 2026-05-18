@@ -51,6 +51,7 @@ py:class vivarium.framework.utilities.TimeValue
 py:class T
 py:class vivarium.framework.components.manager.T
 py:class vivarium.framework.components.manager.C
+py:class vivarium.framework.lookup.table.T
 
 # layered_config_tree
 py:class LayeredConfigTree
@@ -60,6 +61,7 @@ py:exc layered_config_tree.exceptions.ConfigurationError
 # Special methods that Sphinx can't resolve
 py:meth __init__
 py:meth __repr__
+py:meth __call__
 
 # vivarium internal references that may not be in the docs
 py:class vivarium.framework.population.PopulationView

@@ -18,7 +18,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.lookup.interface import LookupTableInterface
 from vivarium.framework.lookup.manager import LookupTableManager
-from vivarium.framework.lookup.table import LookupTable, _ColumnSchema, _schemas_match
+from vivarium.framework.lookup.table import LookupTable, _ColumnSchema
 from vivarium.testing_utilities import TestPopulation, build_table, metadata
 from vivarium.types import DataFrameMapping, LookupTableData, ScalarValue
 
@@ -456,8 +456,9 @@ class TestValidateBuildTableParameters:
         )
         table = lookup_manager._build_table(LookupCreator(), data, "test", value_columns=None)
         assert list(table.value_columns) == ["c"]
-        assert table.key_columns == ["a"]
-        assert table.parameter_columns == ["b"]
+        assert table.interpolation is not None
+        assert table.interpolation.categorical_parameters == ["a"]
+        assert table.interpolation.continuous_parameters == ["b"]
 
     def test_value_columns_with_indexed_input_raises(
         self, lookup_manager: LookupTableManager
@@ -487,8 +488,9 @@ def test__build_table_from_dict(base_config: LayeredConfigTree) -> None:
     # we get the expected return type from _build_table
     table = manager._build_table(component, data, "", value_columns=["c"])  # type: ignore [arg-type]
     assert isinstance(table, LookupTable)
-    assert table.key_columns == ["b"]
-    assert table.parameter_columns == ["a"]
+    assert table.interpolation is not None
+    assert table.interpolation.categorical_parameters == ["b"]
+    assert table.interpolation.continuous_parameters == ["a"]
     assert list(table.value_columns) == ["c"]
 
 
@@ -894,8 +896,17 @@ class TestLookupTableSetData:
             assert component.table.data == expected_data
 
         # Check column properties
-        assert component.table.key_columns == expected_key_columns
-        assert component.table.parameter_columns == expected_parameter_columns
+        if component.table.interpolation is None:
+            assert expected_key_columns == []
+            assert expected_parameter_columns == []
+        else:
+            assert (
+                component.table.interpolation.categorical_parameters == expected_key_columns
+            )
+            assert (
+                component.table.interpolation.continuous_parameters
+                == expected_parameter_columns
+            )
 
     @pytest.mark.parametrize(
         "component_name,expected_data,expected_key_columns,expected_parameter_columns",
@@ -935,22 +946,22 @@ class TestLookupTableSetData:
 
 
 class TestReturnedColumnSchema:
-    """Unit tests for ``_schemas_match`` -- the schema-lock invariant."""
+    """Unit tests for ``_ColumnSchema.matches`` -- the schema-lock invariant."""
 
     def test_match_identical(self) -> None:
         a = _ColumnSchema(value_columns=pd.Index(["x"]), return_type=pd.Series)
         b = _ColumnSchema(value_columns=pd.Index(["x"]), return_type=pd.Series)
-        assert _schemas_match(a, b)
+        assert _ColumnSchema.matches(a, b)
 
     def test_match_different_return_type(self) -> None:
         a = _ColumnSchema(value_columns=pd.Index(["x"]), return_type=pd.Series)
         b = _ColumnSchema(value_columns=pd.Index(["x"]), return_type=pd.DataFrame)
-        assert not _schemas_match(a, b)
+        assert not _ColumnSchema.matches(a, b)
 
     def test_match_different_columns(self) -> None:
         a = _ColumnSchema(value_columns=pd.Index(["x"]), return_type=pd.DataFrame)
         b = _ColumnSchema(value_columns=pd.Index(["y"]), return_type=pd.DataFrame)
-        assert not _schemas_match(a, b)
+        assert not _ColumnSchema.matches(a, b)
 
     def test_match_multiindex(self) -> None:
         cols_a = pd.MultiIndex.from_tuples(
@@ -961,17 +972,17 @@ class TestReturnedColumnSchema:
         )
         a = _ColumnSchema(value_columns=cols_a, return_type=pd.DataFrame)
         b = _ColumnSchema(value_columns=cols_b, return_type=pd.DataFrame)
-        assert _schemas_match(a, b)
+        assert _ColumnSchema.matches(a, b)
 
     def test_match_multiindex_differs_only_in_names(self) -> None:
-        """``pd.Index.equals`` ignores level names; ``_schemas_match`` must
+        """``pd.Index.equals`` ignores level names; ``_ColumnSchema.matches`` must
         catch the difference so that a re-set_data with reordered/renamed
         levels fails."""
         cols_a = pd.MultiIndex.from_tuples([("rate", "low")], names=["measure", "level"])
         cols_b = pd.MultiIndex.from_tuples([("rate", "low")], names=["metric", "tier"])
         a = _ColumnSchema(value_columns=cols_a, return_type=pd.DataFrame)
         b = _ColumnSchema(value_columns=cols_b, return_type=pd.DataFrame)
-        assert not _schemas_match(a, b)
+        assert not _ColumnSchema.matches(a, b)
 
 
 class TestIndexedInput:
@@ -1465,7 +1476,7 @@ class TestIndexedInput:
         self, lookup_manager: LookupTableManager
     ) -> None:
         """Integration test for the load-bearing ``list(.names)`` check in
-        ``_schemas_match``: column-MultiIndex level *names* changing must
+        ``_ColumnSchema.matches``: column-MultiIndex level *names* changing must
         trigger schema-lock failure even though the tuples are identical."""
         cols_a = pd.MultiIndex.from_tuples(
             [("rate", "low"), ("rate", "high")], names=["measure", "level"]

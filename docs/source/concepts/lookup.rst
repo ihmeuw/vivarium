@@ -59,52 +59,63 @@ finds the correct bin for any continuous parameters. Tables with only
 categorical parameters are simply the special case where there are no
 continuous parameters to bin on.
 
-The recommended way to supply tabular data is in *indexed form*: a
-:class:`pandas.DataFrame` (or :class:`pandas.Series`) whose row index — a named
-:class:`pandas.Index` or :class:`pandas.MultiIndex` — carries the parameter/key
-columns and whose DataFrame columns are exactly the value columns. Row-index
-level names following the ``<name>_start`` / ``<name>_end`` convention are
-treated as continuous binned ranges; other names are treated as exact-match
-key columns. A :class:`pandas.Series` input causes the table to return a
+Scalars and lists/tuples of scalars are first-class input forms — they're
+broadcast over the population index when the table is called and require no
+further structure. When supplying tabular data, however, the data should be
+a :class:`pandas.DataFrame` or :class:`pandas.Series` whose row index — a
+named :class:`pandas.Index` or :class:`pandas.MultiIndex` — carries the
+lookup attributes, with the value columns living on the DataFrame columns
+(or being captured by the Series name). Row-index level names following the
+``<name>_start`` / ``<name>_end`` convention are treated as continuous binned
+ranges; other names are treated as exact-match key columns. A
+:class:`pandas.Series` input causes the table to return a
 :class:`pandas.Series`; a :class:`pandas.DataFrame` input (including with a
 column :class:`pandas.MultiIndex`) returns a :class:`pandas.DataFrame` with
 the same column structure as the input.
 
-.. code-block:: python
+.. testcode::
 
-    import pandas as pd
+   import pandas as pd
+   from vivarium import Component, InteractiveContext
+   from vivarium.framework.engine import Builder
+   from vivarium.testing_utilities import TestPopulation
 
-    data = pd.DataFrame(
-        {"rate": [0.1, 0.2, 0.3, 0.4]},
-        index=pd.MultiIndex.from_tuples(
-            [
-                ("Female", 0.0, 50.0),
-                ("Female", 50.0, 125.0),
-                ("Male", 0.0, 50.0),
-                ("Male", 50.0, 125.0),
-            ],
-            names=["sex", "age_start", "age_end"],
-        ),
-    )
-    table = builder.lookup.build_table(data, name="rate_table")
+   data = pd.DataFrame(
+       {"rate": [0.1, 0.2, 0.3, 0.4]},
+       index=pd.MultiIndex.from_tuples(
+           [
+               ("Female", 0.0, 50.0),
+               ("Female", 50.0, 125.0),
+               ("Male", 0.0, 50.0),
+               ("Male", 50.0, 125.0),
+           ],
+           names=["sex", "age_start", "age_end"],
+       ),
+   )
+
+   class RateTableComponent(Component):
+       def setup(self, builder: Builder) -> None:
+           self.rate_table = builder.lookup.build_table(data, name="rate_table")
+
+   sim = InteractiveContext(components=[TestPopulation(), RateTableComponent()])
 
 .. note::
 
-   Parameter and key columns must live **only** on the row index, not on
-   ``.columns``. When migrating from a flat DataFrame, prefer the default
-   ``data.set_index([...])`` (which drops the columns from ``.columns``)
-   over ``data.set_index([...], drop=False)`` — the latter leaves the
-   parameter/key columns duplicated on ``.columns`` and trips the
-   "value column name collides with index level name" validation.
+   In the DataFrame/Series form, lookup attributes must live **only** on the
+   row index, not on ``.columns``. When migrating from a flat DataFrame,
+   prefer the default ``data.set_index([...])`` (which drops the columns
+   from ``.columns``) over ``data.set_index([...], drop=False)`` — the
+   latter leaves the lookup attributes duplicated on ``.columns`` and trips
+   the "value column name collides with index level name" validation.
 
 .. note::
 
    Passing a *flat* :class:`pandas.DataFrame` — one whose row index is the
-   default :class:`pandas.RangeIndex`, with parameter/key columns sitting as
+   default :class:`pandas.RangeIndex`, with lookup attributes sitting as
    ordinary columns alongside the value columns — is still supported but
-   deprecated. The `Column Detection`_ section below describes how parameter,
-   key, and value columns are inferred from a flat DataFrame. New code should
-   prefer the indexed form above.
+   deprecated. The `Column Detection`_ section below describes how lookup
+   attributes and value columns are inferred from a flat DataFrame. New code
+   should put the lookup attributes on the row index as shown above.
 
 .. note::
 
@@ -329,36 +340,50 @@ named ``sim``, you can construct a lookup table in the following way using
 the interface from the builder. You don't have to provide a name for the
 table, but it is recommended to do so for clarity and for ease of debugging.
 
-In the recommended *indexed form*, the parameter/key columns live on the row
-index and the single :class:`pandas.Series` column becomes the table's return
-value. The Series ``name`` (``"BMI"`` below) is what the returned Series will
-be named when the table is called.
+Below, the lookup attributes live on the row index of a
+:class:`pandas.Series`, and the Series ``name`` (``"BMI"``) names the
+returned Series when the table is called. The
+``BMITable`` component below uses ``builder.lookup.build_table`` during
+``setup`` (the standard way components access the lookup interface) and
+exposes the resulting table for later use.
 
 
-.. code-block:: python
+.. testcode::
 
-    > import pandas as pd
-    > data = pd.Series(
-    ...     [20, 25, 30, 27] * 2,
-    ...     index=pd.MultiIndex.from_tuples(
-    ...         [
-    ...             ("Male", 0, 20), ("Male", 20, 40), ("Male", 40, 60), ("Male", 60, 100),
-    ...             ("Female", 0, 20), ("Female", 20, 40), ("Female", 40, 60), ("Female", 60, 100),
-    ...         ],
-    ...         names=["sex", "age_start", "age_end"],
-    ...     ),
-    ...     name="BMI",
-    ... )
-    > bmi = sim.builder.lookup.build_table(data, name="bmi")
-    > pop_index = sim.get_population_index()
-    > bmi(pop_index).head()  # returns BMI values for the population
+   import pandas as pd
+   from vivarium import Component, InteractiveContext
+   from vivarium.framework.engine import Builder
+   from vivarium.testing_utilities import TestPopulation
 
-      0     20.0
-      1     20.0
-      2     30.0
-      3     27.0
-      4     25.0
-      Name: BMI, dtype: float64
+   data = pd.Series(
+       [20, 25, 30, 27] * 2,
+       index=pd.MultiIndex.from_tuples(
+           [
+               ("Male", 0, 20), ("Male", 20, 40),
+               ("Male", 40, 60), ("Male", 60, 100),
+               ("Female", 0, 20), ("Female", 20, 40),
+               ("Female", 40, 60), ("Female", 60, 100),
+           ],
+           names=["sex", "age_start", "age_end"],
+       ),
+       name="BMI",
+   )
+
+   class BMITable(Component):
+       def setup(self, builder: Builder) -> None:
+           self.bmi = builder.lookup.build_table(data, name="bmi")
+
+   bmi_component = BMITable()
+   sim = InteractiveContext(components=[TestPopulation(), bmi_component])
+   result = bmi_component.bmi(sim.get_population_index())
+
+The returned object is a :class:`pandas.Series` indexed by the population,
+named after the input Series:
+
+.. testcode::
+
+   assert result.name == "BMI"
+   assert set(result.unique()).issubset({20, 25, 27, 30})
 
 .. note::
 
