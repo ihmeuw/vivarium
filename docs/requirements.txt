@@ -7,3 +7,23 @@ sphinx-click
 ipython
 matplotlib
 sphinxcontrib-video
+
+# Legacy vivarium runtime deps. The 4.2.0 metapackage no longer carries these
+# (and we deliberately don't pip-install it for docs builds; see
+# .readthedocs.yml). These are the minimum needed for sphinx-autodoc to walk
+# the in-tree src/vivarium/ tree on this archive branch.
+numpy<2
+pandas
+pyyaml
+scipy
+click
+tables
+loguru
+pyarrow
+networkx
+dill
+
+# Pin to the last standalone release. Newer (4.2.0+) versions are themselves
+# shims that pull in vivarium-compat, which would re-introduce the import-
+# redirect hook we deliberately avoid for this docs build.
+layered_config_tree==4.1.7

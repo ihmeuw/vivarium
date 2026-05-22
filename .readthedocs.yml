@@ -14,11 +14,11 @@ build:
     python: "3.12"
 python:
   install:
-      # Install the project itself. The 4.2.0+ metapackage ships no code, but
-      # pip-installing it triggers setuptools_scm to write
-      # src/vivarium/_version.py, and pulls in vivarium-engine (which provides
-      # the runtime deps autodoc needs).
-    - method: pip
-      path: .
-      # Sphinx build dependencies for the legacy docs (in-tree src/ layout).
+      # NOTE: we deliberately do NOT `pip install .` here. The 4.2.0
+      # metapackage pulls in vivarium-compat, whose import hook redirects
+      # vivarium.framework -> vivarium.engine.framework. That breaks the
+      # legacy `import vivarium` chain we need for autodoc on this archive
+      # branch (e.g. `from vivarium.framework.artifact import Artifact`).
+      # Instead we install just the sphinx + legacy runtime deps directly;
+      # conf.py prepends src/ to sys.path and writes _version.py.
     - requirements: docs/requirements.txt

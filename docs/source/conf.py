@@ -21,7 +21,17 @@ from pathlib import Path
 # so the legacy `vivarium` module is not importable from site-packages on
 # this branch. Prepend the in-tree src/ layout so sphinx-autodoc can import
 # the pre-monorepo source directly for docs builds on this archive branch.
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+_SRC_DIR = Path(__file__).resolve().parents[2] / "src"
+sys.path.insert(0, str(_SRC_DIR))
+
+# src/vivarium/_version.py is gitignored and is normally written at install
+# time by setuptools_scm. Since the docs build deliberately does NOT
+# pip-install the project (to avoid pulling in vivarium-compat, whose
+# import hook would redirect vivarium.framework imports and break autodoc
+# on the legacy tree), we write it here with the archive version.
+_version_file = _SRC_DIR / "vivarium" / "_version.py"
+if not _version_file.exists():
+    _version_file.write_text('__version__ = "4.2.0"\n')
 
 import vivarium
 
