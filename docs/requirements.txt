@@ -1,0 +1,9 @@
+# Sphinx build dependencies for the legacy vivarium docs on ReadTheDocs.
+# These match the deps the pre-archive setup.py exposed via the [docs] extra.
+sphinx<9.0.0
+sphinx-autodoc-typehints
+sphinx-rtd-theme>=2.0.0
+sphinx-click
+ipython
+matplotlib
+sphinxcontrib-video

@@ -1,3 +1,19 @@
+**4.2.0 - 05/22/26**
+
+Temporary shim release. This is a backward-compatibility shim - it exists only so
+``pip install vivarium`` continues to resolve. The real package has been renamed
+to ``vivarium-engine`` and the import path has moved to ``vivarium.engine``.
+
+- Installing this version pulls in ``vivarium-engine>=5.0.0`` and ``vivarium-compat>=0.6.0``
+  (an import hook that redirects ``import vivarium`` to the ``vivarium.engine.*``
+  equivalent with a ``DeprecationWarning``).
+- The standalone ``ihmeuw/vivarium`` repository has been archived; development continues
+  in the ``ihmeuw/vivarium-suite`` monorepo under ``libs/engine/``.
+
+A future release will remove the code completely. We are keeping it temporarily
+to allow for ReadtheDocs builds to continue to resolve for downstream packages that
+are linking to ``vivarium``.
+
 **4.1.5 - 05/11/26**
 
 - Feature: Convert stratified observer object columns to categorical

@@ -17,6 +17,12 @@ import sys
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 from pathlib import Path
 
+# The 4.2.0+ vivarium PyPI distribution is a metapackage that ships no code,
+# so the legacy `vivarium` module is not importable from site-packages on
+# this branch. Prepend the in-tree src/ layout so sphinx-autodoc can import
+# the pre-monorepo source directly for docs builds on this archive branch.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+
 import vivarium
 
 base_dir = Path(vivarium.__file__).parent

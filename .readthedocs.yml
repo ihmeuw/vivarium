@@ -14,8 +14,11 @@ build:
     python: "3.12"
 python:
   install:
-      # This runs pip install .[docs] from the project root.
+      # Install the project itself. The 4.2.0+ metapackage ships no code, but
+      # pip-installing it triggers setuptools_scm to write
+      # src/vivarium/_version.py, and pulls in vivarium-engine (which provides
+      # the runtime deps autodoc needs).
     - method: pip
       path: .
-      extra_requirements:
-        - docs
+      # Sphinx build dependencies for the legacy docs (in-tree src/ layout).
+    - requirements: docs/requirements.txt
