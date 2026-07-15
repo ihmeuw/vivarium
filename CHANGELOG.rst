@@ -1,3 +1,8 @@
+**4.1.6 - 07/15/26**
+
+Final release. Adds an archive banner to the README pointing at the ``vivarium-suite``
+monorepo (``libs/engine/``, published as ``vivarium-engine``).
+
 **4.1.5 - 05/11/26**
 
 - Feature: Convert stratified observer object columns to categorical

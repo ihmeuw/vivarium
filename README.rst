@@ -2,6 +2,44 @@
 Vivarium
 ========
 
+**NOTE: This repository is archived and will receive no further updates.**
+
+The ``vivarium`` package has been renamed and migrated into the
+`vivarium-suite monorepo <https://github.com/ihmeuw/vivarium-suite>`_.
+
+What changed
+------------
+
+- **PyPI distribution:** ``vivarium`` -> ``vivarium-engine``
+- **Import path:** ``vivarium`` -> ``vivarium.engine``
+- **Source:** ``ihmeuw/vivarium`` (archived) ->
+  ``ihmeuw/vivarium-suite`` (under ``libs/engine/``)
+- **Docs:** https://vivarium-engine.readthedocs.io/
+
+The final release on PyPI (``v4.1.6``) ships the same code as ``v4.1.5`` with this
+banner added. ``pip install vivarium`` will keep resolving and importing as it did
+in ``v4.1.5``, but the code is frozen and will not receive updates.
+
+To migrate fully to the new package
+-----------------------------------
+
+New development should install ``vivarium-engine`` and import from ``vivarium.engine``.
+
+**Install:**
+
+.. code-block:: bash
+
+    pip install vivarium-engine  # was: pip install vivarium
+
+**Import:**
+
+.. code-block:: python
+
+    import vivarium.engine  # was: import vivarium
+
+Original package overview
+=========================
+
 .. image:: https://badge.fury.io/py/vivarium.svg
     :target: https://badge.fury.io/py/vivarium
 
