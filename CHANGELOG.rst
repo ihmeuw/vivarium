@@ -3,6 +3,14 @@
 Final release. Adds an archive banner to the README pointing at the ``vivarium-suite``
 monorepo (``libs/engine/``, published as ``vivarium-engine``).
 
+**4.2.0 - 05/22/26** (YANKED)
+
+Metapackage/shim approach: shipped no code and pulled ``vivarium-engine`` +
+``vivarium-compat`` to bridge ``import vivarium`` to ``vivarium.engine``.
+Yanked because the team abandoned the compat-bridge path; the final release
+of this repo is ``v4.1.6`` instead, which ships ``v4.1.5``'s code with an
+archive banner.
+
 **4.1.5 - 05/11/26**
 
 - Feature: Convert stratified observer object columns to categorical
