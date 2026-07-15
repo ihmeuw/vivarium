@@ -15,7 +15,7 @@ jobs:
           fetch-depth: 0
       - name: Validate version
         run: |
-          pip install vivarium_build_utils
+          pip install "vivarium_build_utils<4.0.0"
           make validate-tag
       - name: Validate Release Date
         run: |
